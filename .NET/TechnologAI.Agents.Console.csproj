@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Agent\.NET 6.0\Technologai.csproj" />
+    <ProjectReference Include="..\..\..\Agent\.NET\TechnologAI.Agent.csproj" />
   </ItemGroup>
 
 </Project>
