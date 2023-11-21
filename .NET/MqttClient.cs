@@ -35,10 +35,10 @@ namespace Technologai
                 _isConnecting = true;
                 var options = new MqttClientOptionsBuilder()
                 //.WithWebSocketServer($"broker.staging.technologai.com:{PORT}")
-                .WithTcpServer($"broker-qvn0i6zv.b4a.run", 8883)
-                //.WithWebSocketServer($"localhost:{PORT}")
+                //.WithTcpServer($"broker-qvn0i6zv.b4a.run", 8883)
+                .WithWebSocketServer($"localhost:{PORT}")
                 //.WithWebSocketServer($"{new Uri(_identity.Authority.BrokerUri).Host}:{PORT}")
-                .WithTls()
+                //.WithTls()
                 .WithCredentials(_identity.Tokens[_identity.Authority.BrokerUri], "password")
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();
