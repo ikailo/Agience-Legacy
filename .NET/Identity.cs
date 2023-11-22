@@ -5,7 +5,7 @@ using System.Net.Http.Json;
 using System.Net;
 using System.Security.Claims;
 
-namespace Technologai
+namespace Agience
 {
     public class Identity
     {

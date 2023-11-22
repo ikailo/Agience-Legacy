@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using Timer = System.Timers.Timer;
 
-namespace Technologai
+namespace Agience
 {
     public class Agent
     {

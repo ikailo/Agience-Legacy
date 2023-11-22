@@ -2,7 +2,7 @@
 
 using System.Collections.Concurrent;
 
-namespace Technologai
+namespace Agience
 {
     // TODO: Rework all of this.
 

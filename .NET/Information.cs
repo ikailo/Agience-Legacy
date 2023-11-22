@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using static Technologai.Agent;
 
-namespace Technologai
+namespace Agience
 {
     public enum InformationState
     {
@@ -47,7 +46,7 @@ namespace Technologai
         }
 
         public Information(Agent agent, string templateId, Data? input = null)
-            : this(Technologai.Id.Create(agent.Id), agent.Id, null, templateId, InformationState.OPEN, TemplateState.RESTING, input, null)
+            : this(Agience.Id.Create(agent.Id), agent.Id, null, templateId, InformationState.OPEN, TemplateState.RESTING, input, null)
         {
             Agent = agent;
             WorkerId = Agent.Catalog[TemplateId].MemberId;
@@ -111,7 +110,7 @@ namespace Technologai
             }
         }
 
-        public async Task PublishAsync(OutputCallback? callback, string templateId, Data? input = null)
+        public async Task PublishAsync(Agent.OutputCallback? callback, string templateId, Data? input = null)
         {
             if (Agent == null) { return; }
 

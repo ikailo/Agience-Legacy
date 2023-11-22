@@ -3,7 +3,7 @@ using MQTTnet.Client;
 using MQTTnet.Packets;
 using System.Text.Json;
 
-namespace Technologai
+namespace Agience
 {
     public enum AgentMessageType
     {
