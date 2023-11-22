@@ -1,6 +1,6 @@
-﻿using Technologai.Templates;
+﻿using Agience.Templates;
 
-namespace Technologai.Agents.Interaction
+namespace Agience.Agents_Console
 {
     internal class Program
     {

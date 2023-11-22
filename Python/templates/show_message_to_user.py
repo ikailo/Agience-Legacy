@@ -1,5 +1,5 @@
-from technologai_agent.information import Information
-from technologai_agent.template import Template
+from agience_agent.information import Information
+from agience_agent.template import Template
 
 class ShowMessageToUser(Template):
     def __init__(self, message_callback, **kwargs):
