@@ -1,6 +1,6 @@
 import asyncio
 from templates import GetInputFromUser, InteractWithUser, Debug, ShowMessageToUser
-from technologai_agent.agent import Agent
+from agience_agent.agent import Agent
 
 import dotenv
 import os
@@ -65,7 +65,7 @@ class Program:
         print("interact_with_user_callback")
         if output and output.raw.lower() == "quit":
             Program.is_started = False
-            print(f"{Program.agent.name if Program.agent else 'Interaction.Local'} Shutting Down")
+            print(f"{Program.agent.name if Program.agent else 'Agience.Console'} Shutting Down")
         else:
             await Program.agent.publish_async("interact_with_user", Program.interact_with_user_callback, output)
 

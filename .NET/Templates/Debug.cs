@@ -1,4 +1,4 @@
-﻿namespace Technologai.Templates
+﻿namespace Agience.Templates
 {
     public class Debug : Template
     {
