@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Technologai
+namespace Agience
 {
     public class DataJsonConverter : JsonConverter<Data>
     {

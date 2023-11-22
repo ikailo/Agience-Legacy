@@ -1,4 +1,4 @@
-﻿namespace Technologai
+﻿namespace Agience
 {
     public enum TemplateState
     {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Technologai
+namespace Agience
 {
     internal class AppConfig
     {

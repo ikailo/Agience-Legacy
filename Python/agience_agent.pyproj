@@ -3,13 +3,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>78a26759-a813-48b8-87ae-6b268d4937e3</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
-    <StartupFile>technologai_agent.py</StartupFile>
+    <ProjectHome>
+    </ProjectHome>
+    <StartupFile>agience_agent.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>technologai_agent</Name>
+    <Name>agience_agent</Name>
     <RootNamespace>technologai_agent</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -21,7 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="technologai_agent.py" />
+    <Compile Include="agience_agent.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

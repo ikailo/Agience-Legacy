@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Technologai
+namespace Agience
 {
     public class Catalog : ConcurrentDictionary<string, Template>
     {

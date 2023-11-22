@@ -4,7 +4,7 @@ using MQTTnet.Client;
 using MQTTnet.Formatter;
 using MQTTnet.Protocol;
 
-namespace Technologai
+namespace Agience
 {
     internal class MqttClient
     {

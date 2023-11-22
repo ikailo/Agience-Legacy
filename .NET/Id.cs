@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
-namespace Technologai
+namespace Agience
 {
     public class Id : IComparable<Id>
     {
