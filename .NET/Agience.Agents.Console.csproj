@@ -5,7 +5,8 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UserSecretsId>3ff5e00b-91c8-4e50-8295-785456482cae</UserSecretsId>    	
+    <UserSecretsId>3ff5e00b-91c8-4e50-8295-785456482cae</UserSecretsId>
+    <RootNamespace>Agience.Agents_Console</RootNamespace>    	
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Agent\.NET\TechnologAI.Agent.csproj" />
+    <ProjectReference Include="..\..\..\Agent\.NET\Agience.Agent.csproj" />
   </ItemGroup>
 
 </Project>
