@@ -42,7 +42,7 @@ namespace Agience
                 parameters.Add("version", version);
                 parameters.Add("scope", $"agent_id:{AgentId}");
 
-                var endpoint = Authority?.AuthUri + Authority?.TokenApi;
+                var endpoint = $"{Authority?.AuthUri}/token";
 
                 var httpResponse = await httpClient.PostAsJsonAsync(endpoint, parameters);
 
