@@ -1,9 +1,11 @@
-﻿namespace Agience.Templates
+﻿using Agience.Client.MQTT.Model;
+
+namespace Agience.Templates
 {
     public class InteractWithUser : Template
     {
         public InteractWithUser()
-        {
+        {   
             Id = "interact_with_user";
             Description = "Show a message to the user and then receive a text input from the user. Find, and then respond with, the best template response to the user's input.";
         }
@@ -11,22 +13,24 @@
         public override Task<bool> Assess(Information information) => Task.FromResult(true);
 
         public override async Task<Data?> Process(Information information)
-        {
-            await information.Publish("show_message_to_user", $"{information.Input} \r\n> ");
+        {   
+            if (Agent == null) return null; 
 
-            var userInput = await information.Publish("get_input_from_user");
+            await Agent.Prompt($"{information.Input} \r\n> ", "Show a message to the user.");
+
+            Data? userInput = await Agent.Prompt("Get input from the user");
 
 #if DEBUG
 
             if (userInput?.Raw?.StartsWith("DEBUG:") ?? false)
             {
-                return await information.Publish("debug", userInput);
+                return await Agent.Prompt(userInput, null, "debug");
             }
 #endif
 
-            var bestTemplate = await information.Publish("get_best_template", userInput);
+            var bestTemplate = await Agent.Prompt(userInput, null, "get_best_template");
 
-            return await information.Publish(bestTemplate?.Structured?["id"] ?? "input_to_output", userInput);
+            return await Agent.Prompt(userInput, null, bestTemplate?.Structured?["id"] ?? "input_to_output");
 
         }
     }

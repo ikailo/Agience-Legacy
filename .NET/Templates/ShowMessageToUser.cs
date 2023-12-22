@@ -1,4 +1,6 @@
-﻿namespace Agience.Templates
+﻿using Agience.Client.MQTT.Model;
+
+namespace Agience.Templates
 {
     public class ShowMessageToUser : Template
     {

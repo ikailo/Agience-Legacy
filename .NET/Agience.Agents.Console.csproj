@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Agent\.NET\Agience.Agent.csproj" />
+    <ProjectReference Include="..\..\..\Agent\.NET\Agience.Client.MQTT.csproj" />
   </ItemGroup>
 
 </Project>

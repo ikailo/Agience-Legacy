@@ -1,12 +1,16 @@
-﻿namespace Agience.Templates
+﻿using Agience.Client.MQTT.Model;
+
+namespace Agience.Templates
 {
     public class Debug : Template
     {
-        private Agent _agent;
-        public Debug(Agent agent)
-        {
-            Id = "debug";
-            Description = "Debug";
+        private Agent? _agent;
+
+        public static new Type Id => typeof(Debug);
+
+        public Debug(Agent? agent)
+        {   
+            Description = "Provides Debugging Information.";
             _agent = agent;
         }
 
@@ -18,6 +22,8 @@
 #if DEBUG
 
             // Parse the input for the template id and user data
+            
+            // Expected Input: debug <templateId> <userData>
 
             int firstSpace = information.Input?.Raw?.IndexOf(' ') ?? -1;
 
@@ -26,12 +32,12 @@
                 var templateId = information.Input?.Raw?.Substring(6, firstSpace - 6);
                 var userData = information.Input?.Raw?.Substring(firstSpace + 1);
 
-                if (string.IsNullOrEmpty(templateId) || !_agent.Catalog.ContainsKey(templateId) || string.IsNullOrEmpty(userData))
+                if (string.IsNullOrEmpty(templateId) || !_agent.Instance.Catalog.ContainsKey(templateId) || string.IsNullOrEmpty(userData))
                 {
                     return null;
                 }
 
-                Template template = _agent.Catalog[templateId];
+                Template template = _agent.Instance.Catalog[templateId];
 
                 Data data;
 

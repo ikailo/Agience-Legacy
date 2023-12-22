@@ -6,10 +6,10 @@ namespace Agience.Agents_Console
     {
         private readonly IConfiguration _config;
 
-        internal string? Authority => _config["authority"];        
-        internal string? InstanceId => _config["instanceId"];
-        internal string? InstanceSecret => _config["instanceSecret"];        
-        internal string? AgentId => _config["agentId"];
+        internal string AuthorityUri => _config["authorityUri"] ?? throw new ArgumentNullException("authorityUri");
+        internal string ClientId => _config["clientId"] ?? throw new ArgumentNullException("clientId");
+        internal string ClientSecret => _config["clientSecret"] ?? throw new ArgumentNullException("clientSecret");
+        public string? AgentId => _config["agentId"] ?? throw new ArgumentNullException("agentId");
 
         internal AppConfig()
         {
