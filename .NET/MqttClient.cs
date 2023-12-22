@@ -1,31 +1,29 @@
-﻿using IdentityModel;
+﻿using Agience.Client.MQTT.Model;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Formatter;
 using MQTTnet.Protocol;
 
-namespace Agience
+namespace Agience.Client.MQTT
 {
     internal class MqttClient
     {
+        public bool IsConnected => _client.IsConnected;
 
-        private const int PORT = 8884;
-
-        private Identity _identity;
+        internal event EventHandler<MqttApplicationMessageReceivedEventArgs>? MessageReceived;
 
         private IMqttClient _client = new MqttFactory().CreateMqttClient();
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public bool IsConnected => _client.IsConnected;
-
         private bool _isConnecting;
+        private Identity _identity;
 
-        internal event EventHandler<MqttApplicationMessageReceivedEventArgs>? MessageReceived;
+        private const int PORT = 8884;
 
-        public MqttClient(Identity identity, EventHandler<MqttApplicationMessageReceivedEventArgs> _mqtt_MessageReceived)
+        public MqttClient(Identity identity) //, EventHandler<MqttApplicationMessageReceivedEventArgs> _mqtt_MessageReceived)
         {
             _identity = identity;
-            MessageReceived += _mqtt_MessageReceived;
+            //MessageReceived += _mqtt_MessageReceived;
         }
 
         internal async Task ConnectAsync(bool doDisconnect = false)
@@ -34,12 +32,9 @@ namespace Agience
             {
                 _isConnecting = true;
                 var options = new MqttClientOptionsBuilder()
-                //.WithWebSocketServer($"broker.staging.technologai.com:{PORT}")
-                //.WithTcpServer($"broker-qvn0i6zv.b4a.run", 8883)
-                .WithWebSocketServer($"localhost:{PORT}")
-                //.WithWebSocketServer($"{new Uri(_identity.Authority.BrokerUri).Host}:{PORT}")
-                //.WithTls()
-                .WithCredentials(_identity.Tokens[_identity.Authority.BrokerUri], "password")
+                .WithWebSocketServer($"{_identity.Authority.BrokerHost}:{PORT}")
+                .WithTls()
+                .WithCredentials(_identity.Tokens[_identity.Authority.BrokerHost], "password")
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();
 
@@ -88,7 +83,7 @@ namespace Agience
                 .WithTopic(topic)
                 .WithPayload(payload)
                 .WithRetainFlag(false)
-                .WithUserProperty(BrokerMessage.MESSAGE_TYPE, messageType.ToString())
+                .WithUserProperty(Message.MESSAGE_TYPE, messageType.ToString())
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                 .Build();
 

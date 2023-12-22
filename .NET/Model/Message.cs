@@ -1,44 +1,49 @@
-﻿using MQTTnet;
+﻿using Agience;
+using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Packets;
 using System.Text.Json;
 
-namespace Agience
+namespace Agience.Client.MQTT.Model
 {
     public enum AgentMessageType
     {
-        PULSE,
+        STATUS,
         TEMPLATE,
         INFORMATION,
         //CONTEXT
     }
 
-    public class BrokerMessage
+    public class Message //: Agience.Model.Message
     {
         internal const string MESSAGE_TYPE = "messagetype";
         private const string TOPIC_DELIMITER = "/";
 
         public string? AgencyId { get; set; }
-        public string? ToMemberId { get; set; }
-        public string Topic { get { return $"{AgencyId ?? "-"}/{ToMemberId ?? "-"}"; } }
+        public string? ToAgentId { get; set; }
+        public string Topic { get { return $"{AgencyId ?? "-"}TOPIC_DELIMITER{ToAgentId ?? "-"}"; } }
         public AgentMessageType MessageType { get; set; }
         public object? MessageData { get; set; }
 
-        private BrokerMessage() { }
+        private Message() { }
 
-        internal BrokerMessage(Identity identity)
+        internal Message(Identity identity)
         {
-            AgencyId = identity.AgencyId;
+            
         }
 
-        internal static BrokerMessage FromMqttArgs(MqttApplicationMessageReceivedEventArgs args)
+        internal static Message FromMqttArgs(MqttApplicationMessageReceivedEventArgs args)
         {
             var topicParts = args.ApplicationMessage.Topic.Split(TOPIC_DELIMITER);
 
-            var brokerMessage = new BrokerMessage()
+            var brokerMessage = new Message()
             {
-                AgencyId = topicParts[0],
-                ToMemberId = topicParts[1],
+                AuthorityId = topicParts[0],
+                UserId = topicParts[1],
+                AgencyId = topicParts[2],
+                AgentId = topicParts[3],
+                InstanceId = topicParts[4],
+                ModuleId = topicParts[5]
             };
 
             var payload = args.ApplicationMessage.ConvertPayloadToString();
@@ -46,12 +51,12 @@ namespace Agience
             foreach (MqttUserProperty property in args.ApplicationMessage.UserProperties)
             {
                 if (property.Name == MESSAGE_TYPE)
-                {   
+                {
                     switch (property.Value)
                     {
-                        case "PULSE":
-                            brokerMessage.MessageType = AgentMessageType.PULSE;
-                            brokerMessage.MessageData = JsonSerializer.Deserialize<Pulse>(payload);
+                        case "STATUS":
+                            brokerMessage.MessageType = AgentMessageType.STATUS;
+                            brokerMessage.MessageData = JsonSerializer.Deserialize<Status>(payload);
                             break;
                         case "TEMPLATE":
                             brokerMessage.MessageType = AgentMessageType.TEMPLATE;
@@ -72,8 +77,8 @@ namespace Agience
         {
             switch (MessageType)
             {
-                case AgentMessageType.PULSE:
-                    return JsonSerializer.Serialize(MessageData as Pulse);
+                case AgentMessageType.STATUS:
+                    return JsonSerializer.Serialize(MessageData as Status);
                 case AgentMessageType.TEMPLATE:
                     return JsonSerializer.Serialize(MessageData as Template);
                 case AgentMessageType.INFORMATION:

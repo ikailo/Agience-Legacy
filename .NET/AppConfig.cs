@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Agience
+namespace Agience.Client.MQTT
 {
     internal class AppConfig
     {

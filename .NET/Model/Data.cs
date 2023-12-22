@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Agience
+namespace Agience.Client.MQTT.Model
 {
     public class DataJsonConverter : JsonConverter<Data>
     {
@@ -65,6 +65,11 @@ namespace Agience
     [JsonConverter(typeof(DataJsonConverter))]
     public class Data
     {
+        // TODO: Data should have a unique id and a creator id and timestamp
+        // TODO: Data should have a unique hash based on the data. Use as Id?  Data should be immutable.
+        public string? Id { get; }
+        public string? CreatorId { get; }
+
         public DataFormat Format { get; } = DataFormat.RAW;
 
         // Raw data is just a string
@@ -87,7 +92,7 @@ namespace Agience
                 catch (JsonException)
                 {
                     // Fallback to Raw
-                    Format = DataFormat.RAW;                    
+                    Format = DataFormat.RAW;
                 }
             }
         }
@@ -98,20 +103,15 @@ namespace Agience
             Structured = structured;
             Raw = JsonSerializer.Serialize(structured);
         }
-       
+
         public override string? ToString() => Raw;
 
-        public static Data? Create(string raw)
+        public static Data Create(string raw)
         {
             return new Data(raw);
         }
 
-        public static Data? Create(Exception exception)
-        {
-            return Create("error", exception.Message);
-        }
-
-        public static Data? Create(string key, string value)
+        public static Data Create(string key, string value)
         {
             return new Data(new Dictionary<string, string>()
             {
@@ -119,9 +119,9 @@ namespace Agience
             });
         }
 
-        public static Data? Create(string key, IEnumerable<IConvertible> value)
+        public static Data Create(string key, IEnumerable<string> value)
         {
-            return Create(key, JsonSerializer.Serialize(value));            
+            return Create(key, JsonSerializer.Serialize(value));
         }
 
         public static implicit operator Data?(string? raw) => new Data(raw);

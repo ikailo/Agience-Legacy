@@ -2,12 +2,12 @@
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
-namespace Agience
+namespace Agience.Client.MQTT
 {
     public class Id : IComparable<Id>
     {
         // hash compute of an id allows to verify which agent created this contextId. If that's ever needed.
-                
+
         private readonly string _id;
         private readonly byte[] _unixTimestampBytes = new byte[8];
         private readonly byte[] _hashComputeBytes = new byte[8];
@@ -30,7 +30,8 @@ namespace Agience
             Array.Copy(informationBytes, 8, _hashComputeBytes, 0, 8);
         }
 
-        public static Id Create(string creatorIdBase64)        {
+        public static Id Create(string creatorIdBase64)
+        {
 
             return new Id(GetTimestampTicks(), GetBase64Bytes(creatorIdBase64, 8));
         }
@@ -47,7 +48,7 @@ namespace Agience
 
         public int CompareTo(Id? other)
         {
-            if (object.ReferenceEquals(other, null))
+            if (ReferenceEquals(other, null))
             {
                 return 1;
             }
@@ -67,7 +68,7 @@ namespace Agience
 
         public static implicit operator Id(string value) => new Id(value);
 
-        public static implicit operator string(Id value) => value.ToString();       
+        public static implicit operator string(Id value) => value.ToString();
 
         public override string ToString()
         {
