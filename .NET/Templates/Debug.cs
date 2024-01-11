@@ -37,11 +37,11 @@ namespace Agience.Templates
                     return null;
                 }
 
-                Template template = _agent.Instance.Catalog[templateId];
+                Template? template = _agent.Instance.Catalog.GetTemplate(templateId);
 
                 Data data;
 
-                if (template.InputKeys != null && template.InputKeys.Length > 0)
+                if (template?.InputKeys != null && template.InputKeys.Length > 0)
                 {
                     data = new Data(userData, DataFormat.STRUCTURED);
                 }
@@ -50,7 +50,8 @@ namespace Agience.Templates
                     data = new Data(userData, DataFormat.RAW);
                 }
 
-                return await information.Publish(templateId, data);
+                return await _agent.Prompt(data);                
+                //return await information.Publish(templateId, data);
             }
             else
             {
