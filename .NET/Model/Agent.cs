@@ -2,7 +2,7 @@
 using Microsoft.VisualBasic;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
-using static IdentityModel.OidcConstants;
+//using static IdentityModel.OidcConstants;
 using Timer = System.Timers.Timer;
 
 namespace Agience.Client.MQTT.Model
@@ -17,125 +17,78 @@ namespace Agience.Client.MQTT.Model
 
         public new Agency? Agency { get; private set; }
         public new Instance? Instance { get; private set; }
+        public Timeline Timeline { get; } = new Timeline();
 
         private Identity _identity;
 
         public Agent(Identity identity)
         {
-            _identity = identity;
+            _identity = identity;            
         }
-
 
         private async Task Receive(Information? information)
         {
-            if (information == null) { return; }
+            if (information == null) { return; } // Useless
 
-            //information.Agent = this;
+            if (information.Input == null) {  throw new NotImplementedException(); } // TODO: Future exploratary. Generate possible inputs for training?
+
+            if (information.Output != null)
+            {
+                // This information is complete.
+                // Add to the timeline.
+                // Invoke the callback.               
+                
+            }
+
+            // Invoke the callback.
+            if (_promptCallbacks.Remove(information.Id, out PromptCallback? callback))
+            {
+                await callback.Invoke(information.Output);
+            }
 
             Timeline.Add(information); // TODO? only update if newer
 
             // Closed and this agent is the creator
-            if (information.InformationState == InformationState.CLOSED && information.CreatorId == _identity.AgentId)
+            //if (information.State == InformationState.CLOSED && information.CreatorId == _identity.AgentId)
             {
-                // Invoke the callback.
-                if (_promptCallbacks.Remove(information.Id, out PromptCallback? callback))
-                {
-                    await callback.Invoke(information.Output);
-                }
+               
 
-                // Assess the publisher information
-                var publisherInformation = Timeline.GetAncestor(information.Id);
+                // Assess the parent information
+                var parentInformation = Timeline.GetParent(information.Id);
 
-                if (publisherInformation == null)
+                if (parentInformation == null)
                 {
                     // This is a root request. 
                     return;
                 }
 
-                information = publisherInformation;
+                information = parentInformation;
 
                 // Fall through to next if condition so the publisher can be assessed and processed               
             }
 
             // Open, and this agent is assigned
-            if (information.InformationState == InformationState.OPEN && information.WorkerId == _identity.AgentId)
+            //if (information.InformationState == InformationState.OPEN && information.WorkerId == _identity.AgentId)
             {
                 // TODO: Debounce
 
-                if (await information.Assess())
+                var template = information.TemplateId != null ? Instance?.Catalog.GetTemplate(information.TemplateId, this) : null;
+
+                if (template != null && await template.Assess(information))
                 {
                     // TODO: Exception Handling
-                    await information.Process();
+                    await template.Process(information);
                 }
             }
 
             // Closed, and this agent is not the creator
-            if (information.InformationState == InformationState.CLOSED && information.CreatorId != _identity.AgentId)
+            //if (information.InformationState == InformationState.CLOSED && information.CreatorId != _identity.AgentId)
             {
                 // TODO: Review. Add to Context.
             }
         }
 
-        protected internal async Task<bool> Assess()
-        {
-            if (Agent == null || _assessmentQueued || TemplateState == TemplateState.PROCESSING || InformationState == InformationState.CLOSED) { return false; }
-
-            // Assessments are debounced. Only one assessment can be queued at a time.
-            // FIXME: Not Threadsafe
-
-            if (TemplateState == TemplateState.ASSESSING)
-            {
-                _assessmentQueued = true;
-
-                while (TemplateState == TemplateState.ASSESSING)
-                {
-                    await Task.Delay(10);
-                }
-            }
-
-            if (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false)
-            {
-                TemplateState = TemplateState.ASSESSING;
-
-                var result = await Agent.Instance.Catalog.GetTemplate(TemplateId).Assess(this);
-
-                TemplateState = TemplateState.RESTING;
-
-                _assessmentQueued = false;
-
-                return result;
-            }
-
-            _assessmentQueued = false;
-
-            return false;
-        }
-
-        protected internal async Task Process()
-        {
-            if (Agent == null) { return; }
-
-            // Only one process can be in progress at a time. We don't queue up another one.
-            // FIXME: Not Threadsafe
-
-            if (TemplateState == TemplateState.RESTING && (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false))
-            {
-                TemplateState = TemplateState.PROCESSING;
-
-                Output = await Agent.Instance.Catalog.GetTemplate(TemplateId).Process(this);
-
-                InformationState = InformationState.CLOSED;
-
-                TemplateState = TemplateState.RESTING;
-
-                WorkerId = CreatorId;
-
-                if (Agent?.Agency != null)
-                {
-                    await Agent.Agency.PublishAsync(this, null);
-                }
-            }
-        }
+        
 
         /*
         public async Task PublishAsync(Agent.OutputCallback? callback, string templateId, Data? input = null)
@@ -195,23 +148,23 @@ namespace Agience.Client.MQTT.Model
         }
 
         // Publishing input by itself doesn't require a callback. No output is expected.
-        public void Publish(Data? input)
+        public async Task Publish(Data? input)
         {
-            Prompt(input, null, (PromptCallback?)null);
+            await Prompt(input, null, (PromptCallback?)null);
         }
 
         // These methods publish input and store a callback to be invoked when the output is returned. Better for long / infinite processes.
-        public void Prompt(Data? prompt, PromptCallback? callback)
+        public async Task Prompt(Data? prompt, PromptCallback? callback)
         {
-            Prompt(null, prompt, null, callback);
+            await Prompt(null, prompt, null, callback);
         }
 
-        public void Prompt(Data? input, Data? prompt, PromptCallback? callback)
+        public async Task Prompt(Data? input, Data? prompt, PromptCallback? callback)
         {
-            Prompt(input, prompt, null, callback);
+            await Prompt(input, prompt, null, callback);
         }
 
-        public async void Prompt(Data? input, Data? prompt, string? templateId, PromptCallback? callback)
+        public async Task Prompt(Data? input, Data? prompt, string? templateId, PromptCallback? callback)
         {
             await Prompt(new Information(input, prompt, null, templateId), callback);
         }

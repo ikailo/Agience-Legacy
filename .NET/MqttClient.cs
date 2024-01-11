@@ -69,7 +69,8 @@ namespace Agience.Client.MQTT
             _client.Dispose();
         }
 
-        internal async Task PublishAsync(string topic, string payload, AgentMessageType messageType)
+        internal async Task PublishAsync(Message message)
+        //internal async Task PublishAsync(string topic, string payload, AgentMessageType messageType)
         {
             if (!_client.IsConnected)
             {
@@ -79,15 +80,15 @@ namespace Agience.Client.MQTT
 
             if (_client.IsConnected)
             {
-                var message = new MqttApplicationMessageBuilder()
-                .WithTopic(topic)
-                .WithPayload(payload)
+                var mqMessage = new MqttApplicationMessageBuilder()
+                .WithTopic(message.Topic)
+                //.WithPayload(message.MessageData)
                 .WithRetainFlag(false)
-                .WithUserProperty(Message.MESSAGE_TYPE, messageType.ToString())
+                .WithUserProperty(Message.MESSAGE_TYPE, message.MessageType.ToString())
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                 .Build();
 
-                await _client.PublishAsync(message, _cancellationTokenSource.Token);
+                await _client.PublishAsync(mqMessage, _cancellationTokenSource.Token);
 
             }
         }

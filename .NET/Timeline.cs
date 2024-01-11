@@ -1,9 +1,4 @@
 ﻿using Agience.Client.MQTT.Model;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Agience.Client.MQTT
 {
@@ -14,12 +9,12 @@ namespace Agience.Client.MQTT
             throw new NotImplementedException();
         }
 
-        internal Information GetAncestor(string id)
+        internal Information GetParent(string id)
         {
             throw new NotImplementedException();
         }
 
-        internal void Spawn(string id1, string id2)
+        internal void Spawn(string parentInformationId, string childInformationId)
         {
             throw new NotImplementedException();
         }

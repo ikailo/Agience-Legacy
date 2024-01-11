@@ -50,11 +50,11 @@ namespace Agience.Client.MQTT.Model
 
         private async Task Receive(Template? template)
         {
-            if (template?.Id != null && template.AgentId != _identity.AgentId)
+            if (template?.Id != null && template.InstanceId != _identity.InstanceId)
             {
-                await Logger.Write($"{template.AgentId} {template.Id} template receive");
+                await Logger.Write($"{template.InstanceId} {template.Id} template receive");
 
-                Catalog.TryAdd(template.Id, agent => template);
+                Catalog.Add(agent => template);
             }
         }
 
@@ -69,9 +69,9 @@ namespace Agience.Client.MQTT.Model
 
             await Logger.Write($"Connected");
 
-            await _broker.SubscribeAsync(_identity.InstanceSubscribeTopic);
+            //await _broker.SubscribeAsync(_identity.InstanceSubscribeTopic);
 
-            await Logger.Write($"Subscribed {_identity.InstanceSubscribeTopic}");
+            //await Logger.Write($"Subscribed {_identity.InstanceSubscribeTopic}");
 
             await _broker.Send(new Status(Id));
 

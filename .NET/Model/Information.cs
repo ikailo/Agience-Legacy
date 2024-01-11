@@ -12,8 +12,6 @@ namespace Agience.Client.MQTT.Model
 
     public class Information //: IComparable<Information>
     {
-
-
         /*
         [JsonIgnore]
         public Agent? Agent { get; set; }
@@ -31,7 +29,7 @@ namespace Agience.Client.MQTT.Model
         public Data? Input { get; private set; }
         public Data? Prompt { get; private set; }
         public Data? Output { get; private set; }
-        public string? TemplateId { get; set; }
+        public string? TemplateId { get; set; }        
 
         // TODO: History, Signatures, ReadOnly fields ?
 
@@ -40,7 +38,7 @@ namespace Agience.Client.MQTT.Model
 
         public Information(Data? input = null, Data? prompt = null, string? templateId = null, Data? output = null)
         {
-            Id = MQTT.Id.Create("<fixme>");
+            Id = MQTT.Id.Create("<fixme>"); // FIXME
             Input = input;
             Prompt = prompt;
             Output = output;
@@ -86,5 +84,68 @@ namespace Agience.Client.MQTT.Model
         {
             return ReferenceEquals(other, null) ? 1 : ((Id)Id).CompareTo((Id)other.Id);
         }*/
+
+        /*
+        protected internal async Task<bool> Assess()
+        {
+            if (Agent == null || _assessmentQueued || TemplateState == TemplateState.PROCESSING || InformationState == InformationState.CLOSED) { return false; }
+
+            // Assessments are debounced. Only one assessment can be queued at a time.
+            // FIXME: Not Threadsafe
+
+            if (TemplateState == TemplateState.ASSESSING)
+            {
+                _assessmentQueued = true;
+
+                while (TemplateState == TemplateState.ASSESSING)
+                {
+                    await Task.Delay(10);
+                }
+            }
+
+            if (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false)
+            {
+                TemplateState = TemplateState.ASSESSING;
+
+                var result = await Agent.Instance.Catalog.GetTemplate(TemplateId).Assess(this);
+
+                TemplateState = TemplateState.RESTING;
+
+                _assessmentQueued = false;
+
+                return result;
+            }
+
+            _assessmentQueued = false;
+
+            return false;
+        }
+
+        protected internal async Task Process()
+        {
+            if (Agent == null) { return; }
+
+            // Only one process can be in progress at a time. We don't queue up another one.
+            // FIXME: Not Threadsafe
+
+            if (TemplateState == TemplateState.RESTING && (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false))
+            {
+                TemplateState = TemplateState.PROCESSING;
+
+                Output = await Agent.Instance.Catalog.GetTemplate(TemplateId).Process(this);
+
+                InformationState = InformationState.CLOSED;
+
+                TemplateState = TemplateState.RESTING;
+
+                WorkerId = CreatorId;
+
+                if (Agent?.Agency != null)
+                {
+                    await Agent.Agency.PublishAsync(this, null);
+                }
+            }
+        }
+        */
     }
 }

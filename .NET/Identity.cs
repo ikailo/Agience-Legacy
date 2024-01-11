@@ -92,7 +92,7 @@ namespace Agience.Client.MQTT
                 }
             }
         }
-
+        /*
         public string GetMaskedTopic(string topic)
         {
             string[] topicParts = topic.Split('/');
@@ -109,7 +109,7 @@ namespace Agience.Client.MQTT
             }
             return string.Join('/', topicParts);
         }
-
+        */
         /*
             internal async Task Authenticate(string audience, string version = "1.0")
         {

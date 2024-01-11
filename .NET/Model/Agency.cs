@@ -20,7 +20,7 @@ namespace Agience.Client.MQTT.Model
         {
             _identity = identity;
         }
-
+        /*
         private async Task Receive(Status? status)
         {
             if (status?.AgentId != null && status.AgentId != _identity.Id)
@@ -33,16 +33,16 @@ namespace Agience.Client.MQTT.Model
                 }
 
                 _knownAgents[status.AgentId] = DateTime.UtcNow;
-                /*
+                
                 foreach (var template in _catalog.Values)
                 {
                     if (template.AgentId == _identity.AgentId)
                     {
                         await Send(template, status.AgentId);
                     }
-                }*/
+                }
             }
-        }
+        }*/
 
     }
 }

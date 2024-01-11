@@ -43,7 +43,7 @@ namespace Agience.Client.MQTT
             throw new NotImplementedException();
         }
 
-        internal bool ContainsKey(string? templateId)
+        public bool ContainsKey(string? templateId)
         {
             throw new NotImplementedException();
         }

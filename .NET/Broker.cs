@@ -38,7 +38,7 @@ namespace Agience.Client.MQTT
             
             _identity = identity;
             _mqtt = new MqttClient(_identity);
-            _mqtt.MessageReceived += _mqtt_MessageReceived;
+            //_mqtt.MessageReceived += _mqtt_MessageReceived;
         }
 
         private void _mqtt_MessageReceived(object? sender, Message e)
@@ -64,7 +64,7 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
            break;
    }
 }
-*/
+        */
 
         internal async Task Send(Status status, string toAgentId = "0")
         {
@@ -98,7 +98,7 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
 
             string messageJson = brokerMessage.ConvertMessageDataToString();
 
-            await _mqtt.PublishAsync(brokerMessage.Topic, messageJson, brokerMessage.MessageType);
+            //await _mqtt.PublishAsync(brokerMessage.Topic, messageJson, brokerMessage.MessageType);
         }
 
         internal Task ConnectAsync()

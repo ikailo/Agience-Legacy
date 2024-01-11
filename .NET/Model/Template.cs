@@ -21,7 +21,7 @@ namespace Agience.Client.MQTT.Model
             Agent = agent;
         }
 
-        private string _id;
+        private string? _id;
 
         // Template Ids are generated based on the template definition. Not guaranteed persistant.
         public new string Id

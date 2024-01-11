@@ -31,7 +31,7 @@ namespace Agience.Client.MQTT.Model
         {
             
         }
-
+        /*
         internal static Message FromMqttArgs(MqttApplicationMessageReceivedEventArgs args)
         {
             var topicParts = args.ApplicationMessage.Topic.Split(TOPIC_DELIMITER);
@@ -72,6 +72,7 @@ namespace Agience.Client.MQTT.Model
             }
             return brokerMessage;
         }
+        */
 
         internal string ConvertMessageDataToString()
         {
