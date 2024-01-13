@@ -4,11 +4,11 @@ namespace Agience.Client.MQTT
 {
     public class Catalog
     {
-        private readonly Identity _identity;
-
+        //private readonly Identity _identity;
+        /*
         public Catalog(Identity identity) {
             _identity = identity;
-        }
+        }*/
 
         private Dictionary<string, Func<Agent?, Template>> _templateFactories = new();
 

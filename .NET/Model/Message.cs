@@ -25,8 +25,9 @@ namespace Agience.Client.MQTT.Model
         public AgentMessageType MessageType { get; set; }
         public object? MessageData { get; set; }
 
+        /*
         private Message() { }
-
+        
         internal Message(Identity identity)
         {
             

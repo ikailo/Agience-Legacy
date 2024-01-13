@@ -18,12 +18,11 @@ namespace Agience.Client.MQTT.Model
         public new Agency? Agency { get; private set; }
         public new Instance? Instance { get; private set; }
         public Timeline Timeline { get; } = new Timeline();
-
-        private Identity _identity;
+        internal Identity Identity { get; }
 
         public Agent(Identity identity)
         {
-            _identity = identity;            
+            Identity = identity;            
         }
 
         private async Task Receive(Information? information)
@@ -210,7 +209,7 @@ namespace Agience.Client.MQTT.Model
             }
             
             // Short circuit
-            if (targetId == _identity.AgentId)
+            if (targetId == Identity.AgentId)
             {
                 new Task(async () =>
                 {

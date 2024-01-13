@@ -8,8 +8,8 @@ namespace Agience.Client.MQTT
     {
         private string? _accessToken;
 
-        private readonly MqttClient _mqtt;
-        private readonly Identity _identity;
+        private readonly MqttClient _mqtt = new();
+        //private readonly Identity _identity;
 
         //private readonly ConcurrentDictionary<string, Agent.OutputCallback> _outputCallbacks = new();
 
@@ -33,13 +33,13 @@ namespace Agience.Client.MQTT
 
          */
 
-
+        /*
         public Broker(Identity identity) { 
             
-            _identity = identity;
-            _mqtt = new MqttClient(_identity);
+            //_identity = identity;
+            //_mqtt = new MqttClient();
             //_mqtt.MessageReceived += _mqtt_MessageReceived;
-        }
+        }*/
 
         private void _mqtt_MessageReceived(object? sender, Message e)
         {
@@ -89,7 +89,7 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
 
         public async Task Send(AgentMessageType messageType, object? messageData, string toAgentId = "0")
         {   
-            var brokerMessage = new Message(_identity)
+            var brokerMessage = new Message()
             {
                 MessageType = messageType,
                 MessageData = messageData,
@@ -101,9 +101,9 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
             //await _mqtt.PublishAsync(brokerMessage.Topic, messageJson, brokerMessage.MessageType);
         }
 
-        internal Task ConnectAsync()
+        internal Task ConnectAsync(string host, string token)
         {
-            throw new NotImplementedException();
+            return _mqtt.ConnectAsync(host, token);            
         }
 
         internal Task SubscribeAsync(string subscribeTopic)

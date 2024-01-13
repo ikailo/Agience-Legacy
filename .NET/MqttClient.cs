@@ -16,25 +16,25 @@ namespace Agience.Client.MQTT
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         private bool _isConnecting;
-        private Identity _identity;
+        //private Identity _identity;
 
         private const int PORT = 8884;
-
+        /*
         public MqttClient(Identity identity) //, EventHandler<MqttApplicationMessageReceivedEventArgs> _mqtt_MessageReceived)
         {
             _identity = identity;
             //MessageReceived += _mqtt_MessageReceived;
-        }
+        }*/
 
-        internal async Task ConnectAsync(bool doDisconnect = false)
+        internal async Task ConnectAsync(string host, string token)
         {
             if (!_client.IsConnected && !_isConnecting)
             {
                 _isConnecting = true;
                 var options = new MqttClientOptionsBuilder()
-                .WithWebSocketServer($"{_identity.Authority.BrokerHost}:{PORT}")
+                .WithWebSocketServer($"{host}:{PORT}")
                 .WithTls()
-                .WithCredentials(_identity.Tokens[_identity.Authority.BrokerHost], "password")
+                .WithCredentials(token, "password")
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();
 
@@ -72,11 +72,12 @@ namespace Agience.Client.MQTT
         internal async Task PublishAsync(Message message)
         //internal async Task PublishAsync(string topic, string payload, AgentMessageType messageType)
         {
+            /*
             if (!_client.IsConnected)
             {
                 // TODO: During Debugging, MQTT disconnects after only a few seconds.  Need to figure out why and fix it.
                 await ConnectAsync(true);
-            }
+            }*/
 
             if (_client.IsConnected)
             {

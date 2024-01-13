@@ -18,7 +18,7 @@ namespace Agience.Client.MQTT
 
         internal Dictionary<string, string?> Tokens = new();
 
-        private string? _clientId;
+        //private string? _clientId;
         private string? _clientSecret;
 
         /*
@@ -28,23 +28,23 @@ namespace Agience.Client.MQTT
         internal string SubscribeAgencyMask => $"{AgencyId}/0";
         */
 
-        internal string Address => $"{InstanceId ?? "-"}/{AgencyId ?? "-"}/{AgentId ?? "-"}";
-
+        //internal string Address => $"{InstanceId ?? "-"}/{AgencyId ?? "-"}/{AgentId ?? "-"}";
+        /*
         public Identity(string authorityUri, string clientId, string clientSecret)
         {
             Authority = new Authority(authorityUri);
-            _clientId = clientId;
+            InstanceId = clientId;
             _clientSecret = clientSecret;
 
-            RefreshAccessToken().Wait(); // TODO: On Demand
-        }
-
+            //RefreshAccessToken().Wait(); // TODO: On Demand
+        }*/
+        /*
         private async Task RefreshAccessToken()
         {
             using (var httpClient = new HttpClient())
             {
                 httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", Base64UrlEncoder.Encode($"{_clientId}:{_clientSecret}"));
+                    new AuthenticationHeaderValue("Bearer", Base64UrlEncoder.Encode($"{InstanceId}:{_clientSecret}"));
                 httpClient.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -91,7 +91,7 @@ namespace Agience.Client.MQTT
                     }
                 }
             }
-        }
+        }*/
         /*
         public string GetMaskedTopic(string topic)
         {
@@ -110,53 +110,7 @@ namespace Agience.Client.MQTT
             return string.Join('/', topicParts);
         }
         */
-        /*
-            internal async Task Authenticate(string audience, string version = "1.0")
-        {
-            using (var httpClient = new HttpClient())
-            {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Base64UrlEncoder.Encode($"{InstanceId}:{InstanceSecret}"));
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                var parameters = new Dictionary<string, string>();
-                parameters.Add("grant_type", "client_credentials");
-                parameters.Add("audience", audience);
-                parameters.Add("version", version);
-                parameters.Add("scope", $"agent_id:{AgentId}");
-
-                var endpoint = $"{Authority?.AuthorityUri}/token";
-
-                var httpResponse = await httpClient.PostAsJsonAsync(endpoint, parameters);
-
-                if (httpResponse.StatusCode == HttpStatusCode.OK)
-                {
-                    var tokenResponse = await httpResponse.Content.ReadFromJsonAsync<TokenResponse>();
-
-                    if (tokenResponse != null)
-                    {
-                        foreach (Claim claim in new JwtSecurityTokenHandler().ReadJwtToken(tokenResponse.access_token).Claims)
-                        {
-                            if (claim.Type == "agency_id")
-                            {
-                                AgencyId = claim.Value;
-                            }
-                            if (claim.Type == "name")
-                            {
-                                Name = claim.Value;
-                            }
-                            if (claim.Type == "aud")
-                            {
-                                Tokens[claim.Value] = tokenResponse.access_token;
-                            }
-                        }
-                        return;
-                    }
-                }
-                throw new HttpRequestException("Unauthorized", null, httpResponse.StatusCode);
-            }
-        }
-        */
-
+        
 
         internal class TokenResponse
         {
