@@ -5,13 +5,14 @@ using System.Net.Http.Json;
 using System.Net;
 using Agience.Model;
 using System.Security.Claims;
+using System.Text;
 
 namespace Agience.Client.MQTT.Model
 {
     public class Instance : Agience.Model.Instance
     {
         public List<Agent> Agents { get; set; } = new List<Agent>();
-        public Catalog Catalog { get; set; } = new Catalog();        
+        public Catalog Catalog { get; set; } = new Catalog();
         public bool IsStarted { get; set; }
 
         //private string? _token;
@@ -26,7 +27,7 @@ namespace Agience.Client.MQTT.Model
         //private Catalog _catalog;
 
         private string? _access_token;
-        
+
         public event Action<object?, string> LogMessage;
 
         public Instance(string authorityUri, string clientId, string clientSecret)
@@ -37,10 +38,10 @@ namespace Agience.Client.MQTT.Model
             Id = clientId;
             _clientSecret = clientSecret;
 
-            
+
             _broker = new Broker();
         }
-              
+
 
         public Agent CreateAgent(Action<Agent> configure)
         {
@@ -93,19 +94,23 @@ namespace Agience.Client.MQTT.Model
         internal async Task Authenticate()
         {
             using (var httpClient = new HttpClient())
-            {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Base64UrlEncoder.Encode($"{Id}:{_clientSecret}"));
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            {   
+                var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{_clientSecret}"));
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
 
-                var parameters = new Dictionary<string, string>();
-                parameters.Add("grant_type", "client_credentials");
-                //parameters.Add("audience", audience);
-                //parameters.Add("version", version);
-                //parameters.Add("scope", $"agent_id:{AgentId}");
-                
-                var httpResponse = await httpClient.PostAsJsonAsync(_authority.TokenEndpoint, parameters);
+                var parameters = new Dictionary<string, string>
+                {
+                    { "grant_type", "client_credentials" },
+                    // Uncomment if needed
+                    // { "audience", audience },
+                    // { "version", version },
+                    // { "scope", $"agent_id:{AgentId}" }
+                };
 
-                if (httpResponse.StatusCode == HttpStatusCode.OK)
+                var content = new FormUrlEncodedContent(parameters);
+                var httpResponse = await httpClient.PostAsync(_authority.TokenEndpoint, content);
+
+                if (httpResponse.IsSuccessStatusCode)
                 {
                     var tokenResponse = await httpResponse.Content.ReadFromJsonAsync<TokenResponse>();
 
