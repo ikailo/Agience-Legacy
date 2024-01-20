@@ -93,18 +93,18 @@ namespace Agience.Client.MQTT.Model
 
         internal async Task Authenticate()
         {
+            // TODO: Consider using IHttpClientFactory or a shared HttpClient instance
             using (var httpClient = new HttpClient())
-            {   
+            {
                 var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{_clientSecret}"));
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
 
                 var parameters = new Dictionary<string, string>
                 {
-                    { "grant_type", "client_credentials" },
-                    // Uncomment if needed
-                    // { "audience", audience },
+                    { "grant_type", "client_credentials" },                    
+                    // { "audience", "/connect" },
                     // { "version", version },
-                    // { "scope", $"agent_id:{AgentId}" }
+                    { "scope", "connect" }
                 };
 
                 var content = new FormUrlEncodedContent(parameters);
@@ -114,33 +114,19 @@ namespace Agience.Client.MQTT.Model
                 {
                     var tokenResponse = await httpResponse.Content.ReadFromJsonAsync<TokenResponse>();
 
-                    if (tokenResponse != null)
+                    if (tokenResponse?.access_token != null)
                     {
-                        foreach (Claim claim in new JwtSecurityTokenHandler().ReadJwtToken(tokenResponse.access_token).Claims)
-                        {
-                            /*
-                            if (claim.Type == "agency_id")
-                            {
-                                AgencyId = claim.Value;
-                            }
-                            if (claim.Type == "name")
-                            {
-                                Name = claim.Value;
-                            }*/
-                            if (claim.Type == "aud")
-                            {
-                                _access_token = tokenResponse.access_token;
-                                //Tokens[claim.Value] = tokenResponse.access_token;
-                            }
-                        }
+                        // Directly use the access token
+                        _access_token = tokenResponse.access_token;
+                        // Do any additional processing if needed
                         return;
                     }
                 }
+
+                // Log the error or handle it as necessary
                 throw new HttpRequestException("Unauthorized", null, httpResponse.StatusCode);
             }
         }
-
-
 
         internal class TokenResponse
         {

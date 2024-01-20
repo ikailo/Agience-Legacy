@@ -18,7 +18,7 @@ namespace Agience.Client.MQTT
         private bool _isConnecting;
         //private Identity _identity;
 
-        private const int PORT = 8884;
+        private const int PORT = 1884;
         /*
         public MqttClient(Identity identity) //, EventHandler<MqttApplicationMessageReceivedEventArgs> _mqtt_MessageReceived)
         {
@@ -34,7 +34,7 @@ namespace Agience.Client.MQTT
                 var options = new MqttClientOptionsBuilder()
                 .WithWebSocketServer($"{host}:{PORT}")
                 .WithTls()
-                .WithCredentials(token, "password")
+                .WithCredentials(token, "password")                
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();
 
