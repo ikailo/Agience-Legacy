@@ -5,13 +5,14 @@ namespace Agience.Agents_Console
 {
     internal class Program
     {
-        private static AppConfig _config = new AppConfig();
 
         private static Agent? _agent;
 
         internal static async Task Main(string[] args)
         {
-            var instance = new Instance(_config.AuthorityUri, _config.ClientId, _config.ClientSecret);
+            var _config = new AppConfig();
+
+            var instance = new Instance(_config);
 
             instance.LogMessage += LogMessage_callback;
 
@@ -50,8 +51,8 @@ namespace Agience.Agents_Console
                 Console.WriteLine($"{_agent.Instance.Name} Shut Down");
             }
             else
-            {   
-                _agent.Prompt(userInput, "Interact with the user.", InteractWithUser_callback);                
+            {
+                _agent.Prompt(userInput, "Interact with the user.", InteractWithUser_callback);
             }
         }
 

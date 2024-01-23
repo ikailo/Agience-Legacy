@@ -2,20 +2,18 @@
 
 namespace Agience.Agents_Console
 {
-    internal class AppConfig
+    internal class AppConfig : Client.MQTT.Config
     {
-        private readonly IConfiguration _config;
-
-        internal string AuthorityUri => _config["authorityUri"] ?? throw new ArgumentNullException("authorityUri");
-        internal string ClientId => _config["clientId"] ?? throw new ArgumentNullException("clientId");
-        internal string ClientSecret => _config["clientSecret"] ?? throw new ArgumentNullException("clientSecret");
-        public string? AgentId => _config["agentId"] ?? throw new ArgumentNullException("agentId");
+        public string? AgentId { get; set; }
 
         internal AppConfig()
+            : base()
         {
-            _config = new ConfigurationBuilder()
-            .AddUserSecrets<AppConfig>()
-            .Build();
+            var configuration = new ConfigurationBuilder()
+                .AddUserSecrets<AppConfig>()
+                .Build();
+
+            configuration.Bind(this);
         }
     }
 }
