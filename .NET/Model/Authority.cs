@@ -26,7 +26,7 @@ namespace Agience.Client.MQTT.Model
         private OpenIdConnectConfiguration? _configuration;
 
         public string? TokenEndpoint => _configuration?.TokenEndpoint;
-        public string? BrokerHost => _configuration?.AdditionalData["broker_host"].ToString();
+        public string? BrokerUri => _configuration?.AdditionalData["broker_uri"].ToString();
 
         public Authority(string authorityUri)
         {

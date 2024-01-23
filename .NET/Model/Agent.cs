@@ -1,7 +1,7 @@
-﻿using Agience.Model;
-using Microsoft.VisualBasic;
+﻿using Microsoft.Extensions.Configuration;
+
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+
 //using static IdentityModel.OidcConstants;
 using Timer = System.Timers.Timer;
 
@@ -22,21 +22,21 @@ namespace Agience.Client.MQTT.Model
 
         public Agent(Identity identity)
         {
-            Identity = identity;            
+            Identity = identity;
         }
 
         private async Task Receive(Information? information)
         {
             if (information == null) { return; } // Useless
 
-            if (information.Input == null) {  throw new NotImplementedException(); } // TODO: Future exploratary. Generate possible inputs for training?
+            if (information.Input == null) { throw new NotImplementedException(); } // TODO: Future exploratary. Generate possible inputs for training?
 
             if (information.Output != null)
             {
                 // This information is complete.
                 // Add to the timeline.
                 // Invoke the callback.               
-                
+
             }
 
             // Invoke the callback.
@@ -50,7 +50,7 @@ namespace Agience.Client.MQTT.Model
             // Closed and this agent is the creator
             //if (information.State == InformationState.CLOSED && information.CreatorId == _identity.AgentId)
             {
-               
+
 
                 // Assess the parent information
                 var parentInformation = Timeline.GetParent(information.Id);
@@ -87,7 +87,7 @@ namespace Agience.Client.MQTT.Model
             }
         }
 
-        
+
 
         /*
         public async Task PublishAsync(Agent.OutputCallback? callback, string templateId, Data? input = null)
@@ -134,7 +134,7 @@ namespace Agience.Client.MQTT.Model
                     result = output;
                     callbackComplete = true;
                     return Task.CompletedTask;
-                 });
+                });
 
             // FIXME TODO: This can wait indefinitly if the information is never closed or template doesn't exist. Add timeout / decay / cancellation token.
 
@@ -207,7 +207,7 @@ namespace Agience.Client.MQTT.Model
                 targetId = "<AgencyId>";
                 // Send via Agency Broker
             }
-            
+
             // Short circuit
             if (targetId == Identity.AgentId)
             {
@@ -227,6 +227,23 @@ namespace Agience.Client.MQTT.Model
             if (agent == null) { return; }
 
             throw new NotImplementedException();
+        }
+
+        public static T LoadConfiguration<T>() where T : Config, new()
+        {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+            var configurationBuilder = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{environmentName}.json", optional: true)
+                .AddUserSecrets<Agent>(optional: true)
+                .AddEnvironmentVariables();
+
+            var configuration = configurationBuilder.Build();
+            var config = new T();
+            configuration.Bind(config);
+
+            return config;
         }
 
         /*

@@ -6,7 +6,7 @@ namespace Agience.Client.MQTT
 {
     public class Broker
     {
-        private string? _accessToken;
+        private string _brokerUri;        
 
         private readonly MqttClient _mqtt = new();
         //private readonly Identity _identity;
@@ -32,6 +32,11 @@ namespace Agience.Client.MQTT
             - Status
 
          */
+
+        public Broker(string brokerUri)
+        {
+            _brokerUri = brokerUri;
+        }
 
         /*
         public Broker(Identity identity) { 
@@ -101,9 +106,9 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
             //await _mqtt.PublishAsync(brokerMessage.Topic, messageJson, brokerMessage.MessageType);
         }
 
-        internal Task ConnectAsync(string host, string token)
+        internal Task ConnectAsync(string token)
         {
-            return _mqtt.ConnectAsync(host, token);            
+            return _mqtt.ConnectAsync(_brokerUri, token);            
         }
 
         internal Task SubscribeAsync(string subscribeTopic)

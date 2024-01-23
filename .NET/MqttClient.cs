@@ -26,22 +26,22 @@ namespace Agience.Client.MQTT
             //MessageReceived += _mqtt_MessageReceived;
         }*/
 
-        internal async Task ConnectAsync(string host, string token)
+        internal async Task ConnectAsync(string brokerUri, string token)
         {
-            if (!_client.IsConnected && !_isConnecting)
+            if (!_client.IsConnected)
             {
-                _isConnecting = true;
                 var options = new MqttClientOptionsBuilder()
-                .WithWebSocketServer($"{host}:{PORT}")
-                .WithTls()
-                .WithCredentials(token, "password")                
+                .WithWebSocketServer(configure => {
+                    configure.Uri = "wss://broker.local.agience.ai:1884"; //brokerUri;
+                    configure.TlsOptions = new MqttClientTlsOptions() { UseTls = true, AllowUntrustedCertificates = true };                    
+                })
+                .WithCredentials(token, "<no_password>")
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();
 
                 _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
 
                 await _client.ConnectAsync(options, _cancellationTokenSource.Token);
-                _isConnecting = false;
             }
         }
 
