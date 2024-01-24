@@ -1,5 +1,6 @@
 ﻿using Agience.Client.MQTT.Model;
 using MQTTnet.Client;
+using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 
 namespace Agience.Client.MQTT
@@ -106,17 +107,17 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
             //await _mqtt.PublishAsync(brokerMessage.Topic, messageJson, brokerMessage.MessageType);
         }
 
-        internal Task ConnectAsync(string token)
+        internal async Task ConnectAsync(string token)
         {
-            return _mqtt.ConnectAsync(_brokerUri, token);            
+            await _mqtt.ConnectAsync(_brokerUri, token);            
         }
 
-        internal Task SubscribeAsync(string subscribeTopic)
+        internal async Task SubscribeAsync(string address)
         {
-            throw new NotImplementedException();
+            await _mqtt.SubscribeAsync(address);
         }
 
-        internal Task DisconnectAsync()
+        internal async Task DisconnectAsync()
         {
             throw new NotImplementedException();
         }

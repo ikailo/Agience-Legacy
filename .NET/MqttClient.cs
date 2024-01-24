@@ -13,24 +13,28 @@ namespace Agience.Client.MQTT
         internal event EventHandler<MqttApplicationMessageReceivedEventArgs>? MessageReceived;
 
         private IMqttClient _client = new MqttFactory().CreateMqttClient();
-        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        //private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         internal async Task ConnectAsync(string brokerUri, string token)
         {
             if (!_client.IsConnected)
             {
                 var options = new MqttClientOptionsBuilder()
-                .WithWebSocketServer(configure => {
+                .WithWebSocketServer(configure =>
+                {
                     configure.Uri = brokerUri;
-                    configure.TlsOptions = new MqttClientTlsOptions() { UseTls = true, AllowUntrustedCertificates = true };                    
+                    configure.TlsOptions = new MqttClientTlsOptions() { UseTls = true };
                 })
+                //.WithCleanSession(true)
+                //.WithKeepAlivePeriod(TimeSpan.FromSeconds(60)) // TODO: Disable in production
+                //.WithTimeout(TimeSpan.FromSeconds(60)) // TODO: Disable in production
                 .WithCredentials(token, "<no_password>")
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();
 
                 _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
 
-                await _client.ConnectAsync(options, _cancellationTokenSource.Token);
+                await _client.ConnectAsync(options);
             }
         }
 
@@ -44,16 +48,25 @@ namespace Agience.Client.MQTT
         {
             if (!_client.IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
-            var options = new MqttClientSubscribeOptionsBuilder()
-            .WithTopicFilter(subscribeMask)            
-            .Build();
+            try
+            {
+                var options = new MqttClientSubscribeOptionsBuilder()
+                    .WithTopicFilter(subscribeMask)
+                    .Build();
 
-            await _client.SubscribeAsync(options, _cancellationTokenSource.Token);
+                await _client.SubscribeAsync(options);
+            }
+            catch
+            {
+                // TODO: re-throw in production ?
+                // throw;
+            }
+
+
         }
 
         internal async Task DisconnectAsync()
         {
-            _cancellationTokenSource.Cancel();
             await _client.DisconnectAsync();
             _client.Dispose();
         }
@@ -78,7 +91,7 @@ namespace Agience.Client.MQTT
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                 .Build();
 
-                await _client.PublishAsync(mqMessage, _cancellationTokenSource.Token);
+                await _client.PublishAsync(mqMessage);
 
             }
         }

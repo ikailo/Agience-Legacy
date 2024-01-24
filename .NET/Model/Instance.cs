@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using Agience.Model;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -9,7 +10,7 @@ namespace Agience.Client.MQTT.Model
         public event Action<object?, string> LogMessage;
         public List<Agent> Agents { get; set; } = new List<Agent>();
         public Catalog Catalog { get; set; } = new Catalog();
-        public bool IsStarted { get; set; }
+        public bool IsStarted { get; set; }       
 
         private readonly Config _config;
         private readonly Authority _authority;
@@ -38,7 +39,9 @@ namespace Agience.Client.MQTT.Model
         }
 
         public async Task Start()
-        {
+        {   
+            //await Task.Delay(2000); // Wait for the authority to start. TODO: Skip in production.
+
             await _authority.InitializeAsync();
 
             _broker = new Broker(_config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
@@ -49,10 +52,15 @@ namespace Agience.Client.MQTT.Model
 
             await _broker.ConnectAsync(_access_token);
 
-            //await _broker.SubscribeAsync(SubscribeTopic);
+            // Subscribe to messages directed to all instances
+            await _broker.SubscribeAsync($"{_authority.Id}/0/-/-");
 
-            // Subscribe to the instance topic
-            // await _broker.SubscribeAsync(_identity.InstanceSubscribeTopic);
+            // Subscribe to messages directed to this instance
+            await _broker.SubscribeAsync($"{_authority.Id}/{Id}/-/-");
+
+            // TODO: What if this is an authority?
+            
+            // HERE
 
             // Send a status message, expect authority to answer with agencies and agents to subscribe            
             // Handle the subscribe process as an event response
