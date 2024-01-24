@@ -6,27 +6,17 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Agience.Client.MQTT.Model
 {
-    /*
-    public class Authority //: Agience.Model.Authority
-    {
-        public string AuthorityUri { get; private set; } // "https://authority.agience.ai";        
-        public string BrokerHost { get; }
-
-        public Authority(string authorityUri)
-        {
-            AuthorityUri = authorityUri;
-            BrokerHost = new Uri(authorityUri.Replace("authority.", "broker.")).Host; // TODO: Get from OIDC
-        }
-    }*/
-
-
     public class Authority
     {
+        private const string BROKER_URI_KEY = "broker_uri";
+        private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
+
         private readonly string _authorityUri;
+
         private OpenIdConnectConfiguration? _configuration;
 
         public string? TokenEndpoint => _configuration?.TokenEndpoint;
-        public string? BrokerUri => _configuration?.AdditionalData["broker_uri"].ToString();
+        public string? BrokerUri => _configuration?.AdditionalData[BROKER_URI_KEY].ToString();
 
         public Authority(string authorityUri)
         {
@@ -36,7 +26,7 @@ namespace Agience.Client.MQTT.Model
         public async Task InitializeAsync()
         {
             var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
-                $"{_authorityUri}/.well-known/openid-configuration",
+                $"{_authorityUri}{OPENID_CONFIG_PATH}",
                 new OpenIdConnectConfigurationRetriever());
 
             _configuration = await configurationManager.GetConfigurationAsync();

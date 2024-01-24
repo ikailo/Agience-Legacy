@@ -15,24 +15,13 @@ namespace Agience.Client.MQTT
         private IMqttClient _client = new MqttFactory().CreateMqttClient();
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        private bool _isConnecting;
-        //private Identity _identity;
-
-        private const int PORT = 1884;
-        /*
-        public MqttClient(Identity identity) //, EventHandler<MqttApplicationMessageReceivedEventArgs> _mqtt_MessageReceived)
-        {
-            _identity = identity;
-            //MessageReceived += _mqtt_MessageReceived;
-        }*/
-
         internal async Task ConnectAsync(string brokerUri, string token)
         {
             if (!_client.IsConnected)
             {
                 var options = new MqttClientOptionsBuilder()
                 .WithWebSocketServer(configure => {
-                    configure.Uri = "wss://broker.local.agience.ai:1884"; //brokerUri;
+                    configure.Uri = brokerUri;
                     configure.TlsOptions = new MqttClientTlsOptions() { UseTls = true, AllowUntrustedCertificates = true };                    
                 })
                 .WithCredentials(token, "<no_password>")
