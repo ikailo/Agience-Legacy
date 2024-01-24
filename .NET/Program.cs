@@ -23,6 +23,9 @@ namespace Agience.Agents_Console
 
             await instance.Start();
 
+            // TODO: We don't know how long it will take for the instance to get notified of the connected agents and agencies.  Need to hook into an event.
+            
+            /*
             // Pick an agent to work with. Here we'll just get one that's defined in the config.
             _agent = instance.Agents.Where(agent => agent.Agency?.Id == _config.AgentId).FirstOrDefault();
 
@@ -31,6 +34,7 @@ namespace Agience.Agents_Console
                 _agent.Publish("<context setup>");
                 _agent.Prompt("Interact with the user.", InteractWithUser_callback);
             }
+            */
 
             do { await Task.Delay(10); } while (instance.IsStarted);
         }
