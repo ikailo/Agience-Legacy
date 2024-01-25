@@ -1,5 +1,4 @@
-﻿using Agience.Model;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -11,7 +10,7 @@ namespace Agience.Client.MQTT.Model
         public List<Agent> Agents { get; set; } = new List<Agent>();
         public Catalog Catalog { get; set; } = new Catalog();
         public bool IsStarted { get; set; }       
-
+        
         private readonly Config _config;
         private readonly Authority _authority;
         
@@ -58,12 +57,18 @@ namespace Agience.Client.MQTT.Model
             // Subscribe to messages directed to this instance
             await _broker.SubscribeAsync($"{_authority.Id}/{Id}/-/-");
 
+            // Publish a status message to the authority. 
+            // TODO: Request a list of agents and agencies from the authority.
+            await _broker.PublishAsync(new StatusMessage($"{_authority.Id}/{Id}/-/-", Status.ONLINE), $"{_authority.Id}/-/-/-");
+
+
             // TODO: What if this is an authority?
             
             // HERE
 
-            // Send a status message, expect authority to answer with agencies and agents to subscribe            
-            // Handle the subscribe process as an event response
+            // Send a status message, expect authority to answer with agencies and agents to subscribe. Handle the subscribe process as an event response.
+            // Alternatively, subscribe to all agencies and agents where InstanceId is in the topic and handle the new messages on the fly.
+            // Prefer the event response method because we can manage each subscription individually and manage any dependencies.
 
             IsStarted = true;
         }

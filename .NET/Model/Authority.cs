@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
@@ -16,7 +14,6 @@ namespace Agience.Client.MQTT.Model
 
         public string? TokenEndpoint => _configuration?.TokenEndpoint;
         public string? BrokerUri => _configuration?.AdditionalData[BROKER_URI_KEY].ToString();        
-        public string? Address => $"{Id}/-/-/-";
         public string? Id { get; private set; }
 
         public Authority(string authorityUri)

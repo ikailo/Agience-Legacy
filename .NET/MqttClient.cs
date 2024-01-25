@@ -13,7 +13,6 @@ namespace Agience.Client.MQTT
         internal event EventHandler<MqttApplicationMessageReceivedEventArgs>? MessageReceived;
 
         private IMqttClient _client = new MqttFactory().CreateMqttClient();
-        //private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         internal async Task ConnectAsync(string brokerUri, string token)
         {
@@ -25,9 +24,6 @@ namespace Agience.Client.MQTT
                     configure.Uri = brokerUri;
                     configure.TlsOptions = new MqttClientTlsOptions() { UseTls = true };
                 })
-                //.WithCleanSession(true)
-                //.WithKeepAlivePeriod(TimeSpan.FromSeconds(60)) // TODO: Disable in production
-                //.WithTimeout(TimeSpan.FromSeconds(60)) // TODO: Disable in production
                 .WithCredentials(token, "<no_password>")
                 .WithProtocolVersion(MqttProtocolVersion.V500)
                 .Build();

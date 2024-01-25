@@ -80,7 +80,7 @@ namespace Agience.Client.MQTT.Model
             switch (MessageType)
             {
                 case AgentMessageType.STATUS:
-                    return JsonSerializer.Serialize(MessageData as Status);
+                    return JsonSerializer.Serialize(MessageData as StatusMessage);
                 case AgentMessageType.TEMPLATE:
                     return JsonSerializer.Serialize(MessageData as Template);
                 case AgentMessageType.INFORMATION:

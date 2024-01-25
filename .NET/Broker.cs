@@ -72,9 +72,9 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
 }
         */
 
-        internal async Task Send(Status status, string toAgentId = "0")
+        internal async Task Send(StatusMessage status, string toAgentId = "0")
         {
-            await Logger.Write($"{toAgentId} {status.AgentId} status send");
+            await Logger.Write($"{toAgentId} {status.SenderAddress} status send");
 
             await Send(AgentMessageType.STATUS, status, toAgentId);
         }
@@ -118,6 +118,11 @@ private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageR
         }
 
         internal async Task DisconnectAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal Task PublishAsync(Message statusMessage, string address)
         {
             throw new NotImplementedException();
         }

@@ -9,17 +9,16 @@ namespace Agience.Client.MQTT.Model
         // Agency
         // - Knows about its agents
         // - 
+
+        
         public new List<Agent> Agents { get; set; } = new();
 
-        public event EventHandler<Message>? MessageReceived;
+        public event EventHandler<Message>? MessageReceived;        
 
-        private readonly Identity _identity;
+        private readonly Authority _authority;
+
         private ConcurrentDictionary<string, DateTime> _knownAgents = new();
 
-        public Agency(Identity identity)
-        {
-            _identity = identity;
-        }
         /*
         private async Task Receive(Status? status)
         {
