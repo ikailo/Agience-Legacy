@@ -3,6 +3,7 @@ using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
+using System.Threading.Tasks;
 
 namespace Agience.Client.MQTT
 {
@@ -15,7 +16,7 @@ namespace Agience.Client.MQTT
         private readonly IMqttClient _client;
         private readonly string _brokerUri;
 
-        private readonly Dictionary<string, Func<Message, Task>> _callbacks = new();
+        private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
         public Broker(string brokerUri)
         {
@@ -28,7 +29,7 @@ namespace Agience.Client.MQTT
         {
             if (!_client.IsConnected)
             {
-                var options = new MqttClientOptionsBuilder()                    
+                var options = new MqttClientOptionsBuilder()
                     .WithWebSocketServer(configure => { configure.WithUri(_brokerUri); })
                     .WithTlsOptions(configure => { configure.UseTls(true); })
                     .WithCredentials(token, "<no_password>")
@@ -42,8 +43,9 @@ namespace Agience.Client.MQTT
         private async Task _client_ApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
         {
             var topic = args.ApplicationMessage.Topic;
+            var callbackTopic = topic.Substring(topic.IndexOf('/') + 1); // Remove the SenderId segment
 
-            if (_callbacks.TryGetValue(topic, out var callback))
+            if (_callbacks.TryGetValue(callbackTopic, out var callbackContainers))
             {
                 var message = new Message()
                 {
@@ -55,29 +57,64 @@ namespace Agience.Client.MQTT
                     Payload = args.ApplicationMessage.ConvertPayloadToString()
                 };
 
-                if (callback != null)
+                var callbackTasks = new List<Task>();
+                foreach (var container in callbackContainers)
                 {
-                    await callback(message);
+                    if (container.Callback != null)
+                    {
+                        callbackTasks.Add(container.Callback(message));
+                    }
                 }
+
+                await Task.WhenAll(callbackTasks).ConfigureAwait(false);
             }
         }
 
-        public async Task SubscribeAsync(string topic, Func<Message, Task> callback)
+        public async Task<Guid> SubscribeAsync(string topic, Func<Message, Task> callback)
         {
             if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
 
-            _callbacks[topic] = callback; // TODO: Handle multiple callbacks for the same address ?
+            var callbackTopic = topic.Substring(topic.IndexOf('/') + 1); // Remove the SenderId segment
+
+            var container = new CallbackContainer(callback);
+            if (!_callbacks.ContainsKey(callbackTopic))
+            {
+                _callbacks[callbackTopic] = new List<CallbackContainer>();
+            }
+            _callbacks[callbackTopic].Add(container);
 
             var options = new MqttClientSubscribeOptionsBuilder()
                 .WithTopicFilter(builder => builder.WithTopic(topic))
                 .Build();
 
             await _client.SubscribeAsync(options);
+
+            return container.Id;
         }
 
         public async Task DisconnectAsync()
         {
-            await _client.DisconnectAsync();            
+            _callbacks.Clear(); // Assuming disconnecting clears all the subscriptions. Clients will need to re-subscribe.
+            await _client.DisconnectAsync();
+        }
+
+        public async Task Unsubscribe(string topic, Guid callbackId)
+        {
+            var callbackTopic = topic.Substring(topic.IndexOf('/') + 1);
+
+            if (_callbacks.ContainsKey(callbackTopic))
+            {
+                var container = _callbacks[callbackTopic].FirstOrDefault(c => c.Id == callbackId);
+                if (container != null)
+                {
+                    _callbacks[callbackTopic].Remove(container);
+                    if (!_callbacks[callbackTopic].Any())
+                    {
+                        _callbacks.Remove(callbackTopic);
+                        await _client.UnsubscribeAsync(callbackTopic);
+                    }
+                }
+            }
         }
 
         public async Task PublishAsync(Message message)
@@ -96,4 +133,15 @@ namespace Agience.Client.MQTT
             }
         }
     }
+    internal class CallbackContainer
+    {
+        public Guid Id { get; } = Guid.NewGuid(); // Unique identifier for the callback
+        public Func<Message, Task> Callback { get; set; }
+
+        public CallbackContainer(Func<Message, Task> callback)
+        {
+            Callback = callback;
+        }
+    }
+
 }

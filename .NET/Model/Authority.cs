@@ -1,5 +1,6 @@
 ﻿using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using System.Text.Json;
 
 namespace Agience.Client.MQTT.Model
 {
@@ -13,7 +14,9 @@ namespace Agience.Client.MQTT.Model
         public string? BrokerUri { get; private set; }
         public string Id => _authorityUri.Host;
 
-        public event Func<Data, Task>? InstanceStatusMessage;
+        public delegate Task<List<Agience.Model.Agent>> InstanceConnectedArgs(Agience.Model.Instance instance);
+        
+        public event InstanceConnectedArgs? InstanceConnected;
 
         private Broker? _broker;
 
@@ -30,14 +33,22 @@ namespace Agience.Client.MQTT.Model
 
         public async Task InitializeAsync()
         {
-            var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
-                $"{_authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
-                new OpenIdConnectConfigurationRetriever());
+            try
+            {
+                var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                    $"{_authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
+                    new OpenIdConnectConfigurationRetriever());
 
-            var configuration = await configurationManager.GetConfigurationAsync();
+                var configuration = await configurationManager.GetConfigurationAsync();
 
-            BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
-            TokenEndpoint = configuration?.TokenEndpoint;
+                BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
+                TokenEndpoint = configuration?.TokenEndpoint;
+            }
+            catch (Exception ex)
+            {
+                // TODO: This fails way too often. Need to figure out why.
+                throw new Exception($"Failed to initialize authority {_authorityUri.OriginalString}", ex);
+            }
         }
 
         public async Task Connect(string token)
@@ -60,10 +71,34 @@ namespace Agience.Client.MQTT.Model
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.Type == MessageType.STATUS && message.Payload != null && InstanceStatusMessage != null)
+            if (message.SenderId == null || message.Payload?.Structured == null) { return; }
+                        
+            if (InstanceConnected != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
             {
-                await InstanceStatusMessage.Invoke(message.Payload);
+                var instance = JsonSerializer.Deserialize<Agience.Model.Instance>(message.Payload.Structured["instance"]);
+
+                if (instance?.Id == message.SenderId)
+                {
+                    await _broker!.PublishAsync(new Message()
+                    {
+                        Type = MessageType.EVENT,
+                        Topic = $"-/{Id}/{instance.Id}/-/-",
+                        Payload = new Data(new()
+                        {
+                            { "type", "instanceConnected" },
+                            { "agents", JsonSerializer.Serialize<List<Agience.Model.Agent>>(await InstanceConnected.Invoke(instance)) }
+                        })
+                    });
+                }
             }                  
+        }
+
+        public async Task DisconnectAsync()
+        {
+            if (_broker != null)
+            {
+                await _broker.DisconnectAsync();
+            }
         }
     }
 }

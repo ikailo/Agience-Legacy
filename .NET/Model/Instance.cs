@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Agience.Client.MQTT.Model
 {
@@ -45,17 +46,17 @@ namespace Agience.Client.MQTT.Model
             await _broker.SubscribeAsync($"+/{_authority.Id}/0/-/-", _broker_ReceiveMessage);
 
             // Subscribe to messages directed to this instance
-            await _broker.SubscribeAsync($"+/{_authority.Id}/{Id}/-/-", _broker_ReceiveMessage); 
+            await _broker.SubscribeAsync($"+/{_authority.Id}/{Id}/-/-", _broker_ReceiveMessage);
 
             // Publish a status message to the authority and request a list of agents and agencies.
             await _broker.PublishAsync(new Message()
             {
-                Type = MessageType.STATUS,
+                Type = MessageType.EVENT,
                 Topic = $"{Id}/{_authority.Id}/-/-/-",
                 Payload = new Data(new()
-                {   
-                    { "state", "online" },
-                    { "request", "AgentsAgencies" },                    
+                {
+                    { "type", "instanceConnect" },
+                    { "instance", JsonSerializer.Serialize<Agience.Model.Instance>(this) }
                 })
             });
 
@@ -64,7 +65,31 @@ namespace Agience.Client.MQTT.Model
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+
+            // HERE: Invoke AgentConnected Event.
+
+            if (message.SenderId == null || message.Payload?.Structured == null) { return; }
+
+            if (InstanceConnected != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
+            {
+                var instance = JsonSerializer.Deserialize<Agience.Model.Instance>(message.Payload.Structured["instance"]);
+
+                if (instance?.Id == message.SenderId)
+                {
+                    await _broker!.PublishAsync(new Message()
+                    {
+                        Type = MessageType.EVENT,
+                        Topic = $"-/{Id}/{instance.Id}/-/-",
+                        Payload = new Data(new()
+                        {
+                            { "type", "instanceConnect" },
+                            { "agents", JsonSerializer.Serialize<List<Agience.Model.Agent>>(await InstanceConnected.Invoke(instance)) }
+                        })
+                    });
+                }
+            }
+
             /*
             if (template?.Id != null && template.InstanceId != Id)
             {
