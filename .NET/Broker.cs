@@ -1,130 +1,99 @@
 ﻿using Agience.Client.MQTT.Model;
+using MQTTnet;
 using MQTTnet.Client;
-using Newtonsoft.Json.Linq;
-using System.Collections.Concurrent;
+using MQTTnet.Protocol;
+using MQTTnet.Formatter;
 
 namespace Agience.Client.MQTT
 {
     public class Broker
     {
-        private string _brokerUri;        
+        public bool IsConnected => _client.IsConnected;
 
-        private readonly MqttClient _mqtt = new();
-        //private readonly Identity _identity;
+        private const string MESSAGE_TYPE_KEY = "message.type";
 
-        //private readonly ConcurrentDictionary<string, Agent.OutputCallback> _outputCallbacks = new();
+        private readonly IMqttClient _client;
+        private readonly string _brokerUri;
 
-        /*
-
-        Broker:
-            - incoming messages -> (type, targetId)
-            - outgoing messages -> (type, targetId)
-            - understands topics
-        
-        Agency:
-            - Timeline
-            
-        Agent:
-            - Information
-            - Template Processing
-        
-        Instance:
-            - Catalog
-            - Status
-
-         */
+        private readonly Dictionary<string, Func<Message, Task>> _callbacks = new();
 
         public Broker(string brokerUri)
         {
             _brokerUri = brokerUri;
+            _client = new MqttFactory().CreateMqttClient();
+            _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
         }
 
-        /*
-        public Broker(Identity identity) { 
-            
-            //_identity = identity;
-            //_mqtt = new MqttClient();
-            //_mqtt.MessageReceived += _mqtt_MessageReceived;
-        }*/
-
-        private void _mqtt_MessageReceived(object? sender, Message e)
+        public async Task ConnectAsync(string token)
         {
-            throw new NotImplementedException();
-        }
-
-        /*
-private async void _mqtt_MessageReceived(object? sender, MqttApplicationMessageReceivedEventArgs args)
-{
-   var message = Message.FromMqttArgs(args);
-
-   switch (message.MessageType)
-   {
-       case AgentMessageType.STATUS:
-           await Receive(message.MessageData as Status);
-           break;
-       case AgentMessageType.TEMPLATE:
-           await Receive(message.MessageData as Template);
-           break;
-       case AgentMessageType.INFORMATION:
-           await Receive(message.MessageData as Information);
-           break;
-   }
-}
-        */
-
-        internal async Task Send(StatusMessage status, string toAgentId = "0")
-        {
-            await Logger.Write($"{toAgentId} {status.SenderAddress} status send");
-
-            await Send(AgentMessageType.STATUS, status, toAgentId);
-        }
-
-        internal async Task Send(Template template, string toAgentId)
-        {
-            await Logger.Write($"{toAgentId} {template.Id} template send");
-
-            await Send(AgentMessageType.TEMPLATE, template, toAgentId);
-        }
-
-        public async Task Send(Information information, string toAgentId)
-        {            
-            await Logger.Write($"{toAgentId} {information.Id} information send");
-
-            await Send(AgentMessageType.INFORMATION, information, toAgentId);
-        }
-
-        public async Task Send(AgentMessageType messageType, object? messageData, string toAgentId = "0")
-        {   
-            var brokerMessage = new Message()
+            if (!_client.IsConnected)
             {
-                MessageType = messageType,
-                MessageData = messageData,
-                ToAgentId = toAgentId
-            };
-
-            string messageJson = brokerMessage.ConvertMessageDataToString();
-
-            //await _mqtt.PublishAsync(brokerMessage.Topic, messageJson, brokerMessage.MessageType);
+                var options = new MqttClientOptionsBuilder()                    
+                    .WithWebSocketServer(configure => { configure.WithUri(_brokerUri); })
+                    .WithTlsOptions(configure => { configure.UseTls(true); })
+                    .WithCredentials(token, "<no_password>")
+                    .WithProtocolVersion(MqttProtocolVersion.V500)
+                    .WithoutThrowOnNonSuccessfulConnectResponse()
+                    .Build();
+                await _client.ConnectAsync(options);
+            }
         }
 
-        internal async Task ConnectAsync(string token)
+        private async Task _client_ApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
         {
-            await _mqtt.ConnectAsync(_brokerUri, token);            
+            var topic = args.ApplicationMessage.Topic;
+
+            if (_callbacks.TryGetValue(topic, out var callback))
+            {
+                var message = new Message()
+                {
+                    Type = Enum.TryParse<MessageType>(
+                        args.ApplicationMessage.UserProperties.FirstOrDefault(x => x.Name == MESSAGE_TYPE_KEY)?.Value.ToString(), out var messageType) ?
+                        messageType :
+                        MessageType.UNKNOWN,
+                    Topic = args.ApplicationMessage.Topic,
+                    Payload = args.ApplicationMessage.ConvertPayloadToString()
+                };
+
+                if (callback != null)
+                {
+                    await callback(message);
+                }
+            }
         }
 
-        internal async Task SubscribeAsync(string address)
+        public async Task SubscribeAsync(string topic, Func<Message, Task> callback)
         {
-            await _mqtt.SubscribeAsync(address);
+            if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
+
+            _callbacks[topic] = callback; // TODO: Handle multiple callbacks for the same address ?
+
+            var options = new MqttClientSubscribeOptionsBuilder()
+                .WithTopicFilter(builder => builder.WithTopic(topic))
+                .Build();
+
+            await _client.SubscribeAsync(options);
         }
 
-        internal async Task DisconnectAsync()
+        public async Task DisconnectAsync()
         {
-            throw new NotImplementedException();
+            await _client.DisconnectAsync();            
         }
 
-        internal Task PublishAsync(Message statusMessage, string address)
+        public async Task PublishAsync(Message message)
         {
-            throw new NotImplementedException();
+            if (_client.IsConnected)
+            {
+                var mqMessage = new MqttApplicationMessageBuilder()
+                    .WithTopic(message.Topic ?? throw new ArgumentNullException(nameof(message.Topic)))
+                    .WithPayload(message.Payload?.ToString() ?? throw new ArgumentNullException(nameof(message.Payload)))
+                    .WithRetainFlag(false)
+                    .WithUserProperty(MESSAGE_TYPE_KEY, message.Type.ToString())
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
+                    .Build();
+
+                await _client.PublishAsync(mqMessage);
+            }
         }
     }
 }

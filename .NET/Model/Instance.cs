@@ -9,36 +9,26 @@ namespace Agience.Client.MQTT.Model
         public event Action<object?, string> LogMessage;
         public List<Agent> Agents { get; set; } = new List<Agent>();
         public Catalog Catalog { get; set; } = new Catalog();
-        public bool IsStarted { get; set; }       
-        
+        public bool IsConnected { get; private set; }
+
         private readonly Config _config;
         private readonly Authority _authority;
-        
+
         private Broker _broker;
-        private string _clientSecret;        
-        private string? _access_token;        
+        private string _clientSecret;
+        private string? _access_token;
 
         public Instance(Config config)
         {
             _config = config;
 
             Id = _config.ClientId ?? throw new ArgumentNullException("ClientId");
-            _authority = new Authority(_config.AuthorityUri ?? throw new ArgumentNullException("AuthorityUri")); 
-            _clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");            
+            _authority = new Authority(_config.AuthorityUri ?? throw new ArgumentNullException("AuthorityUri"));
+            _clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");
         }
 
-        private async Task Receive(Template? template)
+        public async Task Connect()
         {
-            if (template?.Id != null && template.InstanceId != Id)
-            {
-                await Logger.Write($"{template.InstanceId} {template.Id} template receive");
-
-                Catalog.Add(agent => template);
-            }
-        }
-
-        public async Task Start()
-        {   
             //await Task.Delay(2000); // Wait for the authority to start. TODO: Skip in production.
 
             await _authority.InitializeAsync();
@@ -51,29 +41,41 @@ namespace Agience.Client.MQTT.Model
 
             await _broker.ConnectAsync(_access_token);
 
-            // Subscribe to messages directed to all instances
-            await _broker.SubscribeAsync($"{_authority.Id}/0/-/-");
+            // Subscribe to messages directed to all instances.
+            await _broker.SubscribeAsync($"+/{_authority.Id}/0/-/-", _broker_ReceiveMessage);
 
             // Subscribe to messages directed to this instance
-            await _broker.SubscribeAsync($"{_authority.Id}/{Id}/-/-");
+            await _broker.SubscribeAsync($"+/{_authority.Id}/{Id}/-/-", _broker_ReceiveMessage); 
 
-            // Publish a status message to the authority. 
-            // TODO: Request a list of agents and agencies from the authority.
-            await _broker.PublishAsync(new StatusMessage($"{_authority.Id}/{Id}/-/-", Status.ONLINE), $"{_authority.Id}/-/-/-");
+            // Publish a status message to the authority and request a list of agents and agencies.
+            await _broker.PublishAsync(new Message()
+            {
+                Type = MessageType.STATUS,
+                Topic = $"{Id}/{_authority.Id}/-/-/-",
+                Payload = new Data(new()
+                {   
+                    { "state", "online" },
+                    { "request", "AgentsAgencies" },                    
+                })
+            });
 
-
-            // TODO: What if this is an authority?
-            
-            // HERE
-
-            // Send a status message, expect authority to answer with agencies and agents to subscribe. Handle the subscribe process as an event response.
-            // Alternatively, subscribe to all agencies and agents where InstanceId is in the topic and handle the new messages on the fly.
-            // Prefer the event response method because we can manage each subscription individually and manage any dependencies.
-
-            IsStarted = true;
+            IsConnected = true;
         }
 
-        public async Task Stop()
+        private async Task _broker_ReceiveMessage(Message message)
+        {
+            throw new NotImplementedException();
+            /*
+            if (template?.Id != null && template.InstanceId != Id)
+            {
+                await Logger.Write($"{template.InstanceId} {template.Id} template receive");
+
+                Catalog.Add(agent => template);
+            }
+            */
+        }
+
+        public async Task Disconnect()
         {
             await _broker.DisconnectAsync();
         }
@@ -91,7 +93,7 @@ namespace Agience.Client.MQTT.Model
                     { "grant_type", "client_credentials" },
                     { "scope", "connect" }
                 };
-                
+
                 var httpResponse = await httpClient.PostAsync(_authority.TokenEndpoint, new FormUrlEncodedContent(parameters));
 
                 _access_token = httpResponse.IsSuccessStatusCode ?
