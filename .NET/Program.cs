@@ -14,14 +14,14 @@ namespace Agience.Agents_Console
 
             var instance = new Instance(_config);
 
-            instance.LogMessage += LogMessage_callback;
+            //instance.LogMessage += LogMessage_callback;
 
             instance.Catalog.Add(agent => new Debug(agent));
             instance.Catalog.Add(() => new InteractWithUser());
             instance.Catalog.Add(() => new GetInputFromUser());
-            instance.Catalog.Add(() => new ShowMessageToUser(ShowMessageToUser_callback));
+            //instance.Catalog.Add(() => new ShowMessageToUser(ShowMessageToUser_callback));
 
-            await instance.Start();
+            await instance.Connect();
 
             // TODO: We don't know how long it will take for the instance to get notified of the connected agents and agencies.  Need to hook into an event.
             
@@ -36,9 +36,9 @@ namespace Agience.Agents_Console
             }
             */
 
-            do { await Task.Delay(10); } while (instance.IsStarted);
+            do { await Task.Delay(10); } while (instance.IsConnected);
         }
-
+        /*
         private static void LogMessage_callback(object? sender, string message)
         {
             Console.WriteLine($"{_agent?.Name ?? "Interaction.Local"} | {message}");
@@ -50,7 +50,7 @@ namespace Agience.Agents_Console
 
             if (userInput?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
             {
-                await _agent.Instance.Stop();
+                await _agent.Instance.Disconnect();
 
                 Console.WriteLine($"{_agent.Instance.Name} Shut Down");
             }
@@ -63,6 +63,6 @@ namespace Agience.Agents_Console
         private static void ShowMessageToUser_callback(string? message)
         {
             Console.Write($"{(string.IsNullOrEmpty(message) ? string.Empty : $"{message}")}");
-        }
+        }*/
     }
 }
