@@ -1,28 +1,25 @@
-﻿using Microsoft.Extensions.Configuration;
-
-using System.Collections.Concurrent;
-
-//using static IdentityModel.OidcConstants;
+﻿using System.Collections.Concurrent;
 using Timer = System.Timers.Timer;
 
-namespace Agience.Client.MQTT.Model
+namespace Agience.Client.Model
 {
     public class Agent : Agience.Model.Agent
     {
-        public event EventHandler<string>? LogMessage;
-        public event EventHandler<Message>? MessageReceived;
+        //public event EventHandler<string>? LogMessage;
+        //public event EventHandler<Message>? MessageReceived;
 
         public delegate Task PromptCallback(Data? output);
         private ConcurrentDictionary<string, PromptCallback> _promptCallbacks = new();
 
-        public new Agency? Agency { get; private set; }
-        public new Instance? Instance { get; private set; }
+        public new Agency? Agency { get; internal set; }
+        public new Instance? Instance { get; internal set; }
         public Timeline Timeline { get; } = new Timeline();
-        internal Identity Identity { get; }
 
-        public Agent(Identity identity)
+        private Authority _authority;
+
+        public Agent(Authority authority)
         {
-            Identity = identity;
+            _authority = authority;
         }
 
         private async Task Receive(Information? information)
@@ -208,6 +205,7 @@ namespace Agience.Client.MQTT.Model
                 // Send via Agency Broker
             }
 
+            /*
             // Short circuit
             if (targetId == Identity.AgentId)
             {
@@ -216,7 +214,7 @@ namespace Agience.Client.MQTT.Model
                     await Receive(information);
                 }).Start();
                 return;
-            }
+            }*/
 
             await Send(information, Agency?.Agents?.Where(agent => agent.Id == targetId).FirstOrDefault());
         }
@@ -229,21 +227,20 @@ namespace Agience.Client.MQTT.Model
             throw new NotImplementedException();
         }
 
-        public static T LoadConfiguration<T>() where T : Config, new()
+        public async Task Connect()
         {
-            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            // Subscribe to messages directed to this Agent.
+            await Instance.Broker.SubscribeAsync($"+/{_authority.Id}/-/-/{Id}", _broker_ReceiveMessage);
 
-            var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{environmentName}.json", optional: true)
-                .AddUserSecrets<Agent>(optional: true)
-                .AddEnvironmentVariables();
+            // HERE: Add ACL TopicMask for Agent Instance Delegation
 
-            var configuration = configurationBuilder.Build();
-            var config = new T();
-            configuration.Bind(config);
+            // TODO: Send an event to the Agency
+            
+        }
 
-            return config;
+        private async Task _broker_ReceiveMessage(Message message)
+        {
+            throw new NotImplementedException();
         }
 
         /*
@@ -259,30 +256,7 @@ namespace Agience.Client.MQTT.Model
                 LogMessage?.Invoke(this, message);
             }
         }*/
+        
 
-        // Startup
-
-
-
-        /*
-        public async void Kill(double delayMs = 0)
-        {
-            if (delayMs == 0)
-            {
-                await KillTimerCallback();
-            }
-            else
-            {
-                _killTimer = new Timer(delayMs);
-                _killTimer.Elapsed += async (sender, e) => await KillTimerCallback();
-                _killTimer.Start();
-            }
-        }
-
-        private async Task KillTimerCallback()
-        {
-            await _mqtt.DisconnectAsync();
-            Environment.Exit(0);
-        }*/
     }
 }

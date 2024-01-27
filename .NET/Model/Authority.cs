@@ -2,7 +2,7 @@
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
 
-namespace Agience.Client.MQTT.Model
+namespace Agience.Client.Model
 {
     public class Authority
     {
@@ -15,7 +15,7 @@ namespace Agience.Client.MQTT.Model
         public string Id => _authorityUri.Host;
 
         public delegate Task<List<Agience.Model.Agent>> InstanceConnectedArgs(Agience.Model.Instance instance);
-        
+
         public event InstanceConnectedArgs? InstanceConnected;
 
         private Broker? _broker;
@@ -28,7 +28,7 @@ namespace Agience.Client.MQTT.Model
         public Authority(string authorityUri, string brokerUri)
         {
             _authorityUri = new Uri(authorityUri);
-            BrokerUri = brokerUri;            
+            BrokerUri = brokerUri;
         }
 
         public async Task InitializeAsync()
@@ -72,25 +72,29 @@ namespace Agience.Client.MQTT.Model
         private async Task _broker_ReceiveMessage(Message message)
         {
             if (message.SenderId == null || message.Payload?.Structured == null) { return; }
-                        
+
             if (InstanceConnected != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
             {
                 var instance = JsonSerializer.Deserialize<Agience.Model.Instance>(message.Payload.Structured["instance"]);
 
                 if (instance?.Id == message.SenderId)
                 {
-                    await _broker!.PublishAsync(new Message()
+                    foreach (var agent in await InstanceConnected.Invoke(instance))
                     {
-                        Type = MessageType.EVENT,
-                        Topic = $"-/{Id}/{instance.Id}/-/-",
-                        Payload = new Data(new()
+                        await _broker!.PublishAsync(new Message()
                         {
-                            { "type", "instanceConnected" },
-                            { "agents", JsonSerializer.Serialize<List<Agience.Model.Agent>>(await InstanceConnected.Invoke(instance)) }
-                        })
-                    });
+                            Type = MessageType.EVENT,
+                            Topic = $"-/{Id}/{instance.Id}/-/-",
+                            Payload = new Data(new()
+                            {
+                                { "type", "agentConnect" },
+                                { "agent", JsonSerializer.Serialize(agent) }
+                            })
+                        });
+
+                    }
                 }
-            }                  
+            }
         }
 
         public async Task DisconnectAsync()

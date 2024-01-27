@@ -1,4 +1,4 @@
-﻿namespace Agience.Client.MQTT.Model
+﻿namespace Agience.Client.Model
 {
     public enum MessageType
     {

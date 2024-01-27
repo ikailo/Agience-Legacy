@@ -1,11 +1,10 @@
-﻿using Agience.Client.MQTT.Model;
-using MQTTnet;
+﻿using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
-using System.Threading.Tasks;
+using Agience.Client.Model;
 
-namespace Agience.Client.MQTT
+namespace Agience.Client
 {
     public class Broker
     {

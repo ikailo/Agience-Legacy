@@ -1,7 +1,7 @@
 ﻿using Agience.Model;
 using System.Text.Json.Serialization;
 
-namespace Agience.Client.MQTT.Model
+namespace Agience.Client.Model
 {/*
     public enum InformationState
     {
@@ -38,7 +38,7 @@ namespace Agience.Client.MQTT.Model
 
         public Information(Data? input = null, Data? prompt = null, string? templateId = null, Data? output = null)
         {
-            Id = MQTT.Id.Create("<fixme>"); // FIXME
+            Id = Client.Id.Create("<fixme>"); // FIXME
             Input = input;
             Prompt = prompt;
             Output = output;

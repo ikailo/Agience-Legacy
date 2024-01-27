@@ -3,13 +3,17 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-namespace Agience.Client.MQTT.Model
+namespace Agience.Client.Model
 {
     public class Instance : Agience.Model.Instance
     {
-        public event Action<object?, string> LogMessage;
-        public List<Agent> Agents { get; set; } = new List<Agent>();
+        public delegate Task AgentConnectEventArgs(Agent agent);
+        public event AgentConnectEventArgs? AgentConnect;
+
+        //public event Action<object?, string> LogMessage;
+        public new Dictionary<string, Agent> Agents { get; set; } = new();
         public Catalog Catalog { get; set; } = new Catalog();
+        internal Broker? Broker => _broker;
         public bool IsConnected { get; private set; }
 
         private readonly Config _config;
@@ -18,6 +22,7 @@ namespace Agience.Client.MQTT.Model
         private Broker _broker;
         private string _clientSecret;
         private string? _access_token;
+        private Dictionary<string, Agency> _agencies = new();
 
         public Instance(Config config)
         {
@@ -30,7 +35,7 @@ namespace Agience.Client.MQTT.Model
 
         public async Task Connect()
         {
-            //await Task.Delay(2000); // Wait for the authority to start. TODO: Skip in production.
+            await Task.Delay(2000); // Wait for the authority to start. TODO: Skip in production.
 
             await _authority.InitializeAsync();
 
@@ -65,39 +70,37 @@ namespace Agience.Client.MQTT.Model
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            //throw new NotImplementedException();
-
-            // HERE: Invoke AgentConnected Event.
-
             if (message.SenderId == null || message.Payload?.Structured == null) { return; }
 
-            if (InstanceConnected != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
+            if (AgentConnect != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "agentConnect")
             {
-                var instance = JsonSerializer.Deserialize<Agience.Model.Instance>(message.Payload.Structured["instance"]);
+                var agent = JsonSerializer.Deserialize<Agience.Model.Agent>(message.Payload.Structured["agent"]);
 
-                if (instance?.Id == message.SenderId)
+                if (agent?.Id != null && agent.Agency?.Id != null)
                 {
-                    await _broker!.PublishAsync(new Message()
+                    Agents[agent.Id] = new Agent(_authority)
                     {
-                        Type = MessageType.EVENT,
-                        Topic = $"-/{Id}/{instance.Id}/-/-",
-                        Payload = new Data(new()
+                        Id = agent.Id,
+                        Name = agent.Name,                        
+                        Instance = this
+                    };
+
+                    if (agent.AgencyId != null)
+                    {
+                        if (!_agencies.ContainsKey(agent.AgencyId))
                         {
-                            { "type", "instanceConnect" },
-                            { "agents", JsonSerializer.Serialize<List<Agience.Model.Agent>>(await InstanceConnected.Invoke(instance)) }
-                        })
-                    });
+                            _agencies[agent.AgencyId] = new Agency()
+                            {
+                                Id = agent.Agency?.Id,
+                                Name = agent.Agency?.Name
+                            };
+                        }
+                        Agents[agent.Id].Agency = _agencies[agent.AgencyId];
+                    }
+
+                    await AgentConnect.Invoke(Agents[agent.Id]).ConfigureAwait(false);
                 }
             }
-
-            /*
-            if (template?.Id != null && template.InstanceId != Id)
-            {
-                await Logger.Write($"{template.InstanceId} {template.Id} template receive");
-
-                Catalog.Add(agent => template);
-            }
-            */
         }
 
         public async Task Disconnect()

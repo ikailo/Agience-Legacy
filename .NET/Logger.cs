@@ -1,4 +1,4 @@
-﻿namespace Agience.Client.MQTT
+﻿namespace Agience.Client
 {
     internal static class Logger
     {

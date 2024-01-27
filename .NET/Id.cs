@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
-namespace Agience.Client.MQTT
+namespace Agience.Client
 {
     public class Id : IComparable<Id>
     {

@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Agience.Client.MQTT.Model
+namespace Agience.Client.Model
 {
     public enum TemplateState
     {
