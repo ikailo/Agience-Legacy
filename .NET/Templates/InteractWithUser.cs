@@ -1,4 +1,4 @@
-﻿using Agience.Client.Model;
+﻿using Agience.Client;
 
 namespace Agience.Templates
 {

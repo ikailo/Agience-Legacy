@@ -1,5 +1,5 @@
 ﻿using Agience.Templates;
-using Agience.Client.Model;
+using Agience.Client;
 
 namespace Agience.Agents_Console
 {
