@@ -2,7 +2,7 @@
 
 namespace Agience.Agents_Console
 {
-    internal class AppConfig : Client.MQTT.Config
+    internal class AppConfig : Client.Config
     {
         public string? AgentId { get; set; }
 

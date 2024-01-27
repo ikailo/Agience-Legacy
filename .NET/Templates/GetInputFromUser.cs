@@ -1,4 +1,4 @@
-﻿using Agience.Client.MQTT.Model;
+﻿using Agience.Client.Model;
 
 namespace Agience.Templates
 {

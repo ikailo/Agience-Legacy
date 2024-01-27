@@ -1,5 +1,5 @@
 ﻿using Agience.Templates;
-using Agience.Client.MQTT.Model;
+using Agience.Client.Model;
 
 namespace Agience.Agents_Console
 {
@@ -15,6 +15,8 @@ namespace Agience.Agents_Console
             var instance = new Instance(_config);
 
             //instance.LogMessage += LogMessage_callback;
+
+            instance.AgentConnect += Instance_AgentConnect;
 
             instance.Catalog.Add(agent => new Debug(agent));
             instance.Catalog.Add(() => new InteractWithUser());
@@ -38,31 +40,39 @@ namespace Agience.Agents_Console
 
             do { await Task.Delay(10); } while (instance.IsConnected);
         }
+
+        private static async Task Instance_AgentConnect(Agent agent)
+        {
+            await agent.Connect();
+
+            Console.WriteLine($"{agent.Id} {agent.Name} Connected");
+            
+        }
         /*
-        private static void LogMessage_callback(object? sender, string message)
-        {
-            Console.WriteLine($"{_agent?.Name ?? "Interaction.Local"} | {message}");
-        }
+private static void LogMessage_callback(object? sender, string message)
+{
+   Console.WriteLine($"{_agent?.Name ?? "Interaction.Local"} | {message}");
+}
 
-        private async static Task InteractWithUser_callback(Data? userInput)
-        {
-            if (_agent?.Instance == null) { return; }
+private async static Task InteractWithUser_callback(Data? userInput)
+{
+   if (_agent?.Instance == null) { return; }
 
-            if (userInput?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
-            {
-                await _agent.Instance.Disconnect();
+   if (userInput?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
+   {
+       await _agent.Instance.Disconnect();
 
-                Console.WriteLine($"{_agent.Instance.Name} Shut Down");
-            }
-            else
-            {
-                _agent.Prompt(userInput, "Interact with the user.", InteractWithUser_callback);
-            }
-        }
+       Console.WriteLine($"{_agent.Instance.Name} Shut Down");
+   }
+   else
+   {
+       _agent.Prompt(userInput, "Interact with the user.", InteractWithUser_callback);
+   }
+}
 
-        private static void ShowMessageToUser_callback(string? message)
-        {
-            Console.Write($"{(string.IsNullOrEmpty(message) ? string.Empty : $"{message}")}");
-        }*/
+private static void ShowMessageToUser_callback(string? message)
+{
+   Console.Write($"{(string.IsNullOrEmpty(message) ? string.Empty : $"{message}")}");
+}*/
     }
 }
