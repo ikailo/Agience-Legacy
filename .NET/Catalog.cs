@@ -1,27 +1,52 @@
-﻿using System.Collections.Concurrent;
+﻿using Agience.Client.Model;
 
-namespace Agience
+namespace Agience.Client
 {
-    public class Catalog : ConcurrentDictionary<string, Template>
+    public class Catalog
     {
-        private Identity _identity;
-
-        public Catalog(Identity identity)
-        {
+        //private readonly Identity _identity;
+        /*
+        public Catalog(Identity identity) {
             _identity = identity;
+        }*/
+
+        private Dictionary<string, Func<Agent?, Template>> _templateFactories = new();
+
+        // TODO: Cache the templates by AgentId. Ensure only one instance of each template exists per agent.
+        //private Dictionary<Agent, Dictionary<string, Template>> _templates = new(); // AgentId -> TemplateId -> Template
+
+        public void Add(Func<Agent?, Template> templateFactory)
+        {
+            // Create a temporary instance to get the ID. 
+            // TODO: If we're generating an instance, we should keep it so we don't have to generate it again.
+            var tempInstance = templateFactory(null); 
+            _templateFactories[tempInstance.Id] = templateFactory;
         }
 
-        public void Add(Template template)
+        public void Add(Func<Template> templateFactory)
         {
-            if (!string.IsNullOrEmpty(template.Id))
-            {
-                if (template.MemberId == null)
-                {
-                    template.MemberId = _identity.AgentId;
-                }
+            Add(agent => templateFactory());
+        }
 
-                this[template.Id] = template;
+        public Template? GetTemplate(string id, Agent? agent = null)
+        {
+            
+            if (_templateFactories.TryGetValue(id, out Func<Agent?, Template>? factory))
+            {                
+                return factory(agent);
             }
+            return null;
+        }
+
+        internal Template? GetTemplate(string? templateId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ContainsKey(string? templateId)
+        {
+            throw new NotImplementedException();
         }
     }
+
 }

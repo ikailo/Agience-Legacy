@@ -1,0 +1,140 @@
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+
+namespace Agience.Client.Model
+{
+    public class Instance : Agience.Model.Instance
+    {
+        public delegate Task AgentConnectEventArgs(Agent agent);
+        public event AgentConnectEventArgs? AgentConnect;
+
+        //public event Action<object?, string> LogMessage;
+        public new Dictionary<string, Agent> Agents { get; set; } = new();
+        public Catalog Catalog { get; set; } = new Catalog();
+        internal Broker? Broker => _broker;
+        public bool IsConnected { get; private set; }
+
+        private readonly Config _config;
+        private readonly Authority _authority;
+
+        private Broker _broker;
+        private string _clientSecret;
+        private string? _access_token;
+        private Dictionary<string, Agency> _agencies = new();
+
+        public Instance(Config config)
+        {
+            _config = config;
+
+            Id = _config.ClientId ?? throw new ArgumentNullException("ClientId");
+            _authority = new Authority(_config.AuthorityUri ?? throw new ArgumentNullException("AuthorityUri"));
+            _clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");
+        }
+
+        public async Task Connect()
+        {
+            await Task.Delay(2000); // Wait for the authority to start. TODO: Skip in production.
+
+            await _authority.InitializeAsync();
+
+            _broker = new Broker(_config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
+
+            await Authenticate();
+
+            if (_access_token == null) { throw new Exception("Access Token is null"); }
+
+            await _broker.ConnectAsync(_access_token);
+
+            // Subscribe to messages directed to all instances.
+            await _broker.SubscribeAsync($"+/{_authority.Id}/0/-/-", _broker_ReceiveMessage);
+
+            // Subscribe to messages directed to this instance
+            await _broker.SubscribeAsync($"+/{_authority.Id}/{Id}/-/-", _broker_ReceiveMessage);
+
+            // Publish a status message to the authority and request a list of agents and agencies.
+            await _broker.PublishAsync(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = $"{Id}/{_authority.Id}/-/-/-",
+                Payload = new Data(new()
+                {
+                    { "type", "instanceConnect" },
+                    { "instance", JsonSerializer.Serialize<Agience.Model.Instance>(this) }
+                })
+            });
+
+            IsConnected = true;
+        }
+
+        private async Task _broker_ReceiveMessage(Message message)
+        {
+            if (message.SenderId == null || message.Payload?.Structured == null) { return; }
+
+            if (AgentConnect != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "agentConnect")
+            {
+                var agent = JsonSerializer.Deserialize<Agience.Model.Agent>(message.Payload.Structured["agent"]);
+
+                if (agent?.Id != null && agent.Agency?.Id != null)
+                {
+                    Agents[agent.Id] = new Agent(_authority)
+                    {
+                        Id = agent.Id,
+                        Name = agent.Name,                        
+                        Instance = this
+                    };
+
+                    if (agent.AgencyId != null)
+                    {
+                        if (!_agencies.ContainsKey(agent.AgencyId))
+                        {
+                            _agencies[agent.AgencyId] = new Agency()
+                            {
+                                Id = agent.Agency?.Id,
+                                Name = agent.Agency?.Name
+                            };
+                        }
+                        Agents[agent.Id].Agency = _agencies[agent.AgencyId];
+                    }
+
+                    await AgentConnect.Invoke(Agents[agent.Id]).ConfigureAwait(false);
+                }
+            }
+        }
+
+        public async Task Disconnect()
+        {
+            await _broker.DisconnectAsync();
+        }
+
+        internal async Task Authenticate()
+        {
+            // TODO: Use a shared HttpClient instance
+            using (var httpClient = new HttpClient())
+            {
+                var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{_clientSecret}"));
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
+
+                var parameters = new Dictionary<string, string>
+                {
+                    { "grant_type", "client_credentials" },
+                    { "scope", "connect" }
+                };
+
+                var httpResponse = await httpClient.PostAsync(_authority.TokenEndpoint, new FormUrlEncodedContent(parameters));
+
+                _access_token = httpResponse.IsSuccessStatusCode ?
+                    (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token :
+                    throw new HttpRequestException("Unauthorized", null, httpResponse.StatusCode);
+            }
+        }
+
+        internal class TokenResponse
+        {
+            public string? access_token { get; set; }
+            public string? token_type { get; set; }
+            public int? expires_in { get; set; }
+        }
+    }
+}
