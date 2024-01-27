@@ -1,9 +1,8 @@
-﻿using Agience;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Agience.Client.Model
+namespace Agience.Client
 {
     public enum TemplateState
     {
@@ -12,8 +11,8 @@ namespace Agience.Client.Model
         PROCESSING = 2
     }
 
-    public class Template : Agience.Model.Template
-    {        
+    public class Template : Model.Template
+    {
         public Agent? Agent { get; set; }
 
         public Template(Agent? agent)

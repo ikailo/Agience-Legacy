@@ -2,7 +2,6 @@
 using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
-using Agience.Client.Model;
 
 namespace Agience.Client
 {

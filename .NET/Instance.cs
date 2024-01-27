@@ -3,9 +3,9 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-namespace Agience.Client.Model
+namespace Agience.Client
 {
-    public class Instance : Agience.Model.Instance
+    public class Instance : Model.Instance
     {
         public delegate Task AgentConnectEventArgs(Agent agent);
         public event AgentConnectEventArgs? AgentConnect;
@@ -81,7 +81,7 @@ namespace Agience.Client.Model
                     Agents[agent.Id] = new Agent(_authority)
                     {
                         Id = agent.Id,
-                        Name = agent.Name,                        
+                        Name = agent.Name,
                         Instance = this
                     };
 

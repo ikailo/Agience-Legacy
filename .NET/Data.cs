@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Agience.Client.Model
+namespace Agience.Client
 {
     public class DataJsonConverter : JsonConverter<Data>
     {

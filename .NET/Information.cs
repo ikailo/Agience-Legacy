@@ -1,7 +1,7 @@
 ﻿using Agience.Model;
 using System.Text.Json.Serialization;
 
-namespace Agience.Client.Model
+namespace Agience.Client
 {/*
     public enum InformationState
     {
@@ -29,7 +29,7 @@ namespace Agience.Client.Model
         public Data? Input { get; private set; }
         public Data? Prompt { get; private set; }
         public Data? Output { get; private set; }
-        public string? TemplateId { get; set; }        
+        public string? TemplateId { get; set; }
 
         // TODO: History, Signatures, ReadOnly fields ?
 

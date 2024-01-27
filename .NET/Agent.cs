@@ -1,9 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using Timer = System.Timers.Timer;
 
-namespace Agience.Client.Model
+namespace Agience.Client
 {
-    public class Agent : Agience.Model.Agent
+    public class Agent : Model.Agent
     {
         //public event EventHandler<string>? LogMessage;
         //public event EventHandler<Message>? MessageReceived;
@@ -235,7 +235,7 @@ namespace Agience.Client.Model
             // HERE: Add ACL TopicMask for Agent Instance Delegation
 
             // TODO: Send an event to the Agency
-            
+
         }
 
         private async Task _broker_ReceiveMessage(Message message)
@@ -256,7 +256,7 @@ namespace Agience.Client.Model
                 LogMessage?.Invoke(this, message);
             }
         }*/
-        
+
 
     }
 }

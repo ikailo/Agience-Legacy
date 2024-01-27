@@ -4,7 +4,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net;
 using System.Security.Claims;
-using Agience.Client.Model;
 
 namespace Agience.Client
 {

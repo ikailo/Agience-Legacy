@@ -1,6 +1,4 @@
-﻿using Agience.Client.Model;
-
-namespace Agience.Client
+﻿namespace Agience.Client
 {
     public class Catalog
     {

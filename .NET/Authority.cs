@@ -2,7 +2,7 @@
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
 
-namespace Agience.Client.Model
+namespace Agience.Client
 {
     public class Authority
     {
