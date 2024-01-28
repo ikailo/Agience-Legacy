@@ -16,7 +16,7 @@ namespace Agience.Agents_Console
 
             //instance.LogMessage += LogMessage_callback;
 
-            instance.AgentConnect += Instance_AgentConnect;
+            instance.AgentConnected += Instance_AgentConnected;            
 
             instance.Catalog.Add(agent => new Debug(agent));
             instance.Catalog.Add(() => new InteractWithUser());
@@ -25,8 +25,6 @@ namespace Agience.Agents_Console
 
             await instance.Connect();
 
-            // TODO: We don't know how long it will take for the instance to get notified of the connected agents and agencies.  Need to hook into an event.
-            
             /*
             // Pick an agent to work with. Here we'll just get one that's defined in the config.
             _agent = instance.Agents.Where(agent => agent.Agency?.Id == _config.AgentId).FirstOrDefault();
@@ -41,13 +39,11 @@ namespace Agience.Agents_Console
             do { await Task.Delay(10); } while (instance.IsConnected);
         }
 
-        private static async Task Instance_AgentConnect(Agent agent)
+        private static async Task Instance_AgentConnected(Agent agent)
         {
-            await agent.Connect();
-
             Console.WriteLine($"{agent.Id} {agent.Name} Connected");
-            
         }
+
         /*
 private static void LogMessage_callback(object? sender, string message)
 {
