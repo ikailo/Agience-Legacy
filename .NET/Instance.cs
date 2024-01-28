@@ -7,22 +7,22 @@ namespace Agience.Client
 {
     public class Instance : Model.Instance
     {
-        public delegate Task AgentConnectEventArgs(Agent agent);
-        public event AgentConnectEventArgs? AgentConnect;
+        public delegate Task AgentConnectedEventArgs(Agent agent);
+        public event AgentConnectedEventArgs? AgentConnected;
 
         //public event Action<object?, string> LogMessage;
         public new Dictionary<string, Agent> Agents { get; set; } = new();
+        //public private Dictionary<string, Agency> _agencies = new();
         public Catalog Catalog { get; set; } = new Catalog();
-        internal Broker? Broker => _broker;
         public bool IsConnected { get; private set; }
 
         private readonly Config _config;
         private readonly Authority _authority;
 
-        private Broker _broker;
+        private Broker? _broker;
         private string _clientSecret;
         private string? _access_token;
-        private Dictionary<string, Agency> _agencies = new();
+
 
         public Instance(Config config)
         {
@@ -35,7 +35,7 @@ namespace Agience.Client
 
         public async Task Connect()
         {
-            await Task.Delay(2000); // Wait for the authority to start. TODO: Skip in production.
+            await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
 
             await _authority.InitializeAsync();
 
@@ -61,7 +61,7 @@ namespace Agience.Client
                 Payload = new Data(new()
                 {
                     { "type", "instanceConnect" },
-                    { "instance", JsonSerializer.Serialize<Agience.Model.Instance>(this) }
+                    { "instance", JsonSerializer.Serialize<Model.Instance>(this) }
                 })
             });
 
@@ -72,33 +72,40 @@ namespace Agience.Client
         {
             if (message.SenderId == null || message.Payload?.Structured == null) { return; }
 
-            if (AgentConnect != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "agentConnect")
+            // Agent Connect Message
+            if (message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "agentConnect")
             {
-                var agent = JsonSerializer.Deserialize<Agience.Model.Agent>(message.Payload.Structured["agent"]);
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload.Structured["agent"]);
 
-                if (agent?.Id != null && agent.Agency?.Id != null)
+                if (agent?.Id == null || agent.Agency?.Id == null || agent.Instance?.Id != Id)
+                {
+                    return; // Invalid Agent
+                }
+
+                if (!Agents.ContainsKey(agent.Id))
                 {
                     Agents[agent.Id] = new Agent(_authority)
                     {
                         Id = agent.Id,
                         Name = agent.Name,
-                        Instance = this
-                    };
-
-                    if (agent.AgencyId != null)
-                    {
-                        if (!_agencies.ContainsKey(agent.AgencyId))
+                        Instance = this,
+                        Agency = new Agency(_authority)
                         {
-                            _agencies[agent.AgencyId] = new Agency()
-                            {
-                                Id = agent.Agency?.Id,
-                                Name = agent.Agency?.Name
-                            };
-                        }
-                        Agents[agent.Id].Agency = _agencies[agent.AgencyId];
-                    }
+                            Id = agent.Agency.Id,
+                            Name = agent.Agency.Name,
 
-                    await AgentConnect.Invoke(Agents[agent.Id]).ConfigureAwait(false);
+                        },
+                    };
+                };
+
+                if (!Agents[agent.Id].IsConnected)
+                {
+                    await Agents[agent.Id].Connect(_broker!);
+
+                    if (AgentConnected != null)
+                    {
+                        await AgentConnected.Invoke(Agents[agent.Id]);
+                    }
                 }
             }
         }

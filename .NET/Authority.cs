@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Protocols;
+﻿using Agience.Model;
+using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
 
@@ -14,8 +15,7 @@ namespace Agience.Client
         public string? BrokerUri { get; private set; }
         public string Id => _authorityUri.Host;
 
-        public delegate Task<List<Agience.Model.Agent>> InstanceConnectedArgs(Agience.Model.Instance instance);
-
+        public delegate Task InstanceConnectedArgs(Model.Instance instance);
         public event InstanceConnectedArgs? InstanceConnected;
 
         private Broker? _broker;
@@ -79,23 +79,48 @@ namespace Agience.Client
 
                 if (instance?.Id == message.SenderId)
                 {
-                    foreach (var agent in await InstanceConnected.Invoke(instance))
-                    {
-                        await _broker!.PublishAsync(new Message()
-                        {
-                            Type = MessageType.EVENT,
-                            Topic = $"-/{Id}/{instance.Id}/-/-",
-                            Payload = new Data(new()
-                            {
-                                { "type", "agentConnect" },
-                                { "agent", JsonSerializer.Serialize(agent) }
-                            })
-                        });
-
-                    }
+                    await InstanceConnected.Invoke(instance).ConfigureAwait(false);                    
                 }
             }
         }
+
+        public async Task PublishAgentConnectEvent(Model.Agent agent)
+        {
+            if (_broker == null ) { throw new ArgumentNullException(nameof(_broker)); }
+
+            if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }            
+
+            await _broker!.PublishAsync(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = $"-/{Id}/{agent.Instance.Id}/-/-",
+                Payload = new Data(new()
+                {
+                    { "type", "agentConnect" },
+                    { "agent", JsonSerializer.Serialize(agent) }
+                })
+            }).ConfigureAwait(false);
+        }
+
+        public async Task PublishAgentDisconnectEvent(Model.Agent agent)
+        {
+            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
+
+            if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
+
+            await _broker!.PublishAsync(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = $"-/{Id}/{agent.Instance.Id}/-/-",
+                Payload = new Data(new()
+                {
+                    { "type", "agentDisconnect" },
+                    { "agent", JsonSerializer.Serialize(agent) }
+                })
+            }).ConfigureAwait(false);
+        }
+
+
 
         public async Task DisconnectAsync()
         {
