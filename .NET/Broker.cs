@@ -33,6 +33,7 @@ namespace Agience.Client
                     .WithCredentials(token, "<no_password>")
                     .WithProtocolVersion(MqttProtocolVersion.V500)
                     .WithoutThrowOnNonSuccessfulConnectResponse()
+                    .WithCleanSession()
                     .Build();
                 await _client.ConnectAsync(options);
             }
