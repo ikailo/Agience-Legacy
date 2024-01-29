@@ -10,9 +10,11 @@ namespace Agience.Client
         public delegate Task AgentConnectedEventArgs(Agent agent);
         public event AgentConnectedEventArgs? AgentConnected;
 
+        public delegate Task AgencyConnectedEventArgs(Agency agency);
+        public event AgencyConnectedEventArgs? AgencyConnected;
+
         //public event Action<object?, string> LogMessage;
-        public new Dictionary<string, Agent> Agents { get; set; } = new();
-        //public private Dictionary<string, Agency> _agencies = new();
+        private Dictionary<string, Agent> _agents = new();
         public Catalog Catalog { get; set; } = new Catalog();
         public bool IsConnected { get; private set; }
 
@@ -21,8 +23,7 @@ namespace Agience.Client
 
         private Broker? _broker;
         private string _clientSecret;
-        private string? _access_token;
-
+        private string? _access_token; 
 
         public Instance(Config config)
         {
@@ -82,9 +83,9 @@ namespace Agience.Client
                     return; // Invalid Agent
                 }
 
-                if (!Agents.ContainsKey(agent.Id))
+                if (!_agents.ContainsKey(agent.Id))
                 {
-                    Agents[agent.Id] = new Agent(_authority)
+                    _agents[agent.Id] = new Agent(_authority)
                     {
                         Id = agent.Id,
                         Name = agent.Name,
@@ -92,20 +93,18 @@ namespace Agience.Client
                         Agency = new Agency(_authority)
                         {
                             Id = agent.Agency.Id,
-                            Name = agent.Agency.Name,
-
+                            Name = agent.Agency.Name
                         },
                     };
+
+                    _agents[agent.Id].Connected += async agent => { if (AgentConnected != null) { await AgentConnected.Invoke(agent); } };
+                    _agents[agent.Id].Agency!.Connected += async agency => { if (AgencyConnected != null) { await AgencyConnected.Invoke(agency); } };
+
                 };
 
-                if (!Agents[agent.Id].IsConnected)
+                if (!_agents[agent.Id].IsConnected)
                 {
-                    await Agents[agent.Id].Connect(_broker!);
-
-                    if (AgentConnected != null)
-                    {
-                        await AgentConnected.Invoke(Agents[agent.Id]);
-                    }
+                    await _agents[agent.Id].Connect(_broker!);
                 }
             }
         }

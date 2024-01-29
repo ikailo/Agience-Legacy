@@ -13,6 +13,7 @@ namespace Agience.Client
 
     public class Template : Model.Template
     {
+
         public Agent? Agent { get; set; }
 
         public Template(Agent? agent)

@@ -3,8 +3,9 @@ namespace Agience.Client
 {
     public class Agency : Model.Agency
     {
+        public delegate Task ConnectedEventArgs(Agency agency);
+        public event ConnectedEventArgs? Connected;
 
-        
         public new List<Agent> Agents { get; set; } = new();
         public bool IsConnected { get; internal set; }
 
@@ -22,6 +23,11 @@ namespace Agience.Client
             await broker.SubscribeAsync($"+/{_authority.Id}/-/{Id}/-", ReceiveMessageCallback);
 
             IsConnected = true;
+
+            if (Connected != null)
+            {
+                await Connected.Invoke(this);
+            }
         }
 
         private Task ReceiveMessageCallback(Message message)

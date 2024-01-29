@@ -93,7 +93,7 @@ namespace Agience.Client
 
         public async Task DisconnectAsync()
         {
-            _callbacks.Clear(); // Assuming disconnecting clears all the subscriptions. Clients will need to re-subscribe.
+            _callbacks.Clear(); 
             await _client.DisconnectAsync();
         }
 
@@ -132,6 +132,7 @@ namespace Agience.Client
             }
         }
     }
+
     internal class CallbackContainer
     {
         public Guid Id { get; } = Guid.NewGuid(); // Unique identifier for the callback
@@ -142,5 +143,4 @@ namespace Agience.Client
             Callback = callback;
         }
     }
-
 }

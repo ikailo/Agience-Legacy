@@ -4,7 +4,10 @@ using Timer = System.Timers.Timer;
 namespace Agience.Client
 {
     public class Agent : Model.Agent
-    {   
+    {
+        public delegate Task ConnectedEventArgs(Agent agent);
+        public event ConnectedEventArgs? Connected;
+
         public new Instance? Instance { get; internal set; }
         public new Agency? Agency { get; internal set; }
         public bool IsConnected { get; internal set; }
@@ -20,12 +23,17 @@ namespace Agience.Client
         {   
             await broker.SubscribeAsync($"+/{_authority.Id}/-/-/{Id}", ReceiveMessageCallback);
 
+            IsConnected = true;
+            
+            if (Connected != null)
+            {
+                await Connected.Invoke(this);
+            }
+
             if (Agency != null && !Agency.IsConnected)
             {
                 await Agency.Connect(broker);
             }
-
-            IsConnected = true;
         }
 
         private async Task ReceiveMessageCallback(Message message)
@@ -46,6 +54,16 @@ namespace Agience.Client
         public Task<Data?> Prompt(Data userInput, object value, string v)
         {
             throw new NotImplementedException();
+        }
+
+        public void Prompt(Data? userInput, string v, Func<Data?, Task> interactWithUser_callback)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Invoke<T>(Data? data) where T : Template, new()
+        {
+            Instance?.Catalog[typeof(T)].Process(this, data);
         }
     }
 }
