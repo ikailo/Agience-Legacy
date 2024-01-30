@@ -1,29 +1,23 @@
-﻿using System.ComponentModel;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace Agience.Client
 {
-    public enum TemplateState
+    public class Template //: Model.Template
     {
-        RESTING = 0,
-        ASSESSING = 1,
-        PROCESSING = 2
-    }
+        public event Func<Agent, Data?, Task<Data?>>? OnCallback;
+        public Agent Agent { get; internal set; }
 
-    public class Template : Model.Template
-    {
-
-        public Agent? Agent { get; set; }
-
-        public Template(Agent? agent)
+        public Template(Agent agent)
         {
             Agent = agent;
         }
 
-        private string? _id;
+        public Template() { }
 
-        // Template Ids are generated based on the template definition. Not guaranteed persistant.
+        private string? _id;
+        // Template Ids are generated based on the template definition. 
+        // TODO: Review, since this is not a unique identifier.
         public new string Id
         {
             get
@@ -61,8 +55,16 @@ namespace Agience.Client
         public Data? Description { get; set; }
         public string[]? InputKeys { get; set; }
         public string[]? OutputKeys { get; set; }
-        public Template() { }
-        public virtual Task<bool> Assess(Information information) => Task.FromResult(false);
-        public virtual Task<Data?> Process(Information information) => Task.FromResult((Data?)null);
+
+        public virtual Task<Data?> Process(Data? data) => Task.FromResult<Data?>(null);
+        public async Task<Data?> Callback(Data? data = null)
+        {
+            if (OnCallback != null)
+            {
+                return await OnCallback.Invoke(this.Agent, data);
+            }
+
+            return null;
+        }
     }
 }

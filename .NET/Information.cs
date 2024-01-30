@@ -27,7 +27,7 @@ namespace Agience.Client
         //public TemplateState TemplateState { get; private set; }
 
         public Data? Input { get; private set; }
-        public Data? Prompt { get; private set; }
+        public Data? Transform { get; private set; }
         public Data? Output { get; private set; }
         public string? TemplateId { get; set; }
 
@@ -40,7 +40,7 @@ namespace Agience.Client
         {
             Id = Client.Id.Create("<fixme>"); // FIXME
             Input = input;
-            Prompt = prompt;
+            Transform = prompt;
             Output = output;
             TemplateId = templateId;
         }

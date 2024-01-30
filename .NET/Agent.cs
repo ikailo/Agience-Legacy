@@ -1,14 +1,10 @@
-﻿using System.Collections.Concurrent;
-using Timer = System.Timers.Timer;
-
-namespace Agience.Client
+﻿namespace Agience.Client
 {
-    public class Agent : Model.Agent
+    public class Agent //: Model.Agent
     {
-        public delegate Task ConnectedEventArgs(Agent agent);
-        public event ConnectedEventArgs? Connected;
-
-        public new Instance? Instance { get; internal set; }
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        internal new Instance? Instance { get; set; }
         public new Agency? Agency { get; internal set; }
         public bool IsConnected { get; internal set; }
 
@@ -20,20 +16,15 @@ namespace Agience.Client
         }
 
         internal async Task Connect(Broker broker)
-        {   
+        {
             await broker.SubscribeAsync($"+/{_authority.Id}/-/-/{Id}", ReceiveMessageCallback);
-
-            IsConnected = true;
-            
-            if (Connected != null)
-            {
-                await Connected.Invoke(this);
-            }
 
             if (Agency != null && !Agency.IsConnected)
             {
                 await Agency.Connect(broker);
             }
+
+            IsConnected = true;
         }
 
         private async Task ReceiveMessageCallback(Message message)
@@ -41,29 +32,28 @@ namespace Agience.Client
             throw new NotImplementedException();
         }
 
-        public Task<Data?> Prompt(Data data)
+        // For when the template is local
+        public async Task<Data?> Invoke<T>(Data? data = null) where T : Template, new()
+        {
+            var template = Instance?.Catalog.Retrieve<T>(this);
+
+            if (template != null)
+            {
+                return await template.Process(data);
+            }
+            return null;
+        }
+
+        // For when the templateId is known. Local or remote.
+        public async Task<Data?> Dispatch(string templateId, Data? data)
         {
             throw new NotImplementedException();
         }
 
-        public Task Prompt(string v1, string v2)
+        // For when the template is not known
+        public async Task<Data?> Prompt(string prompt, Data? data)
         {
             throw new NotImplementedException();
-        }
-
-        public Task<Data?> Prompt(Data userInput, object value, string v)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Prompt(Data? userInput, string v, Func<Data?, Task> interactWithUser_callback)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Invoke<T>(Data? data) where T : Template, new()
-        {
-            Instance?.Catalog[typeof(T)].Process(this, data);
         }
     }
 }

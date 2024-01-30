@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -75,7 +76,7 @@ namespace Agience.Client
     }
 
     [JsonConverter(typeof(DataJsonConverter))]
-    public class Data
+    public class Data : IEnumerable
     {
         // TODO: Data should have a unique id and a creator id and timestamp
         // TODO: Data should have a unique hash based on the data. Use as Id?  Data should be immutable.
@@ -103,6 +104,10 @@ namespace Agience.Client
             Format = dataFormat;
             Raw = raw; // Setting Raw will trigger TryConvertRawToStructured if needed
         }
+
+        public Data(IEnumerable<KeyValuePair<string, string>> data) :
+            this(new Dictionary<string, string>(data))
+        { }
 
         public Data(Dictionary<string, string> structured)
         {
@@ -137,6 +142,16 @@ namespace Agience.Client
 
         public override string? ToString() => Raw;
 
+        public void Add(string key, string value)
+        {
+            Structured?.Add(key, value);
+        }
+        
+        public IEnumerator GetEnumerator()
+        {            
+            return Structured?.GetEnumerator() ?? default;
+        }
+
         public static implicit operator Data?(string? raw) => new Data(raw);
 
         public static implicit operator Data?(Dictionary<string, string> structured) => new Data(structured);
@@ -144,5 +159,6 @@ namespace Agience.Client
         public static implicit operator string?(Data? data) => data?.Raw;
 
         public static implicit operator Dictionary<string, string>?(Data? data) => data?.Structured;
+        
     }
 }
