@@ -1,78 +1,48 @@
-﻿using Agience.Templates;
-using Agience.Client;
+﻿using Agience.Client;
+using Agience.Templates;
 
 namespace Agience.Agents_Console
 {
     internal class Program
     {
         private static readonly AppConfig _config = new();
+        private static readonly Instance _instance = new(_config);
 
         internal static async Task Main(string[] args)
         {
-            var instance = new Instance(_config);
+            _instance.Catalog.Add<Debug>();
+            _instance.Catalog.Add<ShowMessageToUser>();
+            _instance.Catalog.Add<GetInputFromUser>();
+            _instance.Catalog.Add<InteractWithUser>(InteractWithUser_callback);
 
-            //instance.LogMessage += LogMessage_callback;
+            _instance.AgentReady += _instance_AgentReady;
 
-            instance.AgentConnected += Agent_Connected;
-            instance.AgencyConnected += Agency_Connected;
+            await _instance.Run();
+        }
 
-            instance.Catalog.Add(agent => new Debug(agent));
-            instance.Catalog.Add(() => new InteractWithUser());
-            instance.Catalog.Add(() => new GetInputFromUser());
-            instance.Catalog.Add(() => new ShowMessageToUser(ShowMessageToUser_callback));
+        private static async Task _instance_AgentReady(Agent agent)
+        {
+            Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Ready");
 
-            await instance.Connect();
+            var result = await agent.Invoke<InteractWithUser>("Ready for Input");
+            
+            Console.WriteLine("Result: " + result);
+        }
 
-            /*
-            if (_agent != null)
+        private static async Task<Data?> InteractWithUser_callback(Agent agent, Data? data = null)
+        {
+            if (data?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
             {
-                _agent.Publish("<context setup>");
-                _agent.Prompt("Interact with the user.", InteractWithUser_callback);
-            }
-            */
+                await _instance.Stop();
 
-            do { await Task.Delay(10); } while (instance.IsConnected);
-        }
-
-        private static async Task Agent_Connected(Agent agent)
-        {
-            if (agent.Id == _config.AgentId)
-            {
-                Console.WriteLine($"{agent.Id} {agent.Name} Connected");
-                agent.Invoke<GetInputFromUser>();
-            }
-        }
-
-        private static async Task Agency_Connected(Agency ageny)
-        {
-            Console.WriteLine($"{ageny.Id} {ageny.Name} Connected");
-        }
-        
-        private static void LogMessage_callback(object? sender, string message)
-        {
-            throw new NotImplementedException();
-            //Console.WriteLine($"{_agent?.Name ?? "Interaction.Local"} | {message}");
-        }
-
-        private async static Task InteractWithUser_callback(Agent agent, Data? userInput)
-        {
-            if (agent?.Instance == null) { return; }
-
-            if (userInput?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
-            {
-                await agent.Instance.Disconnect();
-
-                Console.WriteLine($"{agent.Instance.Name} Shut Down");
+                Console.WriteLine($"{_instance.Name} Stopped");
             }
             else
             {
-                agent.Prompt(userInput, "Interact with the user.", InteractWithUser_callback);
+                return await agent.Invoke<InteractWithUser>(data); // TODO: This is recursive. Probably a better way to do this.
             }
-        }
 
-        private static void ShowMessageToUser_callback(string? message)
-        {
-            Console.Write($"{(string.IsNullOrEmpty(message) ? string.Empty : $"{message}")}");
+            return null;
         }
     }
 }

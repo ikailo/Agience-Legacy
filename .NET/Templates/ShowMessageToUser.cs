@@ -3,22 +3,16 @@
 namespace Agience.Templates
 {
     public class ShowMessageToUser : Template
-    {
-        internal event Action<string>? Message;
-
-        public ShowMessageToUser(Action<string> messageCallback)
+    {   
+        public ShowMessageToUser()
         {
-            Id = "show_message_to_user";
-            Description = "Show a message to the user.";
-            Message += messageCallback;
+            Description = "Show a message to the user.";            
         }
 
-        public override Task<bool> Assess(Information information) => Task.FromResult(true);
-
-        public override Task<Data?> Process(Information information)
+        public async override Task<Data?> Process(Data? data)
         {
-            Message?.Invoke(information?.Input?.Raw ?? string.Empty);
-            return Task.FromResult((Data?)null);
+            Console.WriteLine($"{data}");
+            return null;
         }
     }
 }

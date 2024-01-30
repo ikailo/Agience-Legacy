@@ -6,12 +6,10 @@ namespace Agience.Templates
     {
         public GetInputFromUser()
         {
-            Description  = "Receive a text input from the user.";
-        }
+            Description = "Receive a text input from the user.";
+        }   
 
-        public override Task<bool> Assess(Information information) => Task.FromResult(true);
-
-        public override async Task<Data?> Process(Information information)
+        public override async Task<Data?> Process(Data? data)
         {
             return await Task.Run(() =>
             {

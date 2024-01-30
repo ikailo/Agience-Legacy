@@ -3,20 +3,13 @@
 namespace Agience.Templates
 {
     public class Debug : Template
-    {
-        private Agent? _agent;
-
-        public static new Type Id => typeof(Debug);
-
-        public Debug(Agent? agent)
-        {   
+    {   
+        public Debug()
+        {
             Description = "Provides Debugging Information.";
-            _agent = agent;
         }
 
-        public override Task<bool> Assess(Information information) => Task.FromResult(true);
-
-        public async override Task<Data?> Process(Information information)
+        public async override Task<Data?> Process(Data? data)
         {
 
 #if DEBUG
@@ -25,33 +18,32 @@ namespace Agience.Templates
             
             // Expected Input: debug <templateId> <userData>
 
-            int firstSpace = information.Input?.Raw?.IndexOf(' ') ?? -1;
+            int firstSpace = data?.Raw?.IndexOf(' ') ?? -1;
 
             if (firstSpace > 6)
             {
-                var templateId = information.Input?.Raw?.Substring(6, firstSpace - 6);
-                var userData = information.Input?.Raw?.Substring(firstSpace + 1);
-
-                if (string.IsNullOrEmpty(templateId) || !_agent.Instance.Catalog.ContainsKey(templateId) || string.IsNullOrEmpty(userData))
+                var templateId = data?.Raw?.Substring(6, firstSpace - 6);
+                var userData = data?.Raw?.Substring(firstSpace + 1);
+                
+                if (string.IsNullOrEmpty(templateId) || !Agent.Agency.Catalog.ContainsKey(templateId) || string.IsNullOrEmpty(userData))
                 {
                     return null;
                 }
 
-                Template? template = _agent.Instance.Catalog.GetTemplate(templateId);
+                Model.Template? template = Agent.Agency.Catalog[templateId];
 
-                Data data;
+                Data? inputData = null;
 
                 if (template?.InputKeys != null && template.InputKeys.Length > 0)
                 {
-                    data = new Data(userData, DataFormat.STRUCTURED);
+                    inputData = new Data(userData, DataFormat.STRUCTURED);
                 }
                 else
                 {
-                    data = new Data(userData, DataFormat.RAW);
+                    inputData = new Data(userData, DataFormat.RAW);
                 }
 
-                return await _agent.Prompt(data);                
-                //return await information.Publish(templateId, data);
+                return await Agent.Dispatch(templateId, data);
             }
             else
             {
