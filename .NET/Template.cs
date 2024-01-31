@@ -15,22 +15,16 @@ namespace Agience.Client
            TASK_PROSECUTION = 5
        }*/
 
-
     public class Template //: Model.Template
-    {
-        
-
-        //public event Func<Agent, Data?, Task<Data?>>? OnCallback;
-        public Agent Agent { get; internal set; }
-
-        public Template(Agent agent)
-        {
-            Agent = agent;
-        }
-
-        public Template() { }
+    {  
+        public Agent Agent { get; internal set; }                
+        public Data? Description { get; set; } // Description is the template identifier. Future: Searchable, Inferable, Unique, Persist.
+        public string[]? InputKeys { get; set; }
+        public string[]? OutputKeys { get; set; }
 
         private string? _id;
+        public virtual Task<Data?> Process(Data? data) => Task.FromResult<Data?>(null);
+
         // Template Ids are generated based on the template definition. 
         // TODO: Review, since this is not a unique identifier.
         public new string Id
@@ -65,22 +59,5 @@ namespace Agience.Client
                 _id = value;
             }
         }
-
-        // Description is the template identifier. Searchable, Inferable, Unique.
-        public Data? Description { get; set; }
-        public string[]? InputKeys { get; set; }
-        public string[]? OutputKeys { get; set; }
-
-        public virtual Task<Data?> Process(Data? data) => Task.FromResult<Data?>(null);
-        /*
-        public async Task<Data?> Callback(Data? data = null)
-        {
-            if (OnCallback != null)
-            {
-                return await OnCallback.Invoke(this.Agent, data);
-            }
-
-            return null;
-        }*/
     }
 }

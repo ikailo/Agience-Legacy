@@ -1,7 +1,5 @@
-﻿using Agience.Model;
-using Microsoft.IdentityModel.Protocols;
+﻿using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Newtonsoft.Json.Converters;
 using System.Text.Json;
 
 namespace Agience.Client
@@ -11,26 +9,27 @@ namespace Agience.Client
         private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
-        private readonly Uri _authorityUri; // Expect without trailing slash
+        public event Func<Model.Instance, Task>? InstanceConnected;
+        public event Func<Task>? Disconnected;
+
         public string? TokenEndpoint { get; private set; }
         public string? BrokerUri { get; private set; }
         public string Id => _authorityUri.Host;
 
-        public bool IsConnected { get; private set; }
-
-        public event Func<Model.Instance, Task>? InstanceConnected;
-
-        public event Func<Task>? Disconnected;
-
+        private readonly Uri _authorityUri; // Expect without trailing slash
         private Broker? _broker;
-
+        private bool _isConnected;
         private bool _isSubscribed;
 
+        // TODO: We can probably split this into two classes - like Authority and AuthorityService, for specific use cases.
+        
+        // This constructor is used by Instance.
         public Authority(string authorityUri)
         {
             _authorityUri = new Uri(authorityUri);
         }
 
+        // This constructor is used in BrokerService when running as an Authority Service.
         public Authority(string authorityUri, string brokerUri)
         {
             _authorityUri = new Uri(authorityUri);
@@ -39,7 +38,6 @@ namespace Agience.Client
             _broker = new Broker(BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
             _broker.Disconnected += Disconnected;
         }
-
 
         public async Task InitializeAsync()
         {
@@ -67,13 +65,12 @@ namespace Agience.Client
 
             if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
 
-            if (!IsConnected)
+            if (!_isConnected)
             {
                 await _broker.ConnectAsync(token);
                 await Subscribe();
-                IsConnected = true;
+                _isConnected = true;
             }
-
         }
 
         public async Task Subscribe()

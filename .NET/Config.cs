@@ -9,6 +9,8 @@ namespace Agience.Client
         public string? ClientSecret { get; set; }
         public string? BrokerUriOverride { get; set; }
 
+        // TODO: Get the config in a more standard way.
+
         public Config()
         {
             var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";

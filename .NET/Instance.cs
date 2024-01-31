@@ -6,21 +6,21 @@ using System.Text.Json;
 
 namespace Agience.Client
 {
-    public class Instance //: Model.Instance
+    public class Instance
     {
         public event Func<Agent, Task>? AgentSubscribed;
 
         public string? Id { get; set; }
         public string? Name { get; set; }
         public Catalog Catalog { get; set; } = new();
-        public bool IsConnected { get; private set; }
-
+        
         private Dictionary<string, Agent> _agents = new();
         private readonly Config _config;
         private readonly Authority _authority;
         private Broker? _broker;
         private string _clientSecret;
         private string? _access_token;
+        private bool _isConnected;
 
         public Instance(Config config)
         {
@@ -35,14 +35,17 @@ namespace Agience.Client
         {
             await Connect();
 
-            do { await Task.Delay(10); } while (IsConnected);
+            do { await Task.Delay(10); } while (_isConnected);
         }
 
         public async Task Connect()
         {
             await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
 
-            await _authority.InitializeAsync();
+            if (string.IsNullOrEmpty(_config.BrokerUriOverride))
+            {
+                await _authority.InitializeAsync();
+            }
 
             _broker = new Broker(_config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
 
@@ -70,7 +73,7 @@ namespace Agience.Client
                 })
             });
 
-            IsConnected = true;
+            _isConnected = true;
         }
 
         public Model.Instance ToAgienceModel()
@@ -128,10 +131,9 @@ namespace Agience.Client
             }
         }
 
-
         public async Task Stop()
         {
-            if (IsConnected && _broker != null)
+            if (_isConnected && _broker != null)
             {
                 foreach (Agent agent in _agents.Values)
                 {
@@ -142,7 +144,7 @@ namespace Agience.Client
 
                 await _broker.DisconnectAsync();
 
-                IsConnected = false;
+                _isConnected = false;
             }
         }
 

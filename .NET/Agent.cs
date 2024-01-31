@@ -1,8 +1,6 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-namespace Agience.Client
+﻿namespace Agience.Client
 {
-    public class Agent //: Model.Agent
+    public class Agent
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
