@@ -29,7 +29,7 @@ namespace Agience.Client
             _authorityUri = new Uri(authorityUri);
         }
 
-        // This constructor is used in BrokerService when running as an Authority Service.
+        // This constructor is used in when running as an Authority Service.
         public Authority(string authorityUri, string brokerUri)
         {
             _authorityUri = new Uri(authorityUri);

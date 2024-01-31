@@ -42,10 +42,7 @@ namespace Agience.Client
         {
             await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
 
-            if (string.IsNullOrEmpty(_config.BrokerUriOverride))
-            {
-                await _authority.InitializeAsync();
-            }
+            await _authority.InitializeAsync();            
 
             _broker = new Broker(_config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
 
