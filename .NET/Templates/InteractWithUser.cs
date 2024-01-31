@@ -1,33 +1,41 @@
-﻿namespace Agience.Templates
+﻿using Agience.Client;
+
+namespace Agience.Templates
 {
     public class InteractWithUser : Template
     {
         public InteractWithUser()
         {
-            Id = "interact_with_user";
             Description = "Show a message to the user and then receive a text input from the user. Find, and then respond with, the best template response to the user's input.";
         }
 
-        public override Task<bool> Assess(Information information) => Task.FromResult(true);
-
-        public override async Task<Data?> Process(Information information)
+        public override async Task<Data?> Process(Data? data)
         {
-            await information.Publish("show_message_to_user", $"{information.Input} \r\n> ");
+            await Agent.Invoke<ShowMessageToUser>($"{data}\r\n> ");
 
-            var userInput = await information.Publish("get_input_from_user");
+            var userInput = await Agent.Invoke<GetInputFromUser>();
 
+            /*
 #if DEBUG
-
-            if (userInput?.Raw?.StartsWith("DEBUG:") ?? false)
+            
+           if (userInput?.Raw?.StartsWith("DEBUG:") ?? false)
             {
-                return await information.Publish("debug", userInput);
+                //return await Agent.Prompt(userInput, null, "debug");
             }
 #endif
+            
 
-            var bestTemplate = await information.Publish("get_best_template", userInput);
+            var bestTemplate = await Agent.Prompt(new Data
+            {
+                { "prompt","Get the ID for the template which is best described by: {input}."},
+                { "input", userInput?.Raw ?? string.Empty }
+            },
+                new string[] { "id" }
+            );
 
-            return await information.Publish(bestTemplate?.Structured?["id"] ?? "input_to_output", userInput);
-
+            return await Agent.Dispatch(bestTemplate?.Structured?["id"] ?? "Agience.Templates.InputToOutput", userInput);            
+        */
+            return userInput;
         }
     }
 }

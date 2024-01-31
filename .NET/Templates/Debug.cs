@@ -1,59 +1,57 @@
-﻿namespace Agience.Templates
+﻿using Agience.Client;
+
+namespace Agience.Templates
 {
     public class Debug : Template
     {
-        private Agent _agent;
-        public Debug(Agent agent)
+        public Debug()
         {
-            Id = "debug";
-            Description = "Debug";
-            _agent = agent;
+            Description = "Provides Debugging Information.";
         }
 
-        public override Task<bool> Assess(Information information) => Task.FromResult(true);
-
-        public async override Task<Data?> Process(Information information)
+        public async override Task<Data?> Process(Data? data)
         {
 
 #if DEBUG
-
             // Parse the input for the template id and user data
 
-            int firstSpace = information.Input?.Raw?.IndexOf(' ') ?? -1;
+            // Expected Input: debug <templateId> <userData>
+
+            int firstSpace = data?.Raw?.IndexOf(' ') ?? -1;
 
             if (firstSpace > 6)
             {
-                var templateId = information.Input?.Raw?.Substring(6, firstSpace - 6);
-                var userData = information.Input?.Raw?.Substring(firstSpace + 1);
+                var templateId = data?.Raw?.Substring(6, firstSpace - 6);
+                var userData = data?.Raw?.Substring(firstSpace + 1);
 
-                if (string.IsNullOrEmpty(templateId) || !_agent.Catalog.ContainsKey(templateId) || string.IsNullOrEmpty(userData))
+                if (string.IsNullOrEmpty(templateId) || !Agent.Agency.Catalog.ContainsKey(templateId) || string.IsNullOrEmpty(userData))
                 {
                     return null;
                 }
 
-                Template template = _agent.Catalog[templateId];
+                Model.Template? template = Agent.Agency.Catalog[templateId];
 
-                Data data;
+                Data? inputData = null;
 
-                if (template.InputKeys != null && template.InputKeys.Length > 0)
+                if (template?.InputKeys != null && template.InputKeys.Length > 0)
                 {
-                    data = new Data(userData, DataFormat.STRUCTURED);
+                    inputData = new Data(userData, DataFormat.STRUCTURED);
                 }
                 else
                 {
-                    data = new Data(userData, DataFormat.RAW);
+                    inputData = new Data(userData, DataFormat.RAW);
                 }
 
-                return await information.Publish(templateId, data);
+                return await Agent.Dispatch(templateId, data);
             }
             else
             {
                 // TODO: Allow parameterless debug with no data
-                return new Data("Not Supported");
+                return "Not Supported";
             }
 
 #endif
-            return new Data("Debug not enabled");
+            return "Debug not enabled";
         }
     }
 }

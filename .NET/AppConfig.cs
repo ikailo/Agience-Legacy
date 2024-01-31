@@ -2,20 +2,18 @@
 
 namespace Agience.Agents_Console
 {
-    internal class AppConfig
+    internal class AppConfig : Client.Config
     {
-        private readonly IConfiguration _config;
-
-        internal string? Authority => _config["authority"];        
-        internal string? InstanceId => _config["instanceId"];
-        internal string? InstanceSecret => _config["instanceSecret"];        
-        internal string? AgentId => _config["agentId"];
+        public string? AgentId { get; set; }
 
         internal AppConfig()
+            : base()
         {
-            _config = new ConfigurationBuilder()
-            .AddUserSecrets<AppConfig>()
-            .Build();
+            var configuration = new ConfigurationBuilder()
+                .AddUserSecrets<AppConfig>()
+                .Build();
+
+            configuration.Bind(this);
         }
     }
 }

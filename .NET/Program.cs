@@ -1,74 +1,55 @@
-﻿using Agience.Templates;
+﻿using Agience.Client;
+using Agience.Templates;
 
 namespace Agience.Agents_Console
 {
     internal class Program
     {
-        private static Agent _agent;
-        private static AppConfig _config = new AppConfig();
-        private static bool _isStarted = true;
+        private static readonly AppConfig _config = new();
+        private static readonly Instance _instance = new(_config);
 
         internal static async Task Main(string[] args)
         {
-            var authority = _config.Authority ?? throw new ArgumentNullException(nameof(_config.Authority));
-            var instanceId = _config.InstanceId ?? throw new ArgumentNullException(nameof(_config.InstanceId));
-            var instanceSecret = _config.InstanceSecret ?? throw new ArgumentNullException(nameof(_config.InstanceSecret));
-            var agentId = _config.AgentId ?? throw new ArgumentNullException(nameof(_config.AgentId));
+            _instance.Catalog.Add<Debug>(Debug_Callback);
+            _instance.Catalog.Add<ShowMessageToUser>();
+            _instance.Catalog.Add<GetInputFromUser>();
+            _instance.Catalog.Add<InteractWithUser>();
 
-            try
-            {
-                Console.WriteLine("Loading...");
+            _instance.AgentSubscribed += _instance_AgentSubscribed;
 
-                _agent = new Agent(authority, instanceId, instanceSecret, agentId);
-                _agent.LogMessage += LogMessage_callback;
-
-                // Add local templates
-                _agent.Catalog.Add(new GetInputFromUser());
-                _agent.Catalog.Add(new InteractWithUser());
-                _agent.Catalog.Add(new Debug(_agent));
-                _agent.Catalog.Add(new ShowMessageToUser(ShowMessageToUser_callback));
-
-                await _agent.Start();
-
-                await _agent.PublishAsync("interact_with_user", InteractWithUser_callback, "Ready for Input");
-
-                //await _agent.Prompt("Start a new conversation.", InteractWithUser_callback);
-                                
-                do { await Task.Delay(10); } while (_isStarted);
-
-                await _agent.Stop();
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                Console.ReadKey();
-            }
+            await _instance.Run();
         }
 
-        private async static Task InteractWithUser_callback(Data? output)
+        private static Task _instance_AgentSubscribed(Agent agent)
         {
-            if (output?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
-            {
-                _isStarted = false;
+            Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Subscribed");
 
-                Console.WriteLine($"{_agent?.Name} Shutting Down");
-            }
-            else
-            {
-                await _agent.PublishAsync("interact_with_user", InteractWithUser_callback, output) ;
-                //await _agent.Prompt("Continue the conversation.", InteractWithUser_callback);
-            }
+            _ = agent.Invoke<InteractWithUser>("Ready for Input").ContinueWith(agent.Invoke(InteractWithUser_callback));
+
+            //var result = await agent.Invoke(typeof(InteractWithUser), "Ready for Input");
+            //var result = await agent.Dispatch("Agience.Templates.InteractWithUser", "Ready for Input");
+            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");            
+
+            return Task.CompletedTask;
         }
 
-        private static void ShowMessageToUser_callback(string? message)
+        private static async Task InteractWithUser_callback(Agent agent, Data? output)
         {
-            Console.Write($"{(string.IsNullOrEmpty(message) ? string.Empty : $"{message}")}");
+            while (output?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) == false)
+            {
+                output = await agent.Invoke<InteractWithUser>(output);
+            }
+
+            await _instance.Stop();
+
+            Console.WriteLine($"Instance Stopped");
         }
 
-        private static void LogMessage_callback(object? sender, string message)
+        private static Task Debug_Callback(Agent agent, Data? output)
         {
-            Console.WriteLine($"{_agent?.Name ?? "Interaction.Local"} | {message}");
+            Console.WriteLine($"Debug_Template: {output?.Raw}");
+
+            return Task.CompletedTask;
         }
     }
 }
