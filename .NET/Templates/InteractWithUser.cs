@@ -13,7 +13,7 @@ namespace Agience.Templates
         {
             await Agent.Invoke<ShowMessageToUser>($"{data}\r\n> ");
 
-            return await Agent.Invoke<GetInputFromUser>();
+            var userInput = await Agent.Invoke<GetInputFromUser>();
 
             /*
 #if DEBUG
@@ -33,10 +33,9 @@ namespace Agience.Templates
                 new string[] { "id" }
             );
 
-
-
-            return await Agent.Dispatch(bestTemplate?.Structured?["id"] ?? "Agience.Templates.InputToOutput", userInput);
-            */
+            return await Agent.Dispatch(bestTemplate?.Structured?["id"] ?? "Agience.Templates.InputToOutput", userInput);            
+        */
+            return userInput;
         }
     }
 }

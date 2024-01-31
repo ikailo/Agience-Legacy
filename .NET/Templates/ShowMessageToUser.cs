@@ -9,10 +9,11 @@ namespace Agience.Templates
             Description = "Show a message to the user.";            
         }
 
-        public async override Task<Data?> Process(Data? data)
+        public override Task<Data?> Process(Data? data)
         {
             Console.Write($"{data}");
-            return null;
+            
+            return Task.FromResult<Data?>(null);
         }
     }
 }

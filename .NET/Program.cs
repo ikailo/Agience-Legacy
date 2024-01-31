@@ -20,7 +20,7 @@ namespace Agience.Agents_Console
             await _instance.Run();
         }
 
-        private static async Task _instance_AgentSubscribed(Agent agent)
+        private static Task _instance_AgentSubscribed(Agent agent)
         {
             Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Subscribed");
 
@@ -28,16 +28,16 @@ namespace Agience.Agents_Console
 
             //var result = await agent.Invoke(typeof(InteractWithUser), "Ready for Input");
             //var result = await agent.Dispatch("Agience.Templates.InteractWithUser", "Ready for Input");
-            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");
+            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");            
 
-            //Console.WriteLine("Result: " + result);            
+            return Task.CompletedTask;
         }
 
         private static async Task InteractWithUser_callback(Agent agent, Data? output)
         {
             while (output?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) == false)
             {
-                output = await agent.Invoke<InteractWithUser>(output);                
+                output = await agent.Invoke<InteractWithUser>(output);
             }
 
             await _instance.Stop();
@@ -45,11 +45,11 @@ namespace Agience.Agents_Console
             Console.WriteLine($"Instance Stopped");
         }
 
-
-        private static async Task Debug_Callback(Agent agent, Data? output)
+        private static Task Debug_Callback(Agent agent, Data? output)
         {
-            throw new NotImplementedException();
-        }
+            Console.WriteLine($"Debug_Template: {output?.Raw}");
 
+            return Task.CompletedTask;
+        }
     }
 }
