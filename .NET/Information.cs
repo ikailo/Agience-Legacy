@@ -1,36 +1,50 @@
-﻿using System.Text.Json.Serialization;
+﻿using Agience.Model;
+using System.Text.Json.Serialization;
 
-namespace Agience
-{
+namespace Agience.Client
+{/*
     public enum InformationState
     {
         DRAFT = 0,
         OPEN = 1,
         CLOSED = 2
-    }
+    }*/
 
-    public class Information : IComparable<Information>
+    public class Information //: IComparable<Information>
     {
-        private bool _assessmentQueued = false;
-
+        /*
         [JsonIgnore]
         public Agent? Agent { get; set; }
 
+        [JsonIgnore]
+        public Template? Template { get; set; }
+        */
+
         public string Id { get; }
-        public string CreatorId { get; }
-        public string? WorkerId { get; set; }
-        public string TemplateId { get; }
-        public InformationState InformationState { get; internal set; }
-        public TemplateState TemplateState { get; private set; }
+        //public string CreatorId { get; }
+        //public string? WorkerId { get; set; } // TODO: Rename to ???        
+        //public InformationState InformationState { get; internal set; }
+        //public TemplateState TemplateState { get; private set; }
 
-
-        public Data? Input { get; }
+        public Data? Input { get; private set; }
+        public Data? Transform { get; private set; }
         public Data? Output { get; private set; }
-        //public Data? Instruction { get; private set; }
+        public string? TemplateId { get; set; }
 
+        // TODO: History, Signatures, ReadOnly fields ?
 
-        // TODO History, Signatures, ReadOnly fields ?        
+        public Information(Data? input = null, Data? prompt = null, Data? output = null)
+            : this(input, prompt, null, output) { }
 
+        public Information(Data? input = null, Data? prompt = null, string? templateId = null, Data? output = null)
+        {
+            Id = Client.Id.Create("<fixme>"); // FIXME
+            Input = input;
+            Transform = prompt;
+            Output = output;
+            TemplateId = templateId;
+        }
+        /*
         [JsonConstructor]
         public Information(string id, string creatorId, string? workerId, string templateId, InformationState informationState,
                             TemplateState templateState, Data? input = null, Data? output = null)
@@ -38,7 +52,7 @@ namespace Agience
             Id = id;
             CreatorId = creatorId;
             WorkerId = workerId;
-            TemplateId = templateId;
+            Template = new Template() { Id = templateId };
             InformationState = informationState;
             TemplateState = templateState;
             Input = input;
@@ -46,12 +60,32 @@ namespace Agience
         }
 
         public Information(Agent agent, string templateId, Data? input = null)
-            : this(Agience.Id.Create(agent.Id), agent.Id, null, templateId, InformationState.OPEN, TemplateState.RESTING, input, null)
+            : this(MQTT.Id.Create(agent.Id), agent.Id, null, templateId, InformationState.OPEN, TemplateState.RESTING, input, null)
         {
             Agent = agent;
-            WorkerId = Agent.Catalog[TemplateId].MemberId;
+            //WorkerId = Agent.Instance?.Catalog.GetTemplate(TemplateId).InstanceId;
         }
 
+        public Information(Agent agent, Data? input = null, Data? instruction = null, Data? output = null)            
+        {
+            Id = MQTT.Id.Create(agent.Id);
+            CreatorId = agent.Id;
+            //Template = Agent?.Instance?.Catalog.GetTemplate(TemplateId);
+            WorkerId = Template?.InstanceId;
+            InformationState = InformationState.OPEN;
+            TemplateState = TemplateState.RESTING;
+            Input = input;
+            Transform = instruction;
+            Output = output;
+            //WorkerId = Agent.Instance?.Catalog.GetTemplate(TemplateId).InstanceId;
+        }
+
+        public int CompareTo(Information? other)
+        {
+            return ReferenceEquals(other, null) ? 1 : ((Id)Id).CompareTo((Id)other.Id);
+        }*/
+
+        /*
         protected internal async Task<bool> Assess()
         {
             if (Agent == null || _assessmentQueued || TemplateState == TemplateState.PROCESSING || InformationState == InformationState.CLOSED) { return false; }
@@ -69,11 +103,11 @@ namespace Agience
                 }
             }
 
-            if (Agent.Catalog.ContainsKey(TemplateId))
+            if (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false)
             {
                 TemplateState = TemplateState.ASSESSING;
 
-                var result = await Agent.Catalog[TemplateId].Assess(this);
+                var result = await Agent.Instance.Catalog.GetTemplate(TemplateId).Assess(this);
 
                 TemplateState = TemplateState.RESTING;
 
@@ -94,11 +128,11 @@ namespace Agience
             // Only one process can be in progress at a time. We don't queue up another one.
             // FIXME: Not Threadsafe
 
-            if (TemplateState == TemplateState.RESTING && Agent.Catalog.ContainsKey(TemplateId))
+            if (TemplateState == TemplateState.RESTING && (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false))
             {
                 TemplateState = TemplateState.PROCESSING;
 
-                Output = await Agent.Catalog[TemplateId].Process(this);
+                Output = await Agent.Instance.Catalog.GetTemplate(TemplateId).Process(this);
 
                 InformationState = InformationState.CLOSED;
 
@@ -106,33 +140,12 @@ namespace Agience
 
                 WorkerId = CreatorId;
 
-                await Agent.PublishAsync(this, null);
+                if (Agent?.Agency != null)
+                {
+                    await Agent.Agency.PublishAsync(this, null);
+                }
             }
         }
-
-        public async Task PublishAsync(Agent.OutputCallback? callback, string templateId, Data? input = null)
-        {
-            if (Agent == null) { return; }
-
-            var information = new Information(Agent, templateId, input);
-            Agent.Context.Add(information);
-            Agent.Context.Spawn(information.Id, Id);
-            await Agent.PublishAsync(information, callback);
-        }
-
-        public async Task<Data?> Publish(string templateId, Data? input = null)
-        {
-            if (Agent == null) { return null; }
-
-            var information = new Information(Agent, templateId, input);
-            Agent.Context.Add(information);
-            Agent.Context.Spawn(information.Id, this.Id);
-            return await Agent.Publish(information);
-        }
-
-        public int CompareTo(Information? other)
-        {
-            return object.ReferenceEquals(other, null) ? 1 : ((Id)Id).CompareTo((Id)other.Id);
-        }
+        */
     }
 }

@@ -1,27 +1,50 @@
-﻿using System.Collections.Concurrent;
-
-namespace Agience
+﻿
+namespace Agience.Client
 {
-    public class Catalog : ConcurrentDictionary<string, Template>
+    public class Catalog
     {
-        private Identity _identity;
+        private Dictionary<string, Type> _factories = new();
+        private Dictionary<string, Func<Agent, Data?, Task>> _callbacks = new();
 
-        public Catalog(Identity identity)
+        public void Add<T>(Func<Agent, Data?, Task>? callback = null) where T : Template, new()
         {
-            _identity = identity;
+            Type type = typeof(T);
+
+            if (string.IsNullOrEmpty(type.FullName))
+            {
+                throw new ArgumentNullException(nameof(type.FullName));
+            }
+
+            _factories[type.FullName] = typeof(T);
+
+            if (callback != null)
+            {
+                _callbacks[typeof(T).FullName!] = callback;
+            }
         }
 
-        public void Add(Template template)
+        internal (T, Func<Agent, Data?, Task>?)? Retrieve<T>() where T : Template, new()
         {
-            if (!string.IsNullOrEmpty(template.Id))
+            Type type = typeof(T);
+
+            if (string.IsNullOrEmpty(type.FullName))
             {
-                if (template.MemberId == null)
+                throw new ArgumentNullException(nameof(type.FullName));
+            }
+
+            if (_factories.TryGetValue(type.FullName!, out Type? templateType))
+            {
+                var template = new T();
+
+                if (_callbacks.TryGetValue(type.FullName, out Func<Agent, Data?, Task>? callback))
                 {
-                    template.MemberId = _identity.AgentId;
+                    return (template, callback);
                 }
 
-                this[template.Id] = template;
+                return (template, null);
             }
+
+            return null;
         }
     }
 }

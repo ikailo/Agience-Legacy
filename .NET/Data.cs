@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Agience
+namespace Agience.Client
 {
     public class DataJsonConverter : JsonConverter<Data>
     {
@@ -41,6 +42,18 @@ namespace Agience
 
             if (dataFormat.HasValue)
             {
+                if (dataFormat == DataFormat.STRUCTURED && raw != null)
+                {
+                    try
+                    {
+                        var structured = JsonSerializer.Deserialize<Dictionary<string, string>>(raw);
+                        return new Data(structured);
+                    }
+                    catch (JsonException)
+                    {
+                        dataFormat = DataFormat.RAW;
+                    }
+                }
                 return new Data(raw, dataFormat.Value);
             }
 
@@ -63,34 +76,38 @@ namespace Agience
     }
 
     [JsonConverter(typeof(DataJsonConverter))]
-    public class Data
+    public class Data : IEnumerable
     {
-        public DataFormat Format { get; } = DataFormat.RAW;
+        // TODO: Data should have a unique id and a creator id and timestamp
+        // TODO: Data should have a unique hash based on the data. Use as Id?  Data should be immutable.
+        //public string? Id { get; }
+        //public string? CreatorId { get; }
 
-        // Raw data is just a string
-        public string? Raw { get; }
+        public DataFormat Format { get; private set; } = DataFormat.RAW;
 
-        // Structured data is key/value pairs        
-        public Dictionary<string, string>? Structured { get; }
+        private string? _raw;
+        public string? Raw
+        {
+            get => _raw;
+            private set
+            {
+                _raw = value;
+                // Attempt to convert Raw JSON to structured data if the format is STRUCTURED
+                TryConvertRawToStructured();
+            }
+        }
+
+        public Dictionary<string, string>? Structured { get; private set; }
 
         public Data(string? raw = null, DataFormat dataFormat = DataFormat.RAW)
         {
-            Raw = raw;
             Format = dataFormat;
-
-            if (dataFormat == DataFormat.STRUCTURED)
-            {
-                try
-                {
-                    Structured = raw == null ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(raw);
-                }
-                catch (JsonException)
-                {
-                    // Fallback to Raw
-                    Format = DataFormat.RAW;                    
-                }
-            }
+            Raw = raw; // Setting Raw will trigger TryConvertRawToStructured if needed
         }
+
+        public Data(IEnumerable<KeyValuePair<string, string>> data) :
+            this(new Dictionary<string, string>(data))
+        { }
 
         public Data(Dictionary<string, string> structured)
         {
@@ -98,30 +115,41 @@ namespace Agience
             Structured = structured;
             Raw = JsonSerializer.Serialize(structured);
         }
-       
+
+        private void TryConvertRawToStructured()
+        {
+            if (Format == DataFormat.RAW && !string.IsNullOrEmpty(Raw))
+            {
+                // Check if Raw string starts with '{' and ends with '}' indicating a JSON object
+                if (Raw.TrimStart().StartsWith("{") && Raw.TrimEnd().EndsWith("}"))
+                {
+                    try
+                    {
+                        Structured = JsonSerializer.Deserialize<Dictionary<string, string>>(Raw);
+                        if (Structured != null)
+                        {
+                            Format = DataFormat.STRUCTURED;
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        // If deserialization fails, Raw remains unchanged and Structured is null
+                    }
+                }
+            }
+        }
+
+
         public override string? ToString() => Raw;
 
-        public static Data? Create(string raw)
+        public void Add(string key, string value)
         {
-            return new Data(raw);
+            Structured?.Add(key, value);
         }
-
-        public static Data? Create(Exception exception)
-        {
-            return Create("error", exception.Message);
-        }
-
-        public static Data? Create(string key, string value)
-        {
-            return new Data(new Dictionary<string, string>()
-            {
-                { key, value }
-            });
-        }
-
-        public static Data? Create(string key, IEnumerable<IConvertible> value)
-        {
-            return Create(key, JsonSerializer.Serialize(value));            
+        
+        public IEnumerator GetEnumerator()
+        {            
+            return Structured?.GetEnumerator() ?? default;
         }
 
         public static implicit operator Data?(string? raw) => new Data(raw);
@@ -131,5 +159,6 @@ namespace Agience
         public static implicit operator string?(Data? data) => data?.Raw;
 
         public static implicit operator Dictionary<string, string>?(Data? data) => data?.Structured;
+        
     }
 }
