@@ -26,13 +26,15 @@ namespace Agience.Client
         // This constructor is used by Instance.
         public Authority(string authorityUri)
         {
+            if (authorityUri == null) { throw new ArgumentNullException(nameof(authorityUri)); }
+
             _authorityUri = new Uri(authorityUri);
         }
 
-        // This constructor is used in when running as an Authority Service.
+        // This constructor is used when running as an Authority Service.
         public Authority(string authorityUri, string brokerUri)
+            : this(authorityUri)
         {
-            _authorityUri = new Uri(authorityUri);
             BrokerUri = brokerUri;
 
             _broker = new Broker(BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
