@@ -10,39 +10,46 @@ namespace Agience.Agents_Console
 
         internal static async Task Main(string[] args)
         {
-            _instance.Catalog.Add<Debug>();
+            _instance.Catalog.Add<Debug>(Debug_Callback);
             _instance.Catalog.Add<ShowMessageToUser>();
             _instance.Catalog.Add<GetInputFromUser>();
-            _instance.Catalog.Add<InteractWithUser>(InteractWithUser_callback);
+            _instance.Catalog.Add<InteractWithUser>();
 
-            _instance.AgentReady += _instance_AgentReady;
+            _instance.AgentSubscribed += _instance_AgentSubscribed;
 
             await _instance.Run();
         }
 
-        private static async Task _instance_AgentReady(Agent agent)
+        private static async Task _instance_AgentSubscribed(Agent agent)
         {
-            Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Ready");
+            Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Subscribed");
 
-            var result = await agent.Invoke<InteractWithUser>("Ready for Input");
-            
-            Console.WriteLine("Result: " + result);
+            _ = agent.Invoke<InteractWithUser>("Ready for Input").ContinueWith(agent.Invoke(InteractWithUser_callback));
+
+            //var result = await agent.Invoke(typeof(InteractWithUser), "Ready for Input");
+            //var result = await agent.Dispatch("Agience.Templates.InteractWithUser", "Ready for Input");
+            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");
+
+            //Console.WriteLine("Result: " + result);            
         }
 
-        private static async Task<Data?> InteractWithUser_callback(Agent agent, Data? data = null)
+        private static async Task InteractWithUser_callback(Agent agent, Data? output)
         {
-            if (data?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) ?? false)
+            while (output?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) == false)
             {
-                await _instance.Stop();
-
-                Console.WriteLine($"{_instance.Name} Stopped");
-            }
-            else
-            {
-                return await agent.Invoke<InteractWithUser>(data); // TODO: This is recursive. Probably a better way to do this.
+                output = await agent.Invoke<InteractWithUser>(output);                
             }
 
-            return null;
+            await _instance.Stop();
+
+            Console.WriteLine($"Instance Stopped");
         }
+
+
+        private static async Task Debug_Callback(Agent agent, Data? output)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

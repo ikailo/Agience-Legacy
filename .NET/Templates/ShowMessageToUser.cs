@@ -11,7 +11,7 @@ namespace Agience.Templates
 
         public async override Task<Data?> Process(Data? data)
         {
-            Console.WriteLine($"{data}");
+            Console.Write($"{data}");
             return null;
         }
     }
