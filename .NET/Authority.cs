@@ -1,6 +1,7 @@
 ﻿using Agience.Model;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Newtonsoft.Json.Converters;
 using System.Text.Json;
 
 namespace Agience.Client
@@ -15,10 +16,15 @@ namespace Agience.Client
         public string? BrokerUri { get; private set; }
         public string Id => _authorityUri.Host;
 
-        public delegate Task InstanceConnectedArgs(Model.Instance instance);
-        public event InstanceConnectedArgs? InstanceConnected;
+        public bool IsConnected { get; private set; }
+
+        public event Func<Model.Instance, Task>? InstanceConnected;
+
+        public event Func<Task>? Disconnected;
 
         private Broker? _broker;
+
+        private bool _isSubscribed;
 
         public Authority(string authorityUri)
         {
@@ -29,7 +35,11 @@ namespace Agience.Client
         {
             _authorityUri = new Uri(authorityUri);
             BrokerUri = brokerUri;
+
+            _broker = new Broker(BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
+            _broker.Disconnected += Disconnected;
         }
+
 
         public async Task InitializeAsync()
         {
@@ -53,19 +63,38 @@ namespace Agience.Client
 
         public async Task Connect(string token)
         {
-            if (token == null) { throw new ArgumentNullException(nameof(token)); }
+            if (token == null) { throw new ArgumentNullException(nameof(token)); }            
 
-            _broker = new Broker(BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
+            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
 
-            await _broker.ConnectAsync(token);
+            if (!IsConnected)
+            {
+                await _broker.ConnectAsync(token);
+                await Subscribe();
+                IsConnected = true;
+            }
 
-            if (_broker.IsConnected)
+        }
+
+        public async Task Subscribe()
+        {
+            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
+
+            if (!_isSubscribed)
             {
                 await _broker.SubscribeAsync($"+/{Id}/-/-/-", async message => await _broker_ReceiveMessage(message));
+                _isSubscribed = true;
             }
-            else
+        }
+
+        public async Task Unsubscribe()
+        {
+            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
+
+            if (_isSubscribed)
             {
-                throw new Exception("Broker is not connected");
+                await _broker.UnsubscribeAsync($"+/{Id}/-/-/-");
+                _isSubscribed = false;
             }
         }
 
@@ -73,22 +102,22 @@ namespace Agience.Client
         {
             if (message.SenderId == null || message.Payload?.Structured == null) { return; }
 
-            if (InstanceConnected != null && message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
+            if (message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
             {
-                var instance = JsonSerializer.Deserialize<Agience.Model.Instance>(message.Payload.Structured["instance"]);
+                var instance = JsonSerializer.Deserialize<Model.Instance>(message.Payload.Structured["instance"]);
 
-                if (instance?.Id == message.SenderId)
+                if (instance?.Id == message.SenderId && InstanceConnected != null)
                 {
-                    await InstanceConnected.Invoke(instance).ConfigureAwait(false);                    
+                    await InstanceConnected.Invoke(instance);
                 }
             }
         }
 
         public async Task PublishAgentConnectEvent(Model.Agent agent)
         {
-            if (_broker == null ) { throw new ArgumentNullException(nameof(_broker)); }
+            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
 
-            if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }            
+            if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
 
             await _broker!.PublishAsync(new Message()
             {
@@ -99,7 +128,7 @@ namespace Agience.Client
                     { "type", "agentConnect" },
                     { "agent", JsonSerializer.Serialize(agent) }
                 })
-            }).ConfigureAwait(false);
+            });
         }
 
         public async Task PublishAgentDisconnectEvent(Model.Agent agent)
@@ -117,15 +146,14 @@ namespace Agience.Client
                     { "type", "agentDisconnect" },
                     { "agent", JsonSerializer.Serialize(agent) }
                 })
-            }).ConfigureAwait(false);
+            });
         }
-
-
 
         public async Task DisconnectAsync()
         {
             if (_broker != null)
             {
+                await Unsubscribe();
                 await _broker.DisconnectAsync();
             }
         }

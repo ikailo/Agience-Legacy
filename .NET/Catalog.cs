@@ -4,22 +4,18 @@ namespace Agience.Client
     public class Catalog
     {
         private Dictionary<string, Type> _factories = new();
-        private Dictionary<string, Func<Agent, Data?, Task<Data?>>?> _callbacks = new();
+        private Dictionary<string, Func<Agent, Data?, Task>> _callbacks = new();
 
-        public void Add<T>(Func<Agent, Data?, Task<Data?>>? callback = null) where T : Template
+        public void Add<T>(Func<Agent, Data?, Task>? callback = null) where T : Template, new()
         {
-            if (string.IsNullOrEmpty(typeof(T).FullName))
+            Type type = typeof(T);
+
+            if (string.IsNullOrEmpty(type.FullName))
             {
-                throw new ArgumentNullException(nameof(Type.FullName));
+                throw new ArgumentNullException(nameof(type.FullName));
             }
 
-            var constructor = typeof(T).GetConstructor(new[] { typeof(Agent) }); // TODO: this will fail if T is Template and not derived.
-            if (constructor == null)
-            {
-                throw new InvalidOperationException($"Type {typeof(T).FullName} does not have a constructor that takes an Agent parameter.");
-            }
-
-            _factories[typeof(T).FullName!] = typeof(T);
+            _factories[type.FullName] = typeof(T);
 
             if (callback != null)
             {
@@ -27,29 +23,25 @@ namespace Agience.Client
             }
         }
 
-        public T? Retrieve<T>(Agent agent) where T : Template
+        internal (T, Func<Agent, Data?, Task>?)? Retrieve<T>() where T : Template, new()
         {
-            if (string.IsNullOrEmpty(typeof(T).FullName))
+            Type type = typeof(T);
+
+            if (string.IsNullOrEmpty(type.FullName))
             {
-                throw new ArgumentNullException(nameof(Type.FullName));
+                throw new ArgumentNullException(nameof(type.FullName));
             }
 
-            if (_factories.TryGetValue(typeof(T).FullName!, out Type? templateType))
+            if (_factories.TryGetValue(type.FullName!, out Type? templateType))
             {
-                var constructor = typeof(T).GetConstructor(new[] { typeof(Agent) }); // TODO: this will fail if T is Template and not derived.
-                if (constructor == null)
+                var template = new T();
+
+                if (_callbacks.TryGetValue(type.FullName, out Func<Agent, Data?, Task>? callback))
                 {
-                    throw new InvalidOperationException($"Type {templateType.FullName} does not have a constructor that takes an Agent parameter.");
+                    return (template, callback);
                 }
 
-                T template = (T)constructor.Invoke(new object[] { agent });
-
-                if (_callbacks.TryGetValue(typeof(T).FullName!, out Func<Agent, Data?, Task<Data?>>? callback))
-                {
-                    template.OnCallback += callback;
-                }
-
-                return template;
+                return (template, null);
             }
 
             return null;

@@ -1,24 +1,26 @@
-﻿using System.Net.Http.Headers;
+﻿using System.ComponentModel;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
 namespace Agience.Client
 {
-    public class Instance : Model.Instance
-    {   
-        public event Func<Agent, Task>? AgentReady;
+    public class Instance //: Model.Instance
+    {
+        public event Func<Agent, Task>? AgentSubscribed;
 
-        private Dictionary<string, Agent> _agents = new();
+        public string? Id { get; set; }
+        public string? Name { get; set; }
         public Catalog Catalog { get; set; } = new();
         public bool IsConnected { get; private set; }
 
+        private Dictionary<string, Agent> _agents = new();
         private readonly Config _config;
         private readonly Authority _authority;
-
         private Broker? _broker;
         private string _clientSecret;
-        private string? _access_token; 
+        private string? _access_token;
 
         public Instance(Config config)
         {
@@ -34,11 +36,6 @@ namespace Agience.Client
             await Connect();
 
             do { await Task.Delay(10); } while (IsConnected);
-        }
-
-        public async Task Stop()
-        {
-            await Disconnect();
         }
 
         public async Task Connect()
@@ -69,11 +66,20 @@ namespace Agience.Client
                 Payload = new Data(new()
                 {
                     { "type", "instanceConnect" },
-                    { "instance", JsonSerializer.Serialize<Model.Instance>(this) }
+                    { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
                 })
             });
 
             IsConnected = true;
+        }
+
+        public Model.Instance ToAgienceModel()
+        {
+            return new Model.Instance
+            {
+                Id = Id,
+                Name = Name
+            };
         }
 
         private async Task _broker_ReceiveMessage(Message message)
@@ -105,24 +111,39 @@ namespace Agience.Client
                     };
                 };
 
-                if (!_agents[agent.Id].IsConnected)
-                {
-                    await _agents[agent.Id].Connect(_broker!);
-                }
+                await _agents[agent.Id].SubscribeAsync(_broker!);
 
-                if (_agents[agent.Id].IsConnected)
-                {
-                    if (AgentReady != null)
-                    {
-                        await AgentReady.Invoke(_agents[agent.Id]);
-                    }
+                if (AgentSubscribed != null)
+                {   
+                    _ = Task.Run(() => AgentSubscribed.Invoke(_agents[agent.Id]))
+                        .ContinueWith(t =>
+                        {
+                            if (t.IsFaulted)
+                            {
+                                // Rethrow the exception on the ThreadPool
+                                ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
+                            }
+                        });
                 }
             }
         }
 
-        public async Task Disconnect()
+
+        public async Task Stop()
         {
-            await _broker.DisconnectAsync();
+            if (IsConnected && _broker != null)
+            {
+                foreach (Agent agent in _agents.Values)
+                {
+                    await agent.UnsubscribeAsync(_broker);
+                }
+                await _broker.UnsubscribeAsync($"+/{_authority.Id}/0/-/-");
+                await _broker.UnsubscribeAsync($"+/{_authority.Id}/{Id}/-/-");
+
+                await _broker.DisconnectAsync();
+
+                IsConnected = false;
+            }
         }
 
         internal async Task Authenticate()

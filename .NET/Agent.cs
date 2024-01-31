@@ -1,4 +1,6 @@
-﻿namespace Agience.Client
+﻿using System.Reflection.Metadata.Ecma335;
+
+namespace Agience.Client
 {
     public class Agent //: Model.Agent
     {
@@ -6,7 +8,7 @@
         public string? Name { get; set; }
         internal new Instance? Instance { get; set; }
         public new Agency? Agency { get; internal set; }
-        public bool IsConnected { get; internal set; }
+        public bool IsSubscribed { get; private set; }
 
         private Authority _authority;
 
@@ -15,16 +17,34 @@
             _authority = authority;
         }
 
-        internal async Task Connect(Broker broker)
+        internal async Task SubscribeAsync(Broker broker)
         {
-            await broker.SubscribeAsync($"+/{_authority.Id}/-/-/{Id}", ReceiveMessageCallback);
-
-            if (Agency != null && !Agency.IsConnected)
+            if (!IsSubscribed)
             {
-                await Agency.Connect(broker);
-            }
+                await broker.SubscribeAsync($"+/{_authority.Id}/-/-/{Id}", ReceiveMessageCallback);
 
-            IsConnected = true;
+                if (Agency != null)
+                {
+                    await Agency.SubscribeAsync(broker);
+                }
+
+                IsSubscribed = true;
+            }
+        }
+
+        internal async Task UnsubscribeAsync(Broker broker)
+        {
+            if (IsSubscribed)
+            {
+                await broker.UnsubscribeAsync($"+/{_authority.Id}/-/-/{Id}");
+
+                if (Agency != null)
+                {
+                    await Agency.UnsubscribeAsync(broker);
+                }
+
+                IsSubscribed = false;
+            }
         }
 
         private async Task ReceiveMessageCallback(Message message)
@@ -32,15 +52,36 @@
             throw new NotImplementedException();
         }
 
+        public Func<Task<Data?>, Task> Invoke(Func<Agent, Data?, Task> method)
+        {
+            return async task =>
+            {
+                var result = await task;
+                await method(this, result);
+            };
+        }
+
         // For when the template is local
         public async Task<Data?> Invoke<T>(Data? data = null) where T : Template, new()
         {
-            var template = Instance?.Catalog.Retrieve<T>(this);
+            var result = Instance?.Catalog.Retrieve<T>();
 
-            if (template != null)
+            if (result.HasValue)
             {
-                return await template.Process(data);
+                var (template, callback) = result.Value;
+
+                template.Agent = this;
+                
+                var output = await template.Process(data);
+
+                if (callback != null)
+                {
+                   await callback.Invoke(this, output);
+                }
+
+                return output;
             }
+
             return null;
         }
 
@@ -51,9 +92,10 @@
         }
 
         // For when the template is not known
-        public async Task<Data?> Prompt(string prompt, Data? data)
+        public async Task<Data?> Prompt(Data? data, string[]? outputKeys = null)
         {
             throw new NotImplementedException();
         }
+
     }
 }

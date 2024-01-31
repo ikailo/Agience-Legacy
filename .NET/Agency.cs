@@ -3,15 +3,15 @@ using Agience.Model;
 
 namespace Agience.Client
 {
-    public class Agency : Model.Agency
+    public class Agency //: Model.Agency
     {
-        public delegate Task ConnectedEventArgs(Agency agency);
-        public event ConnectedEventArgs? Connected;
-
         public event EventHandler<Message>? MessageReceived;
+
+        public string? Id { get; set; }
+        public string? Name { get; set; }
         
         public new List<Agent> Agents { get; set; } = new();
-        public bool IsConnected { get; internal set; }
+        public bool IsSubscribed { get; private set; }
         public Dictionary<string, Model.Template> Catalog { get; set; }
 
         private Dictionary<string, Model.Template> _templates = new();
@@ -22,15 +22,21 @@ namespace Agience.Client
             _authority = authority;
         }
 
-        internal async Task Connect(Broker broker)
+        internal async Task SubscribeAsync(Broker broker)
         {
-            await broker.SubscribeAsync($"+/{_authority.Id}/-/{Id}/-", ReceiveMessageCallback);
-
-            IsConnected = true;
-
-            if (Connected != null)
+            if (!IsSubscribed)
             {
-                await Connected.Invoke(this);
+                await broker.SubscribeAsync($"+/{_authority.Id}/-/{Id}/-", ReceiveMessageCallback);
+                IsSubscribed = true;
+            }
+        }
+
+        internal async Task UnsubscribeAsync(Broker broker)
+        {            
+            if (IsSubscribed)
+            {
+                await broker.UnsubscribeAsync($"+/{_authority.Id}/-/{Id}/-");
+                IsSubscribed = false;
             }
         }
 

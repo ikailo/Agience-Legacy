@@ -3,9 +3,24 @@ using System.Text;
 
 namespace Agience.Client
 {
+    /*
+       // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
+       public enum LayerDefinition
+       {
+           ASPIRATION = 0,
+           GLOBAL_STRATEGY = 1,
+           AGENT_MODEL = 2,
+           EXECUTIVE_FUNCTION = 3,
+           COGNITIVE_CONTROL = 4,
+           TASK_PROSECUTION = 5
+       }*/
+
+
     public class Template //: Model.Template
     {
-        public event Func<Agent, Data?, Task<Data?>>? OnCallback;
+        
+
+        //public event Func<Agent, Data?, Task<Data?>>? OnCallback;
         public Agent Agent { get; internal set; }
 
         public Template(Agent agent)
@@ -57,6 +72,7 @@ namespace Agience.Client
         public string[]? OutputKeys { get; set; }
 
         public virtual Task<Data?> Process(Data? data) => Task.FromResult<Data?>(null);
+        /*
         public async Task<Data?> Callback(Data? data = null)
         {
             if (OnCallback != null)
@@ -65,6 +81,6 @@ namespace Agience.Client
             }
 
             return null;
-        }
+        }*/
     }
 }

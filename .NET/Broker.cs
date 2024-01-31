@@ -2,25 +2,33 @@
 using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
+using MQTTnet.Diagnostics;
 
 namespace Agience.Client
 {
     public class Broker
     {
+        public event Func<Task> Disconnected
+        {
+            add => _client.DisconnectedAsync += async (args) => await value();
+            remove => _client.DisconnectedAsync -= async (args) => await value();
+        }
+
         public bool IsConnected => _client.IsConnected;
 
         private const string MESSAGE_TYPE_KEY = "message.type";
 
-        private readonly IMqttClient _client;
+        private readonly IMqttClient _client;        
         private readonly string _brokerUri;
 
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
         public Broker(string brokerUri)
         {
-            _brokerUri = brokerUri;
-            _client = new MqttFactory().CreateMqttClient();
+            _brokerUri = brokerUri;            
+            _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
+
         }
 
         public async Task ConnectAsync(string token)
@@ -33,13 +41,16 @@ namespace Agience.Client
                     .WithCredentials(token, "<no_password>")
                     .WithProtocolVersion(MqttProtocolVersion.V500)
                     .WithoutThrowOnNonSuccessfulConnectResponse()
+                    .WithTimeout(TimeSpan.FromSeconds(300))
+                    .WithKeepAlivePeriod(TimeSpan.FromSeconds(60))                    
                     .WithCleanSession()
                     .Build();
-                await _client.ConnectAsync(options);
+
+                await _client.ConnectAsync(options);                
             }
         }
 
-        private async Task _client_ApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
+        private Task _client_ApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
         {
             var topic = args.ApplicationMessage.Topic;
             var callbackTopic = topic.Substring(topic.IndexOf('/') + 1); // Remove the SenderId segment
@@ -56,20 +67,27 @@ namespace Agience.Client
                     Payload = args.ApplicationMessage.ConvertPayloadToString()
                 };
 
-                var callbackTasks = new List<Task>();
                 foreach (var container in callbackContainers)
                 {
                     if (container.Callback != null)
                     {
-                        callbackTasks.Add(container.Callback(message));
+                        Task.Run(() => container.Callback(message))
+                        .ContinueWith(t =>
+                        {
+                            if (t.IsFaulted)
+                            {
+                                // Rethrow the exception on the ThreadPool
+                                ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
+                            }
+                        });
                     }
                 }
-
-                await Task.WhenAll(callbackTasks).ConfigureAwait(false);
             }
+            return Task.CompletedTask;
         }
 
-        public async Task<Guid> SubscribeAsync(string topic, Func<Message, Task> callback)
+
+        public async Task SubscribeAsync(string topic, Func<Message, Task> callback)
         {
             if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
 
@@ -87,34 +105,30 @@ namespace Agience.Client
                 .Build();
 
             await _client.SubscribeAsync(options);
-
-            return container.Id;
         }
+
 
         public async Task DisconnectAsync()
         {
-            _callbacks.Clear(); 
-            await _client.DisconnectAsync();
+            if (_client.IsConnected)
+            {
+                await _client.TryDisconnectAsync();               
+            }
         }
 
-        public async Task Unsubscribe(string topic, Guid callbackId)
+
+        public async Task UnsubscribeAsync(string topic)
         {
             var callbackTopic = topic.Substring(topic.IndexOf('/') + 1);
 
             if (_callbacks.ContainsKey(callbackTopic))
             {
-                var container = _callbacks[callbackTopic].FirstOrDefault(c => c.Id == callbackId);
-                if (container != null)
-                {
-                    _callbacks[callbackTopic].Remove(container);
-                    if (!_callbacks[callbackTopic].Any())
-                    {
-                        _callbacks.Remove(callbackTopic);
-                        await _client.UnsubscribeAsync(callbackTopic);
-                    }
-                }
+                _callbacks.Remove(callbackTopic);
             }
+
+            await _client.UnsubscribeAsync(callbackTopic);
         }
+
 
         public async Task PublishAsync(Message message)
         {
@@ -129,6 +143,16 @@ namespace Agience.Client
                     .Build();
 
                 await _client.PublishAsync(mqMessage);
+            }
+        }
+
+        private class MqttNetLogger : IMqttNetLogger
+        {
+            public bool IsEnabled { get; internal set; }
+
+            public void Publish(MqttNetLogLevel logLevel, string source, string message, object[] parameters, Exception exception)
+            {
+                Console.WriteLine($"{logLevel}: {source} - {message}"); 
             }
         }
     }
