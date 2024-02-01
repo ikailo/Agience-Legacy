@@ -3,6 +3,8 @@ using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
 using MQTTnet.Diagnostics;
+using GuerrillaNtp;
+using Timer = System.Timers.Timer;
 
 namespace Agience.Client
 {
@@ -14,25 +16,33 @@ namespace Agience.Client
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
 
+        // TODO: If NTP isn't available, wait for it to be available. For now, just return null so the client can handle it.
+        public DateTime? NtpDateTimeUtc => _ntpClient.Last?.Now.UtcDateTime;
+        private NtpClient _ntpClient = NtpClient.Default; // TODO: Allow custom NTP server
+        private Timer _ntpTimer = new Timer(TimeSpan.FromDays(1).TotalMilliseconds);
+
         public bool IsConnected => _client.IsConnected;
 
         private const string MESSAGE_TYPE_KEY = "message.type";
 
-        private readonly IMqttClient _client;        
+        private readonly IMqttClient _client;
         private readonly string _brokerUri;
 
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
         public Broker(string brokerUri)
         {
-            _brokerUri = brokerUri;            
+            _brokerUri = brokerUri;
             _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
 
+            StartNtpClock();
         }
 
         public async Task ConnectAsync(string token)
         {
+
+
             if (!_client.IsConnected)
             {
                 var options = new MqttClientOptionsBuilder()
@@ -42,11 +52,11 @@ namespace Agience.Client
                     .WithProtocolVersion(MqttProtocolVersion.V500)
                     .WithoutThrowOnNonSuccessfulConnectResponse()
                     .WithTimeout(TimeSpan.FromSeconds(300))
-                    .WithKeepAlivePeriod(TimeSpan.FromSeconds(60))                    
+                    .WithKeepAlivePeriod(TimeSpan.FromSeconds(60))
                     .WithCleanSession()
                     .Build();
 
-                await _client.ConnectAsync(options);                
+                await _client.ConnectAsync(options);
             }
         }
 
@@ -112,7 +122,7 @@ namespace Agience.Client
         {
             if (_client.IsConnected)
             {
-                await _client.TryDisconnectAsync();               
+                await _client.TryDisconnectAsync();
             }
         }
 
@@ -152,7 +162,37 @@ namespace Agience.Client
 
             public void Publish(MqttNetLogLevel logLevel, string source, string message, object[] parameters, Exception exception)
             {
-                Console.WriteLine($"{logLevel}: {source} - {message}"); 
+                // TODO: Write to real logger
+                Console.WriteLine($"{logLevel}: {source} - {message}");
+            }
+        }
+
+        private void StartNtpClock()
+        {
+            _ = QueryNtpWithBackoff(); // Query now
+
+            _ntpTimer.Elapsed += async (sender, args) => { await QueryNtpWithBackoff(); };
+            _ntpTimer.AutoReset = true;
+            _ntpTimer.Start();
+        }
+
+        private async Task QueryNtpWithBackoff()
+        {
+            var delay = TimeSpan.FromSeconds(1);
+            while (true)
+            {
+                try
+                {
+                    await _ntpClient.QueryAsync();
+                    Console.WriteLine($"NTP Time: {NtpDateTimeUtc?.ToString("yyyy-MM-dd HH:mm:ss.fff")}");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"NTP Query Failed: {ex.Message}");
+                    Task.Delay(delay).Wait();                    
+                    delay = 2 * delay;
+                }
             }
         }
     }

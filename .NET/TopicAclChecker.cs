@@ -15,8 +15,6 @@
 
         private Func<string, string?, string?, string?, Task<bool>> _areAgentsRelatedAndSameInstance;
 
-        //TopicAclChecker _topicAclChecker = new();
-
         public TopicAclChecker(Func<string, string?, string?, string?, Task<bool>> areAgentsRelatedAndSameInstance)
         {
             _areAgentsRelatedAndSameInstance = areAgentsRelatedAndSameInstance;
@@ -176,6 +174,7 @@
             public string topic { get; set; } = string.Empty;
         }
 
+        // For logging
         private string PrintConst(int value)
         {
             return value switch

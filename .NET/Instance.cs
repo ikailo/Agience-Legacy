@@ -12,7 +12,7 @@ namespace Agience.Client
 
         public string? Id { get; set; }
         public string? Name { get; set; }
-        public Catalog Catalog { get; set; } = new();
+        public Catalog Templates { get; set; } = new();
         
         private Dictionary<string, Agent> _agents = new();
         private readonly Config _config;

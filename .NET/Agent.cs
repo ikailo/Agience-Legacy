@@ -62,7 +62,7 @@
         // For when the template is local
         public async Task<Data?> Invoke<T>(Data? data = null) where T : Template, new()
         {
-            var result = Instance?.Catalog.Retrieve<T>();
+            var result = Instance?.Templates.Retrieve<T>();
 
             if (result.HasValue)
             {
