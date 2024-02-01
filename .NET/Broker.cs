@@ -10,20 +10,22 @@ namespace Agience.Client
 {
     public class Broker
     {
+
         public event Func<Task> Disconnected
         {
             add => _client.DisconnectedAsync += async (args) => await value();
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
 
-        // TODO: If NTP isn't available, wait for it to be available. For now, just return null so the client can handle it.
-        public DateTime? NtpDateTimeUtc => _ntpClient.Last?.Now.UtcDateTime;
+        public string Timestamp => (_ntpClient.Last ?? throw new InvalidOperationException()).Now.UtcDateTime.ToString(TIME_FORMAT);
+
         private NtpClient _ntpClient = NtpClient.Default; // TODO: Allow custom NTP server
-        private Timer _ntpTimer = new Timer(TimeSpan.FromDays(1).TotalMilliseconds);
+        private Timer _ntpTimer = new Timer(TimeSpan.FromDays(1).TotalMilliseconds); // Synchronize daily
 
         public bool IsConnected => _client.IsConnected;
 
         private const string MESSAGE_TYPE_KEY = "message.type";
+        private const string TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss.fff";
 
         private readonly IMqttClient _client;
         private readonly string _brokerUri;
@@ -35,13 +37,11 @@ namespace Agience.Client
             _brokerUri = brokerUri;
             _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
-
-            StartNtpClock();
         }
 
         public async Task ConnectAsync(string token)
-        {
-
+        {   
+            await StartNtpClock();
 
             if (!_client.IsConnected)
             {
@@ -167,34 +167,35 @@ namespace Agience.Client
             }
         }
 
-        private void StartNtpClock()
+        private async Task StartNtpClock()
         {
-            _ = QueryNtpWithBackoff(); // Query now
+            await QueryNtpWithBackoff(); // Query now
 
             _ntpTimer.Elapsed += async (sender, args) => { await QueryNtpWithBackoff(); };
             _ntpTimer.AutoReset = true;
             _ntpTimer.Start();
         }
 
-        private async Task QueryNtpWithBackoff()
+        private async Task QueryNtpWithBackoff(double maxDelaySeconds = 32)
         {
-            var delay = TimeSpan.FromSeconds(1);
+            var delay = TimeSpan.FromSeconds(1);            
             while (true)
             {
                 try
                 {
                     await _ntpClient.QueryAsync();
-                    Console.WriteLine($"NTP Time: {NtpDateTimeUtc?.ToString("yyyy-MM-dd HH:mm:ss.fff")}");
+                    Console.WriteLine($"NTP Time: {Timestamp}");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"NTP Query Failed: {ex.Message}");
-                    Task.Delay(delay).Wait();                    
-                    delay = 2 * delay;
+                    Console.WriteLine($"NTP Query Failed. Trying again in {delay.TotalSeconds} seconds.\r\n{ex.Message}");
+                    await Task.Delay(delay);
+                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
                 }
             }
         }
+
     }
 
     internal class CallbackContainer

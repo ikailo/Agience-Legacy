@@ -81,7 +81,7 @@ namespace Agience.Client
 
             if (!_isSubscribed)
             {
-                await _broker.SubscribeAsync($"+/{Id}/-/-/-", async message => await _broker_ReceiveMessage(message));
+                await _broker.SubscribeAsync(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
                 _isSubscribed = true;
             }
         }
@@ -92,18 +92,18 @@ namespace Agience.Client
 
             if (_isSubscribed)
             {
-                await _broker.UnsubscribeAsync($"+/{Id}/-/-/-");
+                await _broker.UnsubscribeAsync(AuthorityTopic("+"));
                 _isSubscribed = false;
             }
         }
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload?.Structured == null) { return; }
+            if (message.SenderId == null || message.Payload == null || message.Payload.Format != DataFormat.STRUCTURED) { return; }
 
-            if (message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "instanceConnect")
+            if (message.Type == MessageType.EVENT && message.Payload["type"] == "instanceConnect" && message.Payload.ContainsKey("instance"))
             {
-                var instance = JsonSerializer.Deserialize<Model.Instance>(message.Payload.Structured["instance"]);
+                var instance = JsonSerializer.Deserialize<Model.Instance>(message.Payload["instance"]!);
 
                 if (instance?.Id == message.SenderId && InstanceConnected != null)
                 {
@@ -121,10 +121,11 @@ namespace Agience.Client
             await _broker!.PublishAsync(new Message()
             {
                 Type = MessageType.EVENT,
-                Topic = $"-/{Id}/{agent.Instance.Id}/-/-",
+                Topic = InstanceTopic(Id, agent.Instance.Id),
                 Payload = new Data(new()
                 {
                     { "type", "agentConnect" },
+                    { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) }
                 })
             });
@@ -139,13 +140,40 @@ namespace Agience.Client
             await _broker!.PublishAsync(new Message()
             {
                 Type = MessageType.EVENT,
-                Topic = $"-/{Id}/{agent.Instance.Id}/-/-",
+                Topic = InstanceTopic(Id, agent.Instance.Id),
                 Payload = new Data(new()
                 {
                     { "type", "agentDisconnect" },
+                    { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) }
                 })
             });
+        }
+
+        public string Topic(string senderId, string? instanceId, string? agencyId, string? agentId)
+        {
+            var result = $"{(senderId != Id ? senderId : "-")}/{Id}/{instanceId ?? "-"}/{agencyId ?? "-"}/{agentId ?? "-"}";
+            return result;
+        }
+
+        public string AuthorityTopic(string senderId)
+        {
+            return Topic(senderId, null, null, null);
+        }
+
+        public string InstanceTopic(string senderId, string? instanceId)
+        {
+            return Topic(senderId, instanceId, null, null);
+        }
+
+        public string AgencyTopic(string senderId, string agencyId)
+        {
+            return Topic(senderId, null, agencyId, null);
+        }
+
+        public string AgentTopic(string senderId, string agentId)
+        {
+            return Topic(senderId, null, null, agentId);
         }
 
         public async Task DisconnectAsync()

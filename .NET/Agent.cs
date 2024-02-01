@@ -19,7 +19,7 @@
         {
             if (!IsSubscribed)
             {
-                await broker.SubscribeAsync($"+/{_authority.Id}/-/-/{Id}", ReceiveMessageCallback);
+                await broker.SubscribeAsync(_authority.AgentTopic("+", Id!), ReceiveMessageCallback);
 
                 if (Agency != null)
                 {
@@ -34,7 +34,7 @@
         {
             if (IsSubscribed)
             {
-                await broker.UnsubscribeAsync($"+/{_authority.Id}/-/-/{Id}");
+                await broker.UnsubscribeAsync(_authority.AgentTopic("+", Id!));
 
                 if (Agency != null)
                 {

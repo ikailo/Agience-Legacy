@@ -10,10 +10,10 @@ namespace Agience.Client
     {
         public event Func<Agent, Task>? AgentSubscribed;
 
-        public string? Id { get; set; }
+        public string Id { get; set; }
         public string? Name { get; set; }
         public Catalog Templates { get; set; } = new();
-        
+
         private Dictionary<string, Agent> _agents = new();
         private readonly Config _config;
         private readonly Authority _authority;
@@ -42,7 +42,7 @@ namespace Agience.Client
         {
             await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
 
-            await _authority.InitializeAsync();            
+            await _authority.InitializeAsync();
 
             _broker = new Broker(_config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
 
@@ -53,22 +53,23 @@ namespace Agience.Client
             await _broker.ConnectAsync(_access_token);
 
             // Subscribe to messages directed to all instances.
-            await _broker.SubscribeAsync($"+/{_authority.Id}/0/-/-", _broker_ReceiveMessage);
+            await _broker.SubscribeAsync(_authority.InstanceTopic("+", "0"), _broker_ReceiveMessage);
 
             // Subscribe to messages directed to this instance
-            await _broker.SubscribeAsync($"+/{_authority.Id}/{Id}/-/-", _broker_ReceiveMessage);
+            await _broker.SubscribeAsync(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); ;
 
             // Publish a status message to the authority and request a list of agents and agencies.
             await _broker.PublishAsync(new Message()
             {
                 Type = MessageType.EVENT,
-                Topic = $"{Id}/{_authority.Id}/-/-/-",
+                Topic = _authority.AuthorityTopic(Id!),
                 Payload = new Data(new()
                 {
                     { "type", "instanceConnect" },
+                    { "timestamp", _broker.Timestamp},
                     { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
                 })
-            });
+            }); ;
 
             _isConnected = true;
         }
@@ -84,12 +85,14 @@ namespace Agience.Client
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload?.Structured == null) { return; }
+            if (message.SenderId == null || message.Payload == null || message.Payload.Format != DataFormat.STRUCTURED) { return; }
 
             // Incoming Agent Connect Message
-            if (message.Type == MessageType.EVENT && message.Payload.Structured?["type"] == "agentConnect")
+            if (message.Type == MessageType.EVENT && message.Payload["type"] == "agentConnect" && message.Payload["agent"] != null)
             {
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload.Structured["agent"]);
+                var timestamp = message.Payload["timestamp"];
+
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
 
                 if (agent?.Id == null || agent.Agency?.Id == null || agent.Instance?.Id != Id)
                 {
@@ -114,7 +117,7 @@ namespace Agience.Client
                 await _agents[agent.Id].SubscribeAsync(_broker!);
 
                 if (AgentSubscribed != null)
-                {   
+                {
                     _ = Task.Run(() => AgentSubscribed.Invoke(_agents[agent.Id]))
                         .ContinueWith(t =>
                         {
@@ -136,8 +139,8 @@ namespace Agience.Client
                 {
                     await agent.UnsubscribeAsync(_broker);
                 }
-                await _broker.UnsubscribeAsync($"+/{_authority.Id}/0/-/-");
-                await _broker.UnsubscribeAsync($"+/{_authority.Id}/{Id}/-/-");
+                await _broker.UnsubscribeAsync(_authority.InstanceTopic("+","0"));
+                await _broker.UnsubscribeAsync(_authority.InstanceTopic("+", Id));
 
                 await _broker.DisconnectAsync();
 

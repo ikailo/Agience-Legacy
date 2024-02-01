@@ -84,36 +84,65 @@ namespace Agience.Client
         //public string? CreatorId { get; }
 
         public DataFormat Format { get; private set; } = DataFormat.RAW;
+        
+        public Dictionary<string, string?>? Structured
+        {
+            get => _structured;
+            private set
+            {
+                _structured = value;
+                Raw = JsonSerializer.Serialize(value);
+            }
+        }
+        private Dictionary<string, string?>? _structured;
 
-        private string? _raw;
+        private string? _raw;        
         public string? Raw
         {
             get => _raw;
             private set
             {
-                _raw = value;
-                // Attempt to convert Raw JSON to structured data if the format is STRUCTURED
+                _raw = value;                
                 TryConvertRawToStructured();
             }
-        }
-
-        public Dictionary<string, string>? Structured { get; private set; }
+        }        
 
         public Data(string? raw = null, DataFormat dataFormat = DataFormat.RAW)
         {
             Format = dataFormat;
-            Raw = raw; // Setting Raw will trigger TryConvertRawToStructured if needed
+            Raw = raw; 
         }
 
-        public Data(IEnumerable<KeyValuePair<string, string>> data) :
-            this(new Dictionary<string, string>(data))
+        public Data(IEnumerable<KeyValuePair<string, string?>> data) :
+            this(new Dictionary<string, string?>(data))
         { }
 
-        public Data(Dictionary<string, string> structured)
+        public Data(Dictionary<string, string?> structured)
         {
             Format = DataFormat.STRUCTURED;
-            Structured = structured;
+            _structured = structured;
             Raw = JsonSerializer.Serialize(structured);
+        }
+
+        public string? this[string key]
+        {
+            get
+            {
+                if (_structured != null && _structured.TryGetValue(key, out var value))
+                {
+                    return value;
+                }
+
+                return null; // Return null if the key is not found
+            }
+            set
+            {
+                if (_structured == null)
+                {
+                    _structured = new Dictionary<string, string?>();
+                }
+                _structured[key] = value;
+            }
         }
 
         private void TryConvertRawToStructured()
@@ -125,8 +154,8 @@ namespace Agience.Client
                 {
                     try
                     {
-                        Structured = JsonSerializer.Deserialize<Dictionary<string, string>>(Raw);
-                        if (Structured != null)
+                        _structured = JsonSerializer.Deserialize<Dictionary<string, string?>>(Raw);
+                        if (_structured != null)
                         {
                             Format = DataFormat.STRUCTURED;
                         }
@@ -139,26 +168,30 @@ namespace Agience.Client
             }
         }
 
-
         public override string? ToString() => Raw;
 
         public void Add(string key, string value)
         {
-            Structured?.Add(key, value);
+            _structured?.Add(key, value);
         }
         
         public IEnumerator GetEnumerator()
         {            
-            return Structured?.GetEnumerator() ?? default;
+            return _structured?.GetEnumerator() ?? default;
+        }
+
+        internal bool ContainsKey(string key)
+        {
+            return _structured?.ContainsKey(key) ?? false;
         }
 
         public static implicit operator Data?(string? raw) => new Data(raw);
 
-        public static implicit operator Data?(Dictionary<string, string> structured) => new Data(structured);
+        public static implicit operator Data?(Dictionary<string, string?> structured) => new Data(structured);
 
         public static implicit operator string?(Data? data) => data?.Raw;
 
-        public static implicit operator Dictionary<string, string>?(Data? data) => data?.Structured;
+        public static implicit operator Dictionary<string, string>?(Data? data) => data?._structured;
         
     }
 }
