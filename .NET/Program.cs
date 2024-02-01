@@ -10,10 +10,10 @@ namespace Agience.Agents_Console
 
         internal static async Task Main(string[] args)
         {
-            _instance.Catalog.Add<Debug>(Debug_Callback);
-            _instance.Catalog.Add<ShowMessageToUser>();
-            _instance.Catalog.Add<GetInputFromUser>();
-            _instance.Catalog.Add<InteractWithUser>();
+            _instance.Templates.Add<Debug>(Debug_Callback);
+            _instance.Templates.Add<ShowMessageToUser>();
+            _instance.Templates.Add<GetInputFromUser>();
+            _instance.Templates.Add<InteractWithUser>();
 
             _instance.AgentSubscribed += _instance_AgentSubscribed;
 
@@ -28,7 +28,7 @@ namespace Agience.Agents_Console
 
             //var result = await agent.Invoke(typeof(InteractWithUser), "Ready for Input");
             //var result = await agent.Dispatch("Agience.Templates.InteractWithUser", "Ready for Input");
-            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");            
+            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");
 
             return Task.CompletedTask;
         }
