@@ -10,19 +10,19 @@ namespace Agience.Agents_Console
 
         internal static async Task Main(string[] args)
         {
-            _instance.Templates.Add<Debug>(Debug_Callback);
-            _instance.Templates.Add<ShowMessageToUser>();
-            _instance.Templates.Add<GetInputFromUser>();
-            _instance.Templates.Add<InteractWithUser>();
+            _instance.AddTemplate<Debug>(Debug_Callback);
+            _instance.AddTemplate<ShowMessageToUser>();
+            _instance.AddTemplate<GetInputFromUser>();
+            _instance.AddTemplate<InteractWithUser>();
 
-            _instance.AgentSubscribed += _instance_AgentSubscribed;
+            _instance.AgentConnected += _instance_AgentConnected;
 
             await _instance.Run();
         }
 
-        private static Task _instance_AgentSubscribed(Agent agent)
+        private static Task _instance_AgentConnected(Agent agent)
         {
-            Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Subscribed");
+            Console.WriteLine($"{agent.Agency?.Name} / {agent.Name} Connected");
 
             _ = agent.Invoke<InteractWithUser>("Ready for Input").ContinueWith(agent.Invoke(InteractWithUser_callback));
 
