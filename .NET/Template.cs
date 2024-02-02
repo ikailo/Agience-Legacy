@@ -15,19 +15,41 @@ namespace Agience.Client
            TASK_PROSECUTION = 5
        }*/
 
-    public class Template //: Model.Template
+
+
+    public class Template
     {  
-        public Agent Agent { get; internal set; }                
+        public string Id { get; private set; }                  
         public Data? Description { get; set; } // Description is the template identifier. Future: Searchable, Inferable, Unique, Persist.
         public string[]? InputKeys { get; set; }
         public string[]? OutputKeys { get; set; }
-
-        private string? _id;
+        public Agent? Agent { get; internal set; }
         public virtual Task<Data?> Process(Data? data) => Task.FromResult<Data?>(null);
+        public Template()
+        {   
+            Id = GetType().FullName ?? throw new ArgumentNullException("Type.FullName");            
+        }
+
+        public Model.Template ToAgienceModel()
+        {
+            return new Model.Template()
+            {
+                Id = Id,
+                Description = Description,
+                InputKeys = InputKeys,
+                OutputKeys = OutputKeys,
+                AgentId = Agent?.Id
+            };
+        }
+
+        /*
+        private string? _id;
+
+        
 
         // Template Ids are generated based on the template definition. 
         // TODO: Review, since this is not a unique identifier.
-        public new string Id
+        public string Id
         {
             get
             {
@@ -58,6 +80,6 @@ namespace Agience.Client
             {
                 _id = value;
             }
-        }
+        }*/
     }
 }

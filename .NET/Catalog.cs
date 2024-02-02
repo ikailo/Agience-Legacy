@@ -1,12 +1,15 @@
-﻿
+﻿using System.Collections;
+
 namespace Agience.Client
 {
-    public class Catalog
-    {
-        private Dictionary<string, Type> _factories = new();
-        private Dictionary<string, Func<Agent, Data?, Task>> _callbacks = new();
+    public delegate Task OutputCallback(Agent agent, Data? data);
 
-        public void Add<T>(Func<Agent, Data?, Task>? callback = null) where T : Template, new()
+    public class Catalog : IEnumerable<string>
+    {
+        private Dictionary<string, Type> _types = new();
+        private Dictionary<string, OutputCallback> _outputCallbacks = new();
+
+        public void Add<T>(OutputCallback? outputCallback = null) where T : Template, new()
         {
             Type type = typeof(T);
 
@@ -15,15 +18,15 @@ namespace Agience.Client
                 throw new ArgumentNullException(nameof(type.FullName));
             }
 
-            _factories[type.FullName] = typeof(T);
+            _types[type.FullName] = typeof(T);
 
-            if (callback != null)
+            if (outputCallback != null)
             {
-                _callbacks[typeof(T).FullName!] = callback;
+                _outputCallbacks[typeof(T).FullName!] = outputCallback;
             }
         }
 
-        internal (T, Func<Agent, Data?, Task>?)? Retrieve<T>() where T : Template, new()
+        public void Remove<T>() where T : Template, new()
         {
             Type type = typeof(T);
 
@@ -32,19 +35,73 @@ namespace Agience.Client
                 throw new ArgumentNullException(nameof(type.FullName));
             }
 
-            if (_factories.TryGetValue(type.FullName!, out Type? templateType))
-            {
-                var template = new T();
+            _types.Remove(type.FullName!);
+            _outputCallbacks.Remove(type.FullName!);
+        }
 
-                if (_callbacks.TryGetValue(type.FullName, out Func<Agent, Data?, Task>? callback))
+        internal (Template, OutputCallback?)? GetTemplateForAgent(string templateId, Agent agent)
+        {
+            (Template, OutputCallback?)? template = Retrieve(templateId);
+
+            if (template.HasValue)
+            {
+                template.Value.Item1.Agent = agent;
+                return template;
+            }
+            return null;
+        }
+
+        internal List<(Template, OutputCallback?)> GetTemplatesForAgent(Agent agent)
+        {
+            List<(Template, OutputCallback?)> templates = new();
+
+            foreach (var type in _types.Values)
+            {
+                var template = GetTemplateForAgent(type.FullName!, agent);
+
+                if (template.HasValue)
                 {
-                    return (template, callback);
+                    templates.Add(template.Value);
+                }
+            }
+            return templates;            
+        }
+
+        private (Template, OutputCallback?)? Retrieve(string? templateId)
+        {
+            if (string.IsNullOrEmpty(templateId)) { return null; }
+
+            if (_types.TryGetValue(templateId, out Type? templateType))
+            {
+                var template = (Template)Activator.CreateInstance(templateType)!;
+
+                if (_outputCallbacks.TryGetValue(templateId, out OutputCallback? outputCallback))
+                {
+                    return (template, outputCallback);
                 }
 
                 return (template, null);
             }
-
             return null;
+        }
+
+        private (T, OutputCallback?)? Retrieve<T>() where T : Template, new()
+        {
+            Type type = typeof(T);
+
+            if (string.IsNullOrEmpty(type.FullName)) { return null;}
+
+            return ((T, OutputCallback?)?)Retrieve(type.FullName);
+        }
+
+        public IEnumerator<string> GetEnumerator()
+        {
+            return _types.Keys.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

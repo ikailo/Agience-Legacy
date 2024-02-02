@@ -3,7 +3,6 @@
     public enum MessageType
     {
         EVENT,
-        TEMPLATE,
         INFORMATION,
         CONTEXT,
         UNKNOWN

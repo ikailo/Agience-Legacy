@@ -40,7 +40,7 @@ namespace Agience.Client
         }
 
         public async Task ConnectAsync(string token)
-        {   
+        {
             await StartNtpClock();
 
             if (!_client.IsConnected)
@@ -131,10 +131,7 @@ namespace Agience.Client
         {
             var callbackTopic = topic.Substring(topic.IndexOf('/') + 1);
 
-            if (_callbacks.ContainsKey(callbackTopic))
-            {
-                _callbacks.Remove(callbackTopic);
-            }
+            _callbacks.Remove(callbackTopic);
 
             await _client.UnsubscribeAsync(callbackTopic);
         }
@@ -178,7 +175,7 @@ namespace Agience.Client
 
         private async Task QueryNtpWithBackoff(double maxDelaySeconds = 32)
         {
-            var delay = TimeSpan.FromSeconds(1);            
+            var delay = TimeSpan.FromSeconds(1);
             while (true)
             {
                 try

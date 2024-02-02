@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -8,11 +7,10 @@ namespace Agience.Client
 {
     public class Instance
     {
-        public event Func<Agent, Task>? AgentSubscribed;
+        public event Func<Agent, Task>? AgentConnected;
 
         public string Id { get; set; }
         public string? Name { get; set; }
-        public Catalog Templates { get; set; } = new();
 
         private Dictionary<string, Agent> _agents = new();
         private readonly Config _config;
@@ -21,6 +19,7 @@ namespace Agience.Client
         private string _clientSecret;
         private string? _access_token;
         private bool _isConnected;
+        private Catalog _catalog { get; set; } = new();
 
         public Instance(Config config)
         {
@@ -58,7 +57,6 @@ namespace Agience.Client
             // Subscribe to messages directed to this instance
             await _broker.SubscribeAsync(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); ;
 
-            // Publish a status message to the authority and request a list of agents and agencies.
             await _broker.PublishAsync(new Message()
             {
                 Type = MessageType.EVENT,
@@ -85,49 +83,57 @@ namespace Agience.Client
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload == null || message.Payload.Format != DataFormat.STRUCTURED) { return; }
+            if (message.SenderId == null || message.Payload == null) { return; }
 
             // Incoming Agent Connect Message
-            if (message.Type == MessageType.EVENT && message.Payload["type"] == "agentConnect" && message.Payload["agent"] != null)
+            if (message.Type == MessageType.EVENT &&
+                message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Payload["type"] == "agentConnect" &&
+                message.Payload["agent"] != null)
             {
-                var timestamp = message.Payload["timestamp"];
-
                 var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
 
-                if (agent?.Id == null || agent.Agency?.Id == null || agent.Instance?.Id != Id)
-                {
-                    return; // Invalid Agent
-                }
+                await AgentConnect(agent!, timestamp);
+            }
+        }
 
-                if (!_agents.ContainsKey(agent.Id))
+        private async Task AgentConnect(Model.Agent modelAgent, DateTime? timestamp)
+        {
+            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Instance?.Id != Id)
+            {
+                return; // Invalid Agent
+            }
+
+            Agent agent = new Agent(_authority)
+            {
+                Id = modelAgent.Id,
+                Name = modelAgent.Name,
+                Instance = this,
+                Agency = new Agency(_authority)
                 {
-                    _agents[agent.Id] = new Agent(_authority)
+                    Id = modelAgent.Agency.Id,
+                    Name = modelAgent.Agency.Name
+                },
+            };
+            
+            agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
+
+            await agent.ConnectAsync(_broker!);
+
+            _agents.Add(agent.Id, agent);
+
+            if (AgentConnected != null)
+            {
+                _ = Task.Run(() => AgentConnected.Invoke(agent))
+                    .ContinueWith(t =>
                     {
-                        Id = agent.Id,
-                        Name = agent.Name,
-                        Instance = this,
-                        Agency = new Agency(_authority)
+                        if (t.IsFaulted)
                         {
-                            Id = agent.Agency.Id,
-                            Name = agent.Agency.Name
-                        },
-                    };
-                };
-
-                await _agents[agent.Id].SubscribeAsync(_broker!);
-
-                if (AgentSubscribed != null)
-                {
-                    _ = Task.Run(() => AgentSubscribed.Invoke(_agents[agent.Id]))
-                        .ContinueWith(t =>
-                        {
-                            if (t.IsFaulted)
-                            {
-                                // Rethrow the exception on the ThreadPool
-                                ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
-                            }
-                        });
-                }
+                            // Rethrow the exception on the ThreadPool
+                            ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
+                        }
+                    });
             }
         }
 
@@ -139,7 +145,7 @@ namespace Agience.Client
                 {
                     await agent.UnsubscribeAsync(_broker);
                 }
-                await _broker.UnsubscribeAsync(_authority.InstanceTopic("+","0"));
+                await _broker.UnsubscribeAsync(_authority.InstanceTopic("+", "0"));
                 await _broker.UnsubscribeAsync(_authority.InstanceTopic("+", Id));
 
                 await _broker.DisconnectAsync();
@@ -167,6 +173,21 @@ namespace Agience.Client
                 _access_token = httpResponse.IsSuccessStatusCode ?
                     (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token :
                     throw new HttpRequestException("Unauthorized", null, httpResponse.StatusCode);
+            }
+        }
+
+        public void AddTemplate<T>(OutputCallback? callback = null) where T : Template, new()
+        {
+            _catalog.Add<T>(callback);
+
+            foreach (var agent in _agents.Values)
+            {
+                var template = _catalog.GetTemplateForAgent(typeof(T).FullName!, agent);
+
+                if (template.HasValue)
+                {
+                    agent.AddTemplate(template.Value);
+                }
             }
         }
 

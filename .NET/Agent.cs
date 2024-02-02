@@ -1,4 +1,7 @@
-﻿namespace Agience.Client
+﻿using Agience.Model;
+using System;
+
+namespace Agience.Client
 {
     public class Agent
     {
@@ -8,6 +11,8 @@
         public new Agency? Agency { get; internal set; }
         public bool IsSubscribed { get; private set; }
 
+        private Dictionary<string, (Template, OutputCallback?)> _templates = new();      
+
         private Authority _authority;
 
         public Agent(Authority authority)
@@ -15,11 +20,16 @@
             _authority = authority;
         }
 
+        internal async Task ConnectAsync(Broker broker)
+        {            
+            await SubscribeAsync(broker);
+        }
+
         internal async Task SubscribeAsync(Broker broker)
         {
             if (!IsSubscribed)
             {
-                await broker.SubscribeAsync(_authority.AgentTopic("+", Id!), ReceiveMessageCallback);
+                await broker.SubscribeAsync(_authority.AgentTopic("+", Id!), _broker_ReceiveMessage);
 
                 if (Agency != null)
                 {
@@ -45,36 +55,52 @@
             }
         }
 
-        private async Task ReceiveMessageCallback(Message message)
+        internal void AddTemplate((Template, OutputCallback?) template)
+        {
+            _templates[template.Item1.Id!] = template;
+        }
+
+        internal void AddTemplates(List<(Template, OutputCallback?)> templates)
+        {
+            foreach (var (template, callback) in templates)
+            {
+                AddTemplate((template, callback));
+            }
+        }
+
+        private async Task _broker_ReceiveMessage(Message message)
         {
             throw new NotImplementedException();
         }
 
-        public Func<Task<Data?>, Task> Invoke(Func<Agent, Data?, Task> method)
+        public Func<Task<Data?>, Task> Invoke(OutputCallback outputCallback)
         {
             return async task =>
             {
                 var result = await task;
-                await method(this, result);
+                await outputCallback(this, result);
             };
         }
 
         // For when the template is local
         public async Task<Data?> Invoke<T>(Data? data = null) where T : Template, new()
         {
-            var result = Instance?.Templates.Retrieve<T>();
+            var templateId = typeof(T).FullName;
 
-            if (result.HasValue)
+            if (string.IsNullOrEmpty(templateId))
             {
-                var (template, callback) = result.Value;
+                return null;
+            }
 
-                template.Agent = this;
-                
+            if (_templates.TryGetValue(templateId, out (Template, OutputCallback?) templateAndCallback))
+            {
+                var (template, outputCallback) = templateAndCallback;
+
                 var output = await template.Process(data);
 
-                if (callback != null)
+                if (outputCallback != null)
                 {
-                   await callback.Invoke(this, output);
+                    await outputCallback.Invoke(this, output);
                 }
 
                 return output;

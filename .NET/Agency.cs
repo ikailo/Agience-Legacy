@@ -1,4 +1,6 @@
-﻿namespace Agience.Client
+﻿using System.Text.Json;
+
+namespace Agience.Client
 {
     public class Agency
     {
@@ -8,7 +10,7 @@
         public string? Name { get; set; }        
         public List<Agent> Agents { get; set; } = new();        
         
-        public Dictionary<string, Model.Template> Catalog { get; set; } // HERE
+        private Dictionary<string, Model.Template> _templates { get; set; }
         
         private Authority _authority;
         private bool _isSubscribed;
@@ -22,7 +24,7 @@
         {
             if (!_isSubscribed)
             {
-                await broker.SubscribeAsync(_authority.AgencyTopic("+", Id!), ReceiveMessageCallback);
+                await broker.SubscribeAsync(_authority.AgencyTopic("+", Id!), _broker_ReceiveMessage);
                 _isSubscribed = true;
             }
         }
@@ -36,9 +38,32 @@
             }
         }
 
-        private Task ReceiveMessageCallback(Message message)
+        internal async Task SendTemplates(Broker broker, List<Model.Template> templates)
+        {
+            await broker.PublishAsync(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = _authority.AuthorityTopic(Id!),
+                Payload = new Data(new()
+                {
+                    { "type", "broadcastTemplates" },
+                    { "timestamp", broker.Timestamp},
+                    { "instance", JsonSerializer.Serialize(templates) }
+                })
+            }); ;
+        }
+
+        internal Task ReceiveTemplates(Broker broker, Catalog? templates)
         {
             throw new NotImplementedException();
         }
+
+
+        private Task _broker_ReceiveMessage(Message message)
+        {
+            throw new NotImplementedException();
+        }
+
+
     }
 }
