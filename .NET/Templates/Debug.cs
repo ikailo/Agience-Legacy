@@ -11,8 +11,9 @@ namespace Agience.Templates
 
         public async override Task<Data?> Process(Data? data)
         {
-
+            /*
 #if DEBUG
+            
             // Parse the input for the template id and user data
 
             // Expected Input: debug <templateId> <userData>
@@ -51,6 +52,7 @@ namespace Agience.Templates
             }
 
 #endif
+            */
             return "Debug not enabled";
         }
     }
