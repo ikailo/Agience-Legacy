@@ -27,26 +27,24 @@ namespace Agience.Client
         private const string MESSAGE_TYPE_KEY = "message.type";
         private const string TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss.fff";
 
-        private readonly IMqttClient _client;
-        private readonly string _brokerUri;
+        private readonly IMqttClient _client;        
 
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
-        public Broker(string brokerUri)
-        {
-            _brokerUri = brokerUri;
+        public Broker()
+        {   
             _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
         }
 
-        public async Task ConnectAsync(string token)
+        public async Task Connect(string token, string brokerUri)
         {
             await StartNtpClock();
 
             if (!_client.IsConnected)
             {
                 var options = new MqttClientOptionsBuilder()
-                    .WithWebSocketServer(configure => { configure.WithUri(_brokerUri); })
+                    .WithWebSocketServer(configure => { configure.WithUri(brokerUri); })
                     .WithTlsOptions(configure => { configure.UseTls(true); })
                     .WithCredentials(token, "<no_password>")
                     .WithProtocolVersion(MqttProtocolVersion.V500)
@@ -96,8 +94,7 @@ namespace Agience.Client
             return Task.CompletedTask;
         }
 
-
-        public async Task SubscribeAsync(string topic, Func<Message, Task> callback)
+        public async Task Subscribe(string topic, Func<Message, Task> callback)
         {
             if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
 
@@ -117,8 +114,7 @@ namespace Agience.Client
             await _client.SubscribeAsync(options);
         }
 
-
-        public async Task DisconnectAsync()
+        public async Task Disconnect()
         {
             if (_client.IsConnected)
             {
@@ -126,8 +122,7 @@ namespace Agience.Client
             }
         }
 
-
-        public async Task UnsubscribeAsync(string topic)
+        internal async Task Unsubscribe(string topic)
         {
             var callbackTopic = topic.Substring(topic.IndexOf('/') + 1);
 
@@ -136,8 +131,7 @@ namespace Agience.Client
             await _client.UnsubscribeAsync(callbackTopic);
         }
 
-
-        public async Task PublishAsync(Message message)
+        internal async Task Publish(Message message)
         {
             if (_client.IsConnected)
             {

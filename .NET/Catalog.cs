@@ -6,8 +6,8 @@ namespace Agience.Client
 
     public class Catalog : IEnumerable<string>
     {
-        private Dictionary<string, Type> _types = new();
-        private Dictionary<string, OutputCallback> _outputCallbacks = new();
+        private readonly Dictionary<string, Type> _types = new();
+        private readonly Dictionary<string, OutputCallback> _outputCallbacks = new();
 
         public void Add<T>(OutputCallback? outputCallback = null) where T : Template, new()
         {

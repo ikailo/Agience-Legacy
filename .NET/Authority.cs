@@ -12,18 +12,16 @@ namespace Agience.Client
         public event Func<Model.Instance, Task>? InstanceConnected;
         public event Func<Task>? Disconnected;
 
-        public string? TokenEndpoint { get; private set; }
-        public string? BrokerUri { get; private set; }
+
         public string Id => _authorityUri.Host;
+        public string? BrokerUri { get; private set; }
+        public string? TokenEndpoint { get; private set; }
+        public bool IsConnected { get; private set; }
 
         private readonly Uri _authorityUri; // Expect without trailing slash
-        private Broker? _broker;
-        private bool _isConnected;
+        private readonly Broker _broker = new();
         private bool _isSubscribed;
 
-        // TODO: We can probably split this into two classes - like Authority and AuthorityService, for specific use cases.
-        
-        // This constructor is used by Instance.
         public Authority(string authorityUri)
         {
             if (authorityUri == null) { throw new ArgumentNullException(nameof(authorityUri)); }
@@ -31,17 +29,7 @@ namespace Agience.Client
             _authorityUri = new Uri(authorityUri);
         }
 
-        // This constructor is used when running as an Authority Service.
-        public Authority(string authorityUri, string brokerUri)
-            : this(authorityUri)
-        {
-            BrokerUri = brokerUri;
-
-            _broker = new Broker(BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
-            _broker.Disconnected += Disconnected;
-        }
-
-        public async Task InitializeAsync()
+        internal async Task Initialize()
         {
             try
             {
@@ -61,39 +49,28 @@ namespace Agience.Client
             }
         }
 
-        public async Task Connect(string token)
+        public async Task Connect(string accessToken, string brokerUri)
         {
-            if (token == null) { throw new ArgumentNullException(nameof(token)); }            
-
-            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
-
-            if (!_isConnected)
+            if (BrokerUri == null)
             {
-                await _broker.ConnectAsync(token);
-                await Subscribe();
-                _isConnected = true;
+                await Initialize();
+            }
+
+            if (!IsConnected)
+            {
+                await _broker.Connect(accessToken, brokerUri);
+                await _broker.Subscribe(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
+                IsConnected = true;
             }
         }
 
-        public async Task Subscribe()
+        public async Task Disconnect()
         {
-            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
-
-            if (!_isSubscribed)
+            if (IsConnected)
             {
-                await _broker.SubscribeAsync(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
-                _isSubscribed = true;
-            }
-        }
-
-        public async Task Unsubscribe()
-        {
-            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
-
-            if (_isSubscribed)
-            {
-                await _broker.UnsubscribeAsync(AuthorityTopic("+"));
-                _isSubscribed = false;
+                await _broker.Unsubscribe(AuthorityTopic("+"));
+                await _broker.Disconnect();
+                IsConnected = false;
             }
         }
 
@@ -101,6 +78,7 @@ namespace Agience.Client
         {
             if (message.SenderId == null || message.Payload == null || message.Payload.Format != DataFormat.STRUCTURED) { return; }
 
+            // TODO: Move to seperate method
             if (message.Type == MessageType.EVENT && message.Payload["type"] == "instanceConnect" && message.Payload.ContainsKey("instance"))
             {
                 var instance = JsonSerializer.Deserialize<Model.Instance>(message.Payload["instance"]!);
@@ -113,12 +91,12 @@ namespace Agience.Client
         }
 
         public async Task PublishAgentConnectEvent(Model.Agent agent)
-        {
-            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
+        {   
+            if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
 
-            await _broker!.PublishAsync(new Message()
+            await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = InstanceTopic(Id, agent.Instance.Id),
@@ -127,17 +105,18 @@ namespace Agience.Client
                     { "type", "agentConnect" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) }
+                    // TODO: Add default templates here.
                 })
             });
         }
 
         public async Task PublishAgentDisconnectEvent(Model.Agent agent)
         {
-            if (_broker == null) { throw new ArgumentNullException(nameof(_broker)); }
+            if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
 
-            await _broker!.PublishAsync(new Message()
+            await _broker!.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = InstanceTopic(Id, agent.Instance.Id),
@@ -174,15 +153,6 @@ namespace Agience.Client
         public string AgentTopic(string senderId, string agentId)
         {
             return Topic(senderId, null, null, agentId);
-        }
-
-        public async Task DisconnectAsync()
-        {
-            if (_broker != null)
-            {
-                await Unsubscribe();
-                await _broker.DisconnectAsync();
-            }
         }
     }
 }

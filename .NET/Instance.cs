@@ -9,55 +9,52 @@ namespace Agience.Client
     {
         public event Func<Agent, Task>? AgentConnected;
 
-        public string Id { get; set; }
+        public string Id { get; set; } // TODO: Make private?
         public string? Name { get; set; }
+        public bool IsConnected { get; private set; }
 
-        private Dictionary<string, Agent> _agents = new();
         private readonly Config _config;
         private readonly Authority _authority;
-        private Broker? _broker;
-        private string _clientSecret;
-        private string? _access_token;
-        private bool _isConnected;
-        private Catalog _catalog { get; set; } = new();
+        private readonly Dictionary<string, Agent> _agents = new();
+        private readonly Catalog _catalog = new();
+        private readonly Broker _broker = new();
 
         public Instance(Config config)
         {
             _config = config;
-
-            Id = _config.ClientId ?? throw new ArgumentNullException("ClientId");
             _authority = new Authority(_config.AuthorityUri ?? throw new ArgumentNullException("AuthorityUri"));
-            _clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");
+            Id = _config.ClientId ?? throw new ArgumentNullException("ClientId");
         }
 
         public async Task Run()
         {
             await Connect();
 
-            do { await Task.Delay(10); } while (_isConnected);
+            do { await Task.Delay(10); } while (IsConnected);
         }
 
-        public async Task Connect()
+        public async Task Stop()
+        {
+            await Disconnect();
+        }
+
+        private async Task Connect()
         {
             await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
 
-            await _authority.InitializeAsync();
+            await _authority.Initialize();
 
-            _broker = new Broker(_config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri"));
+            var brokerUri = _config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri");
 
-            await Authenticate();
+            var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
 
-            if (_access_token == null) { throw new Exception("Access Token is null"); }
+            await _broker.Connect(accessToken, brokerUri);
+            
+            await _broker.Subscribe(_authority.InstanceTopic("+", "0"), _broker_ReceiveMessage); // All Instances
 
-            await _broker.ConnectAsync(_access_token);
+            await _broker.Subscribe(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); // This Instance
 
-            // Subscribe to messages directed to all instances.
-            await _broker.SubscribeAsync(_authority.InstanceTopic("+", "0"), _broker_ReceiveMessage);
-
-            // Subscribe to messages directed to this instance
-            await _broker.SubscribeAsync(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); ;
-
-            await _broker.PublishAsync(new Message()
+            await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
@@ -69,16 +66,25 @@ namespace Agience.Client
                 })
             }); ;
 
-            _isConnected = true;
+            IsConnected = true;
         }
 
-        public Model.Instance ToAgienceModel()
+        private async Task Disconnect()
         {
-            return new Model.Instance
+            if (IsConnected)
             {
-                Id = Id,
-                Name = Name
-            };
+                foreach (Agent agent in _agents.Values)
+                {
+                    await agent.Disconnect();
+                }
+
+                await _broker.Unsubscribe(_authority.InstanceTopic("+", "0"));
+                await _broker.Unsubscribe(_authority.InstanceTopic("+", Id));
+
+                await _broker.Disconnect();
+
+                IsConnected = false;
+            }
         }
 
         private async Task _broker_ReceiveMessage(Message message)
@@ -105,21 +111,22 @@ namespace Agience.Client
                 return; // Invalid Agent
             }
 
-            Agent agent = new Agent(_authority)
+            // Each Agent has its own Agency. No need to keep track of Agencies at Instance level.
+            Agency agency = new(_authority, _broker)
+            {
+                Id = modelAgent.Agency.Id,
+                Name = modelAgent.Agency.Name
+            };
+
+            Agent agent = new(_authority, this, agency, _broker)
             {
                 Id = modelAgent.Id,
                 Name = modelAgent.Name,
-                Instance = this,
-                Agency = new Agency(_authority)
-                {
-                    Id = modelAgent.Agency.Id,
-                    Name = modelAgent.Agency.Name
-                },
             };
-            
+
             agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
 
-            await agent.ConnectAsync(_broker!);
+            await agent.Connect();
 
             _agents.Add(agent.Id, agent);
 
@@ -137,29 +144,15 @@ namespace Agience.Client
             }
         }
 
-        public async Task Stop()
+        private async Task<string?> GetAccessToken()
         {
-            if (_isConnected && _broker != null)
-            {
-                foreach (Agent agent in _agents.Values)
-                {
-                    await agent.UnsubscribeAsync(_broker);
-                }
-                await _broker.UnsubscribeAsync(_authority.InstanceTopic("+", "0"));
-                await _broker.UnsubscribeAsync(_authority.InstanceTopic("+", Id));
+            var clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");
+            var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("TokenEndpoint");
 
-                await _broker.DisconnectAsync();
-
-                _isConnected = false;
-            }
-        }
-
-        internal async Task Authenticate()
-        {
             // TODO: Use a shared HttpClient instance
             using (var httpClient = new HttpClient())
             {
-                var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{_clientSecret}"));
+                var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{clientSecret}"));
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
 
                 var parameters = new Dictionary<string, string>
@@ -168,9 +161,9 @@ namespace Agience.Client
                     { "scope", "connect" }
                 };
 
-                var httpResponse = await httpClient.PostAsync(_authority.TokenEndpoint, new FormUrlEncodedContent(parameters));
+                var httpResponse = await httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(parameters));
 
-                _access_token = httpResponse.IsSuccessStatusCode ?
+                return httpResponse.IsSuccessStatusCode ?
                     (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token :
                     throw new HttpRequestException("Unauthorized", null, httpResponse.StatusCode);
             }
@@ -189,6 +182,15 @@ namespace Agience.Client
                     agent.AddTemplate(template.Value);
                 }
             }
+        }
+
+        public Model.Instance ToAgienceModel()
+        {
+            return new Model.Instance
+            {
+                Id = Id,
+                Name = Name
+            };
         }
 
         internal class TokenResponse

@@ -5,53 +5,44 @@ namespace Agience.Client
 {
     public class Agent
     {
-        public string? Id { get; set; }
+        public string? Id { get; set; } // TODO: Make private?
         public string? Name { get; set; }
-        internal new Instance? Instance { get; set; }
-        public new Agency? Agency { get; internal set; }
-        public bool IsSubscribed { get; private set; }
+        public bool IsConnected { get; private set; }
 
-        private Dictionary<string, (Template, OutputCallback?)> _templates = new();      
+        private readonly Dictionary<string, (Template, OutputCallback?)> _templates = new();
+        private readonly Authority _authority;
+        private readonly Instance _instance;
+        private readonly Agency _agency;
+        private readonly Broker _broker;
 
-        private Authority _authority;
-
-        public Agent(Authority authority)
+        public Agent(Authority authority, Instance instance, Agency agency, Broker broker)
         {
             _authority = authority;
+            _instance = instance;
+            _agency = agency;
+            _broker = broker;
         }
 
-        internal async Task ConnectAsync(Broker broker)
-        {            
-            await SubscribeAsync(broker);
-        }
-
-        internal async Task SubscribeAsync(Broker broker)
+        internal async Task Connect()
         {
-            if (!IsSubscribed)
+            if (!IsConnected)
             {
-                await broker.SubscribeAsync(_authority.AgentTopic("+", Id!), _broker_ReceiveMessage);
+                await _broker.Subscribe(_authority.AgentTopic("+", Id!), _broker_ReceiveMessage);
 
-                if (Agency != null)
-                {
-                    await Agency.SubscribeAsync(broker);
-                }
-
-                IsSubscribed = true;
+                //_agency.AddTemplates(_templates.Select(item => item.Value.Item1).ToList());
+                //await _agency.Connect(); 
+                
+                IsConnected = true;
             }
         }
 
-        internal async Task UnsubscribeAsync(Broker broker)
+        internal async Task Disconnect()
         {
-            if (IsSubscribed)
+            if (IsConnected)
             {
-                await broker.UnsubscribeAsync(_authority.AgentTopic("+", Id!));
-
-                if (Agency != null)
-                {
-                    await Agency.UnsubscribeAsync(broker);
-                }
-
-                IsSubscribed = false;
+                await _broker.Unsubscribe(_authority.AgentTopic("+", Id!));
+                await _agency.Disconnect();                
+                IsConnected = false;
             }
         }
 
@@ -77,8 +68,8 @@ namespace Agience.Client
         {
             return async task =>
             {
-                var result = await task;
-                await outputCallback(this, result);
+                var output = await task;
+                await outputCallback(this, output);
             };
         }
 

@@ -6,41 +6,42 @@ namespace Agience.Client
     {
         public event EventHandler<Message>? MessageReceived;
 
-        public string? Id { get; set; }
-        public string? Name { get; set; }        
-        public List<Agent> Agents { get; set; } = new();        
-        
-        private Dictionary<string, Model.Template> _templates { get; set; }
-        
-        private Authority _authority;
-        private bool _isSubscribed;
+        public string? Id { get; set; } // TODO: Make private?
+        public string? Name { get; set; }
+        public  bool IsConnected { get; private set; }
 
-        public Agency(Authority authority)
+        private readonly List<Agent> _agents = new();
+        private readonly Dictionary<string, Model.Template> _templates = new();        
+        private readonly Authority _authority;
+        private readonly Broker _broker;        
+
+        public Agency(Authority authority, Broker broker)
         {
             _authority = authority;
+            _broker = broker;
         }
 
-        internal async Task SubscribeAsync(Broker broker)
+        internal async Task Subscribe()
         {
-            if (!_isSubscribed)
+            if (!IsConnected)
             {
-                await broker.SubscribeAsync(_authority.AgencyTopic("+", Id!), _broker_ReceiveMessage);
-                _isSubscribed = true;
+                await _broker.Subscribe(_authority.AgencyTopic("+", Id!), _broker_ReceiveMessage);
+                IsConnected = true;
             }
         }
 
-        internal async Task UnsubscribeAsync(Broker broker)
+        internal async Task UnsubscribeAsync()
         {            
-            if (_isSubscribed)
+            if (IsConnected)
             {
-                await broker.UnsubscribeAsync(_authority.AgencyTopic("+", Id!));
-                _isSubscribed = false;
+                await _broker.Unsubscribe(_authority.AgencyTopic("+", Id!));
+                IsConnected = false;
             }
         }
 
         internal async Task SendTemplates(Broker broker, List<Model.Template> templates)
         {
-            await broker.PublishAsync(new Message()
+            await broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
@@ -64,6 +65,19 @@ namespace Agience.Client
             throw new NotImplementedException();
         }
 
+        internal Task Connect()
+        {
+            throw new NotImplementedException();
+        }
 
+        internal Task Disconnect()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void AddTemplates(List<Template> templates)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
