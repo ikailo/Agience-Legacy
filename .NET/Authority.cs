@@ -19,8 +19,7 @@ namespace Agience.Client
         public bool IsConnected { get; private set; }
 
         private readonly Uri _authorityUri; // Expect without trailing slash
-        private readonly Broker _broker = new();
-        private bool _isSubscribed;
+        private readonly Broker _broker = new();        
 
         public Authority(string authorityUri)
         {

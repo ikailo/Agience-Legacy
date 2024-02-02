@@ -53,6 +53,9 @@ namespace Agience.Client
 
         internal List<(Template, OutputCallback?)> GetTemplatesForAgent(Agent agent)
         {
+            // TODO: It's likely that some Agents will want to instantiate at runtime instead of during connection.
+            // TODO: Add another method to retrive a factory for a template.
+
             List<(Template, OutputCallback?)> templates = new();
 
             foreach (var type in _types.Values)

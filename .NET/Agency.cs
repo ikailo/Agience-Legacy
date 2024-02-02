@@ -6,22 +6,22 @@ namespace Agience.Client
     {
         public event EventHandler<Message>? MessageReceived;
 
-        public string? Id { get; set; } // TODO: Make private?
-        public string? Name { get; set; }
-        public  bool IsConnected { get; private set; }
+        public string? Id { get; internal set; }
+        public string? Name { get; internal set; }
+        public bool IsConnected { get; private set; }
 
         private readonly List<Agent> _agents = new();
         private readonly Dictionary<string, Model.Template> _templates = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;        
 
-        public Agency(Authority authority, Broker broker)
+        internal Agency(Authority authority, Broker broker)
         {
             _authority = authority;
             _broker = broker;
         }
 
-        internal async Task Subscribe()
+        internal async Task Connect()
         {
             if (!IsConnected)
             {
@@ -30,7 +30,7 @@ namespace Agience.Client
             }
         }
 
-        internal async Task UnsubscribeAsync()
+        internal async Task Disconnect()
         {            
             if (IsConnected)
             {
@@ -39,7 +39,7 @@ namespace Agience.Client
             }
         }
 
-        internal async Task SendTemplates(Broker broker, List<Model.Template> templates)
+        private async Task SendTemplates(Broker broker, List<Model.Template> templates)
         {
             await broker.Publish(new Message()
             {
@@ -54,23 +54,12 @@ namespace Agience.Client
             }); ;
         }
 
-        internal Task ReceiveTemplates(Broker broker, Catalog? templates)
-        {
-            throw new NotImplementedException();
-        }
-
-
         private Task _broker_ReceiveMessage(Message message)
         {
             throw new NotImplementedException();
         }
 
-        internal Task Connect()
-        {
-            throw new NotImplementedException();
-        }
-
-        internal Task Disconnect()
+        private Task ReceiveTemplates(Broker broker, Catalog? templates)
         {
             throw new NotImplementedException();
         }

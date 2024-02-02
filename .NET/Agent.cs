@@ -5,20 +5,21 @@ namespace Agience.Client
 {
     public class Agent
     {
-        public string? Id { get; set; } // TODO: Make private?
-        public string? Name { get; set; }
+        public string? Id { get; internal set; }
+        public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
+        public Agency Agency => _agency;
+        public IReadOnlyList<Template> Templates => _templates.Values.Select(t => t.Item1).ToList().AsReadOnly();
+
 
         private readonly Dictionary<string, (Template, OutputCallback?)> _templates = new();
-        private readonly Authority _authority;
-        private readonly Instance _instance;
+        private readonly Authority _authority;        
         private readonly Agency _agency;
         private readonly Broker _broker;
 
-        public Agent(Authority authority, Instance instance, Agency agency, Broker broker)
+        internal Agent(Authority authority, Agency agency, Broker broker)
         {
-            _authority = authority;
-            _instance = instance;
+            _authority = authority;            
             _agency = agency;
             _broker = broker;
         }
@@ -101,13 +102,13 @@ namespace Agience.Client
         }
 
         // For when the templateId is known. Local or remote.
-        public async Task<Data?> Dispatch(string templateId, Data? data)
+        public async Task<Data?> Dispatch(string templateId, Data? data = null)
         {
             throw new NotImplementedException();
         }
 
         // For when the template is not known
-        public async Task<Data?> Prompt(Data? data, string[]? outputKeys = null)
+        public async Task<Data?> Prompt(string prompt, Data? data = null, string[]? outputKeys = null)
         {
             throw new NotImplementedException();
         }

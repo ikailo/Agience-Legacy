@@ -9,9 +9,10 @@ namespace Agience.Client
     {
         public event Func<Agent, Task>? AgentConnected;
 
-        public string Id { get; set; } // TODO: Make private?
-        public string? Name { get; set; }
+        public string Id { get; private set; }
+        public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
+        public IReadOnlyList<Agent> Agents => _agents.Values.ToList().AsReadOnly();
 
         private readonly Config _config;
         private readonly Authority _authority;
@@ -97,10 +98,12 @@ namespace Agience.Client
                 message.Payload["type"] == "agentConnect" &&
                 message.Payload["agent"] != null)
             {
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
                 var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
 
-                await AgentConnect(agent!, timestamp);
+                if (agent == null) { return; } // Invalid Agent
+
+                await AgentConnect(agent, timestamp);
             }
         }
 
@@ -118,7 +121,7 @@ namespace Agience.Client
                 Name = modelAgent.Agency.Name
             };
 
-            Agent agent = new(_authority, this, agency, _broker)
+            Agent agent = new(_authority, agency, _broker)
             {
                 Id = modelAgent.Id,
                 Name = modelAgent.Name,
@@ -184,7 +187,7 @@ namespace Agience.Client
             }
         }
 
-        public Model.Instance ToAgienceModel()
+        internal Model.Instance ToAgienceModel()
         {
             return new Model.Instance
             {
