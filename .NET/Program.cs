@@ -22,7 +22,7 @@ namespace Agience.Agents_Console
 
         private static Task _instance_AgentConnected(Agent agent)
         {
-            Console.WriteLine($"{agent.Name} Connected");
+            Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");            
 
             _ = agent.Invoke<InteractWithUser>("Ready for Input").ContinueWith(agent.Invoke(InteractWithUser_callback));
 

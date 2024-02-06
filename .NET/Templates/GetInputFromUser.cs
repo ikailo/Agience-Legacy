@@ -13,7 +13,7 @@ namespace Agience.Templates
         {
             return await Task.Run(() =>
             {
-                return new Data(Console.ReadLine() ?? string.Empty);
+                return Console.ReadLine() ?? string.Empty;
             });
         }
     }
