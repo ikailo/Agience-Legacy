@@ -30,7 +30,7 @@ namespace Agience.Client
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
         internal Broker()
-        {   
+        {
             _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
         }
@@ -39,8 +39,12 @@ namespace Agience.Client
         {
             await StartNtpClock();
 
+            Console.WriteLine($"Connected Status: {IsConnected}");
+
             if (!_client.IsConnected)
             {
+                Console.WriteLine($"Connecting to {brokerUri}");
+
                 var options = new MqttClientOptionsBuilder()
                     .WithWebSocketServer(configure => { configure.WithUri(brokerUri); })
                     .WithTlsOptions(configure => { configure.UseTls(true); })
@@ -53,6 +57,8 @@ namespace Agience.Client
                     .Build();
 
                 await _client.ConnectAsync(options);
+
+                Console.WriteLine($"Broker Connected");
             }
         }
 

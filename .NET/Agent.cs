@@ -13,7 +13,7 @@ namespace Agience.Client
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         public Agency Agency => _agency;
-        public IReadOnlyList<Template> Templates => _templates.Values.Select(t => t.Item1).ToList().AsReadOnly();
+        //public IReadOnlyList<Template> Templates => _templates.Values.Select(t => t.Item1).ToList().AsReadOnly();
 
         private readonly Dictionary<string, (Template, OutputCallback?)> _templates = new();
         private readonly Authority _authority;
@@ -77,7 +77,7 @@ namespace Agience.Client
 
         private async Task SendRepresentativeClaim()
         {
-            if (_agency.RepresentativeId != null) { return; }
+            if (_agency.RepresentativeId != null) { return; } // Was set by another agent
 
             await _broker.Publish(new Message()
             {
@@ -126,23 +126,12 @@ namespace Agience.Client
             }
         }
 
-        private async Task SendTemplatesToAgency()
+        internal async Task SendTemplatesToAgency()
         {
             foreach (var item in _templates.Values)
             {
                 await SendTemplateToAgency(item.Item1.ToAgienceModel());
             }
-        }
-
-
-
-        private Model.Agent ToAgienceModel()
-        {
-            return new Model.Agent()
-            {
-                Id = Id,
-                Name = Name
-            };
         }
 
         private async Task _broker_ReceiveMessage(Message message)
@@ -154,34 +143,23 @@ namespace Agience.Client
                 message.Payload.Format == DataFormat.STRUCTURED &&
                 message.Payload["type"] == "welcome" &&
                 message.Payload["agency"] != null &&
+                message.Payload["representative_id"] != null &&
                 message.Payload["timestamp"] != null &&
                 message.Payload["agents"] != null &&
                 message.Payload["templates"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;                
                 var agency = JsonSerializer.Deserialize<Model.Agency>(message.Payload["agency"]!);
+                var representativeId = message.Payload["representative_id"]!;
                 var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Payload["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Payload["agentTimestamps"]!);
                 var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Payload["templates"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null && templates != null && timestamp != null)
                 {
-                    await ReceiveWelcome(agency, agents, agentTimestamps, templates, (DateTime)timestamp);
+                    await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, (DateTime)timestamp);                    
                 }
             }
-        }
-
-        private async Task ReceiveWelcome(Model.Agency agency,
-                                            List<Model.Agent> agents,
-                                            Dictionary<string, DateTime> agentTimestamps,
-                                            List<Model.Template> templates,
-                                            DateTime timestamp)
-        {
-            Console.WriteLine($"Received welcome from {agency.Name}");
-
-            _agency.Add(agents, agentTimestamps);
-            _agency.Add(templates);
-            await SendTemplatesToAgency();
         }
 
         public Func<Task<Data?>, Task> Invoke(OutputCallback outputCallback)
@@ -230,6 +208,15 @@ namespace Agience.Client
         public async Task<Data?> Prompt(string prompt, Data? data = null, string[]? outputKeys = null)
         {
             throw new NotImplementedException();
+        }
+
+        private Model.Agent ToAgienceModel()
+        {
+            return new Model.Agent()
+            {
+                Id = Id,
+                Name = Name
+            };
         }
     }
 }

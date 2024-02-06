@@ -22,7 +22,7 @@ namespace Agience.Client
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent;
-                
+
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
             _authority = authority;
@@ -43,13 +43,14 @@ namespace Agience.Client
         {
             if (IsConnected)
             {
-                await _broker.Unsubscribe(_authority.AgencyTopic("+", Id!));                
+                await _broker.Unsubscribe(_authority.AgencyTopic("+", Id!));
                 IsConnected = false;
             }
         }
 
         private async Task SendWelcome(Model.Agent agent)
         {
+            Console.WriteLine($"Sending welcome to {agent.Name} with {_agents.Values.Count} Agents and {_templates.Values.Count} Templates.");
             await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
@@ -59,12 +60,12 @@ namespace Agience.Client
                     { "type", "welcome" },
                     { "timestamp", _broker.Timestamp},
                     { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agentTimestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
-                    { "templates", JsonSerializer.Serialize(_templates.Values) },
-                    { "representative_id", RepresentativeId }
+                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) }
                 })
-            });
+            }); ;
         }
 
         private async Task _broker_ReceiveMessage(Message message)
@@ -115,10 +116,10 @@ namespace Agience.Client
 
                 if (template?.AgentId == message.SenderId && timestamp != null)
                 {
-                    ReceiveTemplate(template, (DateTime)timestamp);
+                    ReceiveTemplate(template);
                 }
             }
-           
+
         }
         private async Task ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
         {
@@ -143,13 +144,45 @@ namespace Agience.Client
             }
         }
 
+        internal async Task ReceiveWelcome(Model.Agency agency,
+                                            string representativeId,
+                                            List<Model.Agent> agents,
+                                            Dictionary<string, DateTime> agentTimestamps,
+                                            List<Model.Template> templates,
+                                            DateTime timestamp)
+        {
+            Console.WriteLine($"Received welcome from {agency.Name}");
+
+            if (RepresentativeId != representativeId)
+            {
+                RepresentativeId = representativeId;
+                Console.WriteLine($"Set representative id {RepresentativeId}");
+            }
+
+            foreach (var agent in agents)
+            {
+                _agents[agent.Id!] = (agent, agentTimestamps[agent.Id!]);
+            }
+
+            foreach (var template in templates)
+            {
+                ReceiveTemplate(template);
+            }
+
+            await _agent.SendTemplatesToAgency();
+        }
+
         // TODO: Handle race conditions
         private async Task ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
         {
-            Console.WriteLine($"Received representative claim from {modelAgent.Name}");            
+            Console.WriteLine($"Received representative claim from {modelAgent.Name}");
 
-            RepresentativeId = modelAgent.Id;
-            
+            if (RepresentativeId != modelAgent.Id)
+            {
+                RepresentativeId = modelAgent.Id;
+                Console.WriteLine($"Set representative id {RepresentativeId}");
+            }
+
             if (_agent.Id == RepresentativeId)
             {
                 var repJoinTime = _agents[_agent.Id!].Item2;
@@ -160,17 +193,13 @@ namespace Agience.Client
             }
         }
 
-        private void ReceiveTemplate(Model.Template modelTemplate, DateTime timestamp)
+        private void ReceiveTemplate(Model.Template modelTemplate)
         {
-            Console.WriteLine($"Received template {modelTemplate.Id}");
+            if (modelTemplate?.Id != null && !_templates.ContainsKey(modelTemplate.Id))
+            {
+                _templates[modelTemplate.Id] = modelTemplate;
 
-            // Add or update the Template's timestamp
-            if (_templates.TryGetValue(modelTemplate.Id!, out Model.Template? template) && template != null)
-            {   
-                if (!_templates.ContainsKey(template.Id!))
-                {
-                    _templates[modelTemplate.Id!] = modelTemplate;
-                }
+                Console.WriteLine($"Received template {modelTemplate.Id}");
             }
         }
 
@@ -181,22 +210,6 @@ namespace Agience.Client
                 Id = Id,
                 Name = Name
             };
-        }
-
-        internal void Add(List<Model.Agent> agents, Dictionary<string, DateTime> agentTimestamps)
-        {
-            foreach (var agent in agents)
-            {
-                _agents[agent.Id!] = (agent, agentTimestamps[agent.Id!]);
-            }
-        }
-
-        internal void Add(List<Model.Template> templates)
-        {
-            foreach (var template in templates)
-            {
-                _templates[template.Id!] = template;
-            }
         }
     }
 }

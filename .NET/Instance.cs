@@ -40,7 +40,7 @@ namespace Agience.Client
 
         private async Task Connect()
         {
-            await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
+            //await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
 
             await _authority.Initialize();
 
