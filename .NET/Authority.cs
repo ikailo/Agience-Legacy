@@ -6,12 +6,20 @@ namespace Agience.Client
 {
     public class Authority
     {
-        private const string BROKER_URI_KEY = "broker_uri";
+        private static Dictionary<string, string> _defaultTemplates = new()
+        {
+            { "prompt", "Agience.Templates.Default.Prompt" },
+            { "write_log", "Agience.Templates.Default.WriteLog" },
+            //{ "find_template","Agience.Templates.Default.FindTemplate" },
+            //{ "add_context", "Agience.Templates.Default.AddContext" },
+            //{ "get_context", "Agience.Templates.Default.GetContext" },
+            //{ "kill", "Agience.Templates.Default.Kill" }
+        };
+
+    private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
         public event Func<Model.Instance, Task>? InstanceConnected;
-        public event Func<Task>? Disconnected;
-
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -103,8 +111,8 @@ namespace Agience.Client
                 {
                     { "type", "agentConnect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(agent) }
-                    // TODO: Add default templates here.
+                    { "agent", JsonSerializer.Serialize(agent) },
+                    { "defaultTemplates", JsonSerializer.Serialize(_defaultTemplates) }
                 })
             });
         }

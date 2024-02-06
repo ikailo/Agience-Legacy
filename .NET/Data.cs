@@ -76,7 +76,7 @@ namespace Agience.Client
     }
 
     [JsonConverter(typeof(DataJsonConverter))]
-    public class Data : IEnumerable
+    public class Data : IEnumerable<KeyValuePair<string, string?>>
     {
         // TODO: Data should have a unique id and a creator id and timestamp
         // TODO: Data should have a unique hash based on the data. Use as Id?  Data should be immutable.
@@ -84,8 +84,9 @@ namespace Agience.Client
         //public string? CreatorId { get; }
 
         public DataFormat Format { get; private set; } = DataFormat.RAW;
-        
-        public Dictionary<string, string?>? Structured
+
+        private Dictionary<string, string?>? _structured;
+        public Dictionary<string, string?>? Structured // TODO: Return Readonly ?
         {
             get => _structured;
             private set
@@ -94,8 +95,7 @@ namespace Agience.Client
                 Raw = JsonSerializer.Serialize(value);
             }
         }
-        private Dictionary<string, string?>? _structured;
-
+        
         private string? _raw;        
         public string? Raw
         {
@@ -113,8 +113,8 @@ namespace Agience.Client
             Raw = raw; 
         }
 
-        public Data(IEnumerable<KeyValuePair<string, string?>> data) :
-            this(new Dictionary<string, string?>(data))
+        public Data(IEnumerable<KeyValuePair<string, string?>> structured) :
+            this(new Dictionary<string, string?>(structured))
         { }
 
         public Data(Dictionary<string, string?> structured)
@@ -174,15 +174,19 @@ namespace Agience.Client
         {
             _structured?.Add(key, value);
         }
-        
-        public IEnumerator GetEnumerator()
-        {            
-            return _structured?.GetEnumerator() ?? default;
-        }
 
         internal bool ContainsKey(string key)
         {
             return _structured?.ContainsKey(key) ?? false;
+        }
+        public IEnumerator GetEnumerator()
+        {
+            return _structured?.GetEnumerator() ?? default;
+        }
+
+        IEnumerator<KeyValuePair<string, string?>> IEnumerable<KeyValuePair<string, string?>>.GetEnumerator()
+        {
+            return _structured?.GetEnumerator() ?? default;
         }
 
         public static implicit operator Data?(string? raw) => new Data(raw);
@@ -191,7 +195,6 @@ namespace Agience.Client
 
         public static implicit operator string?(Data? data) => data?.Raw;
 
-        public static implicit operator Dictionary<string, string>?(Data? data) => data?._structured;
-        
+        public static implicit operator Dictionary<string, string?>?(Data? data) => data?._structured;        
     }
 }

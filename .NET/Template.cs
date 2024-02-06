@@ -30,7 +30,7 @@ namespace Agience.Client
             Id = GetType().FullName ?? throw new ArgumentNullException("Type.FullName");            
         }
 
-        public Model.Template ToAgienceModel()
+        internal Model.Template ToAgienceModel()
         {
             return new Model.Template()
             {

@@ -13,11 +13,11 @@
         private const int READ_WRITE = 3;
         private const int SUBSCRIBE = 4;
 
-        private Func<string, string?, string?, string?, Task<bool>> _areAgentsRelatedAndSameInstance;
+        private Func<string, string?, string?, string?, Task<bool>> _checkRelationships;
 
-        public TopicAclChecker(Func<string, string?, string?, string?, Task<bool>> areAgentsRelatedAndSameInstance)
+        public TopicAclChecker(Func<string, string?, string?, string?, Task<bool>> checkRelationships)
         {
-            _areAgentsRelatedAndSameInstance = areAgentsRelatedAndSameInstance;
+            _checkRelationships = checkRelationships;
         }
 
         // TODO: Return better status codes, logging.
@@ -82,7 +82,7 @@
                 {
                     masks.Add($"{instanceId}/{authorityId}/{NONE}/{NONE}/{NONE}"); // Instance -> Authority
                     masks.Add($"{QUERY}/{authorityId}/{NONE}/{QUERY}/{NONE}"); // Agent -> Agency
-                    masks.Add($"{QUERY}/{authorityId}/{NONE}/{NONE}/{QUERY}"); // Agent -> Agent
+                    masks.Add($"{QUERY}/{authorityId}/{NONE}/{NONE}/{QUERY}"); // Agency OR Agent -> Agent                    
                 }
             }
             return masks;
@@ -92,15 +92,13 @@
         {
             foreach (var mask in masks)
             {
-                if (mask.Contains(QUERY)) // TODO: Subject to "?" injection attack.
+                if (CheckMask(topic, mask, accessType)) { return true; }
+
+                else if (mask.Contains(QUERY)) // TODO: Subject to "?" injection attack.
                 {
                     if (instanceId == null) throw new ArgumentNullException(nameof(instanceId));
 
                     if (await CheckQueryMaskAsync(topic, mask, instanceId, accessType)) { return true; }
-                }
-                else
-                {
-                    if (CheckMask(topic, mask, accessType)) { return true; }
                 }
             }
 
@@ -112,19 +110,26 @@
             var topicParts = topic.Split('/');
             var maskParts = mask.Split('/');
 
-            if (!IsValidTopicAndMask(topicParts, maskParts)) return false;
+            if (!IsValidTopicAndMask(topicParts, maskParts)) { return false; }
 
-            var sourceAgentId = maskParts[0] == QUERY ? null : topicParts[0];
-            var agencyId = maskParts[3] == QUERY ? null : topicParts[3];
-            var targetAgentId = maskParts[4] == QUERY ? null : topicParts[4];
+            var sourceId = maskParts[0] == QUERY ? topicParts[0] : null;
+            var targetAgencyId = maskParts[3] == QUERY ? topicParts[3] : null;
+            var targetAgentId = maskParts[4] == QUERY ? topicParts[4] : null;
+
+            if (sourceId == NONE || targetAgencyId == NONE || targetAgentId == NONE) { return false; }
 
             if (accessType == SUBSCRIBE)
             {
                 if (topicParts[0] != ANY_INCLUSIVE) { return false; }
-                sourceAgentId = null;
+                sourceId = null;
             }
 
-            return await _areAgentsRelatedAndSameInstance(instanceId, agencyId, sourceAgentId, targetAgentId);
+            if (accessType == WRITE)
+            {
+                if (sourceId == targetAgentId) { return false; } // Can't send to self                
+            }
+
+            return await _checkRelationships(instanceId, sourceId, targetAgencyId, targetAgentId);
         }
 
         private bool CheckMask(string topic, string mask, int accessType)

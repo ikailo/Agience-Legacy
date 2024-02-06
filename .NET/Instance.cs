@@ -8,7 +8,6 @@ namespace Agience.Client
     public class Instance
     {
         public event Func<Agent, Task>? AgentConnected;
-
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
@@ -50,7 +49,7 @@ namespace Agience.Client
             var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
 
             await _broker.Connect(accessToken, brokerUri);
-            
+
             await _broker.Subscribe(_authority.InstanceTopic("+", "0"), _broker_ReceiveMessage); // All Instances
 
             await _broker.Subscribe(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); // This Instance
@@ -114,20 +113,13 @@ namespace Agience.Client
                 return; // Invalid Agent
             }
 
-            // Each Agent has its own Agency. No need to keep track of Agencies at Instance level.
-            Agency agency = new(_authority, _broker)
-            {
-                Id = modelAgent.Agency.Id,
-                Name = modelAgent.Agency.Name
-            };
-
-            Agent agent = new(_authority, agency, _broker)
+            Agent agent = new(_authority, _broker, modelAgent.Agency)
             {
                 Id = modelAgent.Id,
                 Name = modelAgent.Name,
             };
 
-            agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
+            await agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
 
             await agent.Connect();
 

@@ -4,12 +4,12 @@ namespace Agience.Client
 {
     public delegate Task OutputCallback(Agent agent, Data? data);
 
-    public class Catalog : IEnumerable<string>
+    internal class Catalog : IEnumerable<string>
     {
         private readonly Dictionary<string, Type> _types = new();
         private readonly Dictionary<string, OutputCallback> _outputCallbacks = new();
 
-        public void Add<T>(OutputCallback? outputCallback = null) where T : Template, new()
+        internal void Add<T>(OutputCallback? outputCallback = null) where T : Template, new()
         {
             Type type = typeof(T);
 
@@ -26,7 +26,7 @@ namespace Agience.Client
             }
         }
 
-        public void Remove<T>() where T : Template, new()
+        internal void Remove<T>() where T : Template, new()
         {
             Type type = typeof(T);
 
@@ -104,7 +104,7 @@ namespace Agience.Client
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            return _types.Keys.GetEnumerator();
         }
     }
 }

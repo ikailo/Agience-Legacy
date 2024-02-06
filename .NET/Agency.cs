@@ -1,23 +1,32 @@
-﻿using System.Text.Json;
+﻿using Agience.Model;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Text.Json;
+using Timer = System.Timers.Timer;
 
 namespace Agience.Client
 {
     public class Agency
     {
-        public event EventHandler<Message>? MessageReceived;
+        //private Dictionary<string, string> _defaultTemplates = new();
+
+        //public event EventHandler<Message>? MessageReceived;
 
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
+        internal string? RepresentativeId { get; private set; }
 
-        private readonly List<Agent> _agents = new();
-        private readonly Dictionary<string, Model.Template> _templates = new();        
+        private readonly Dictionary<string, (Model.Agent, DateTime)> _agents = new();
+        private readonly Dictionary<string, Model.Template> _templates = new();
         private readonly Authority _authority;
-        private readonly Broker _broker;        
-
-        internal Agency(Authority authority, Broker broker)
+        private readonly Broker _broker;
+        private readonly Agent _agent;
+                
+        internal Agency(Authority authority, Agent agent, Broker broker)
         {
             _authority = authority;
+            _agent = agent;
             _broker = broker;
         }
 
@@ -31,42 +40,163 @@ namespace Agience.Client
         }
 
         internal async Task Disconnect()
-        {            
+        {
             if (IsConnected)
             {
-                await _broker.Unsubscribe(_authority.AgencyTopic("+", Id!));
+                await _broker.Unsubscribe(_authority.AgencyTopic("+", Id!));                
                 IsConnected = false;
             }
         }
 
-        private async Task SendTemplates(Broker broker, List<Model.Template> templates)
+        private async Task SendWelcome(Model.Agent agent)
         {
-            await broker.Publish(new Message()
+            await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
-                Topic = _authority.AuthorityTopic(Id!),
+                Topic = _authority.AgentTopic(Id!, agent.Id!),
                 Payload = new Data(new()
                 {
-                    { "type", "broadcastTemplates" },
-                    { "timestamp", broker.Timestamp},
-                    { "instance", JsonSerializer.Serialize(templates) }
+                    { "type", "welcome" },
+                    { "timestamp", _broker.Timestamp},
+                    { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
+                    { "agentTimestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
+                    { "templates", JsonSerializer.Serialize(_templates.Values) },
+                    { "representative_id", RepresentativeId }
                 })
-            }); ;
+            });
         }
 
-        private Task _broker_ReceiveMessage(Message message)
+        private async Task _broker_ReceiveMessage(Message message)
         {
-            throw new NotImplementedException();
+            if (message.SenderId == null || message.Payload == null) { return; }
+
+            // Incoming Agent Join message
+            if (message.Type == MessageType.EVENT &&
+                message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Payload["type"] == "join" &&
+                message.Payload["agent"] != null &&
+                message.Payload["timestamp"] != null)
+            {
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
+
+                if (agent?.Id == message.SenderId && timestamp != null)
+                {
+                    await ReceiveJoin(agent, (DateTime)timestamp);
+                }
+            }
+
+            // Incoming Representative Claim message
+            if (message.Type == MessageType.EVENT &&
+                message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Payload["type"] == "representativeClaim" &&
+                message.Payload["agent"] != null &&
+                message.Payload["timestamp"] != null)
+            {
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
+
+                if (agent?.Id == message.SenderId && timestamp != null)
+                {
+                    await ReceiveRepresentativeClaim(agent, (DateTime)timestamp);
+                }
+            }
+
+            // Incoming Template message
+            if (message.Type == MessageType.EVENT &&
+                message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Payload["type"] == "template" &&
+                message.Payload["template"] != null &&
+                message.Payload["timestamp"] != null)
+            {
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var template = JsonSerializer.Deserialize<Model.Template>(message.Payload["template"]!);
+
+                if (template?.AgentId == message.SenderId && timestamp != null)
+                {
+                    ReceiveTemplate(template, (DateTime)timestamp);
+                }
+            }
+           
+        }
+        private async Task ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
+        {
+            Console.WriteLine($"Received join from {modelAgent.Name}");
+
+            // Add or update the Agent's timestamp
+            if (_agents.TryGetValue(modelAgent.Id!, out (Model.Agent, DateTime) agent))
+            {
+                if (timestamp > agent.Item2)
+                {
+                    agent.Item2 = timestamp;
+                }
+            }
+            else
+            {
+                _agents[modelAgent.Id!] = (modelAgent, timestamp);
+            }
+
+            if (_agent.Id == RepresentativeId)
+            {
+                await SendWelcome(modelAgent);
+            }
         }
 
-        private Task ReceiveTemplates(Broker broker, Catalog? templates)
+        // TODO: Handle race conditions
+        private async Task ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
         {
-            throw new NotImplementedException();
+            Console.WriteLine($"Received representative claim from {modelAgent.Name}");            
+
+            RepresentativeId = modelAgent.Id;
+            
+            if (_agent.Id == RepresentativeId)
+            {
+                var repJoinTime = _agents[_agent.Id!].Item2;
+                foreach (var agent in _agents.Values.Where(a => a.Item2 >= repJoinTime).Select(a => a.Item1))
+                {
+                    await SendWelcome(agent);
+                }
+            }
         }
 
-        internal void AddTemplates(List<Template> templates)
+        private void ReceiveTemplate(Model.Template modelTemplate, DateTime timestamp)
         {
-            throw new NotImplementedException();
+            Console.WriteLine($"Received template {modelTemplate.Id}");
+
+            // Add or update the Template's timestamp
+            if (_templates.TryGetValue(modelTemplate.Id!, out Model.Template? template) && template != null)
+            {   
+                if (!_templates.ContainsKey(template.Id!))
+                {
+                    _templates[modelTemplate.Id!] = modelTemplate;
+                }
+            }
+        }
+
+        private Model.Agency ToAgienceModel()
+        {
+            return new Model.Agency()
+            {
+                Id = Id,
+                Name = Name
+            };
+        }
+
+        internal void Add(List<Model.Agent> agents, Dictionary<string, DateTime> agentTimestamps)
+        {
+            foreach (var agent in agents)
+            {
+                _agents[agent.Id!] = (agent, agentTimestamps[agent.Id!]);
+            }
+        }
+
+        internal void Add(List<Model.Template> templates)
+        {
+            foreach (var template in templates)
+            {
+                _templates[template.Id!] = template;
+            }
         }
     }
 }

@@ -10,8 +10,7 @@ namespace Agience.Client
 {
     public class Broker
     {
-
-        public event Func<Task> Disconnected
+        internal event Func<Task> Disconnected
         {
             add => _client.DisconnectedAsync += async (args) => await value();
             remove => _client.DisconnectedAsync -= async (args) => await value();
@@ -27,17 +26,16 @@ namespace Agience.Client
         private const string MESSAGE_TYPE_KEY = "message.type";
         private const string TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss.fff";
 
-        private readonly IMqttClient _client;        
-
+        private readonly IMqttClient _client;
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
-        public Broker()
+        internal Broker()
         {   
             _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
         }
 
-        public async Task Connect(string token, string brokerUri)
+        internal async Task Connect(string token, string brokerUri)
         {
             await StartNtpClock();
 
@@ -94,7 +92,7 @@ namespace Agience.Client
             return Task.CompletedTask;
         }
 
-        public async Task Subscribe(string topic, Func<Message, Task> callback)
+        internal async Task Subscribe(string topic, Func<Message, Task> callback)
         {
             if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
 
@@ -114,7 +112,7 @@ namespace Agience.Client
             await _client.SubscribeAsync(options);
         }
 
-        public async Task Disconnect()
+        internal async Task Disconnect()
         {
             if (_client.IsConnected)
             {
@@ -154,7 +152,7 @@ namespace Agience.Client
             public void Publish(MqttNetLogLevel logLevel, string source, string message, object[] parameters, Exception exception)
             {
                 // TODO: Write to real logger
-                Console.WriteLine($"{logLevel}: {source} - {message}");
+                // Console.WriteLine($"{logLevel}: {source} - {message}");
             }
         }
 
@@ -193,7 +191,6 @@ namespace Agience.Client
     {
         public Guid Id { get; } = Guid.NewGuid(); // Unique identifier for the callback
         public Func<Message, Task> Callback { get; set; }
-
         public CallbackContainer(Func<Message, Task> callback)
         {
             Callback = callback;
