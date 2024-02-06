@@ -120,13 +120,19 @@
 
             if (accessType == SUBSCRIBE)
             {
-                if (topicParts[0] != ANY_INCLUSIVE) { return false; }
+                if (topicParts[0] != ANY_INCLUSIVE)
+                {
+                    return false;
+                }
                 sourceId = null;
             }
 
             if (accessType == WRITE)
             {
-                if (sourceId == targetAgentId) { return false; } // Can't send to self                
+                if (sourceId == targetAgentId)
+                {
+                    return false; // Can't send to self  
+                }
             }
 
             return await _checkRelationships(instanceId, sourceId, targetAgencyId, targetAgentId);
