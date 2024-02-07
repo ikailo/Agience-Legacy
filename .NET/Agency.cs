@@ -1,8 +1,6 @@
-﻿using Agience.Model;
-using System.Collections.Concurrent;
-using System.Linq;
+﻿using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.Json;
-using Timer = System.Timers.Timer;
 
 namespace Agience.Client
 {
@@ -10,15 +8,14 @@ namespace Agience.Client
     {
         //private Dictionary<string, string> _defaultTemplates = new();
 
-        //public event EventHandler<Message>? MessageReceived;
-
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
+        internal IReadOnlyDictionary<string, Model.Template> Templates => new ReadOnlyDictionary<string, Model.Template>(_templates);
 
-        private readonly Dictionary<string, (Model.Agent, DateTime)> _agents = new();
-        private readonly Dictionary<string, Model.Template> _templates = new();
+        private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();
+        private readonly ConcurrentDictionary<string, Model.Template> _templates = new();
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent;
@@ -173,6 +170,7 @@ namespace Agience.Client
         }
 
         // TODO: Handle race conditions
+        // Network Latency, Simultaneous Joins, etc.
         private async Task ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
         {
             Console.WriteLine($"Received representative claim from {modelAgent.Name}");
@@ -194,12 +192,12 @@ namespace Agience.Client
         }
 
         private void ReceiveTemplate(Model.Template modelTemplate)
-        {
-            if (modelTemplate?.Id != null && !_templates.ContainsKey(modelTemplate.Id))
+        {            
+            // TODO: Remove templates when Agent leaves
+            if (modelTemplate?.Id != null)
             {
-                _templates[modelTemplate.Id] = modelTemplate;
-
-                Console.WriteLine($"Received template {modelTemplate.Id}");
+                _templates[modelTemplate.Id] = modelTemplate;  // Replace whatever is there
+                Console.WriteLine($"Received template {modelTemplate.Id} from {modelTemplate.AgentId}");
             }
         }
 
@@ -211,5 +209,7 @@ namespace Agience.Client
                 Name = Name
             };
         }
+
+        
     }
 }

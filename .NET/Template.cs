@@ -1,7 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-
-namespace Agience.Client
+﻿namespace Agience.Client
 {
     /*
        // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
@@ -15,19 +12,47 @@ namespace Agience.Client
            TASK_PROSECUTION = 5
        }*/
 
+    public abstract class Template
+    {
+        public string Id { get; }
+        public abstract Data? Description { get; } // Description is the template identifier. Future: Searchable, Inferable, Unique, Persist.
+        public virtual string[]? InputKeys { get; protected set; }
+        public virtual string[]? OutputKeys { get; protected set; }
+        protected internal Agent Agent
+        {
+            get { return _agent ?? throw new ArgumentNullException(nameof(Agent)); }
+            internal set { _agent = value; }
+        }
 
+        private Agent? _agent;
 
-    public class Template
-    {  
-        public string Id { get; private set; }                  
-        public Data? Description { get; set; } // Description is the template identifier. Future: Searchable, Inferable, Unique, Persist.
-        public string[]? InputKeys { get; set; }
-        public string[]? OutputKeys { get; set; }
-        public Agent? Agent { get; internal set; }
-        public virtual Task<Data?> Process(Data? data) => Task.FromResult<Data?>(null);
         public Template()
-        {   
-            Id = GetType().FullName ?? throw new ArgumentNullException("Type.FullName");            
+        {
+            Id = GetType().FullName ?? throw new ArgumentNullException("Type.FullName");
+        }
+
+        internal Template(Agent? agent) : this()
+        {
+            _agent = agent;
+        }
+
+        protected internal virtual Task<bool> Assess(Data? input = null) => Task.FromResult(true);
+
+        protected internal abstract Task<Data?> Process(Data? input = null);
+
+        protected async Task<Data?> Dispatch<T>(Data? input = null) where T : Template, new()
+        {
+            return await Agent.Dispatch<T>(input);
+        }
+
+        protected async Task<Data?> Dispatch(string templateId, Data? input = null)
+        {
+            return await Agent.Dispatch(templateId, input);
+        }
+
+        protected async Task<Data?> Prompt(Data? input = null)
+        {
+            return await Agent.Prompt(input);
         }
 
         internal Model.Template ToAgienceModel()

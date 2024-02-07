@@ -7,7 +7,6 @@ namespace Agience.Client
 {
     public class Agent
     {
-
         private const int JOIN_WAIT = 5000;
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
@@ -148,7 +147,7 @@ namespace Agience.Client
                 message.Payload["agents"] != null &&
                 message.Payload["templates"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;                
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agency = JsonSerializer.Deserialize<Model.Agency>(message.Payload["agency"]!);
                 var representativeId = message.Payload["representative_id"]!;
                 var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Payload["agents"]!);
@@ -157,60 +156,88 @@ namespace Agience.Client
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null && templates != null && timestamp != null)
                 {
-                    await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, (DateTime)timestamp);                    
+                    await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, (DateTime)timestamp);
                 }
             }
         }
 
-        public Func<Task<Data?>, Task> Invoke(OutputCallback outputCallback)
-        {
-            return async task =>
-            {
-                var output = await task;
-                await outputCallback(this, output);
-            };
-        }
-
-        // For when the template is local
-        public async Task<Data?> Invoke<T>(Data? data = null) where T : Template, new()
+        // For when the template type is known and local
+        public async Task<Data?> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
             var templateId = typeof(T).FullName;
 
-            if (string.IsNullOrEmpty(templateId))
+            if (string.IsNullOrEmpty(templateId) || !_templates.ContainsKey(templateId))
             {
                 return null;
             }
 
+            return await Dispatch(templateId, input, localCallback);
+        }
+
+        // For when the templateId is known. Local or remote.
+        public async Task<Data?> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
+        {
+            // Check if the template is local, if so Invoke it.
             if (_templates.TryGetValue(templateId, out (Template, OutputCallback?) templateAndCallback))
             {
-                var (template, outputCallback) = templateAndCallback;
+                var (agentTemplate, globalCallback) = templateAndCallback;
 
-                var output = await template.Process(data);
-
-                if (outputCallback != null)
+                if (agentTemplate.Agent != this)
                 {
-                    await outputCallback.Invoke(this, output);
+                    throw new InvalidOperationException("Template is not local to this agent.");
+                }   
+
+                if (await agentTemplate.Assess(input))
+                {
+                    var output = await agentTemplate.Process(input);
+
+                    // TODO: Information Tracking. Keep track of hierarchy, which templates were invoked and from which , etc.
+
+                    await Task.WhenAll(
+                        localCallback?.Invoke(this, output) ?? Task.CompletedTask,
+                        globalCallback?.Invoke(this, output) ?? Task.CompletedTask
+                    ).ConfigureAwait(false);
+
+                    return output;
                 }
 
-                return output;
+                return null;
+            }
+
+            // If not, try to find it in the Agency and dispatch it directly to the agent.
+            if (_agency.Templates.TryGetValue(templateId, out Model.Template? agencyTemplate))
+            {
+                // Send this via broker to the agent
+                
+
+                
             }
 
             return null;
         }
 
-        // For when the templateId is known. Local or remote.
-        public async Task<Data?> Dispatch(string templateId, Data? data = null)
+        private async Task DispatchInformationToAgent(Model.Template template)
         {
-            throw new NotImplementedException();
+            await _broker.Publish(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = _authority.AgencyTopic(Id!, _agency.Id!),
+                Payload = new Data(new()
+                {
+                    { "type", "template" },
+                    { "timestamp", _broker.Timestamp},
+                    { "template", JsonSerializer.Serialize(template) }
+                })
+            }); ;
         }
 
         // For when the template is not known
-        public async Task<Data?> Prompt(string prompt, Data? data = null, string[]? outputKeys = null)
+        public async Task<Data?> Prompt(Data? input = null)
         {
             throw new NotImplementedException();
         }
 
-        private Model.Agent ToAgienceModel()
+        internal Model.Agent ToAgienceModel()
         {
             return new Model.Agent()
             {

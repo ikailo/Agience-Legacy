@@ -11,7 +11,7 @@ namespace Agience.Client
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
-        public IReadOnlyList<Agent> Agents => _agents.Values.ToList().AsReadOnly();
+        public IReadOnlyList<Model.Agent> Agents => _agents.Values.Select(agent => agent.ToAgienceModel()).ToList().AsReadOnly();
 
         private readonly Config _config;
         private readonly Authority _authority;
