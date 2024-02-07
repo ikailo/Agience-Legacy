@@ -4,17 +4,20 @@ namespace Agience.Templates
 {
     public class GetInputFromUser : Template
     {
-        public GetInputFromUser()
-        {
-            Description = "Receive a text input from the user.";
-        }   
+        public override Data? Description => "Get input from the user.";
 
-        public override async Task<Data?> Process(Data? data)
+        protected override async Task<Data?> Process(Data? data)
         {
             return await Task.Run(() =>
             {
                 return Console.ReadLine() ?? string.Empty;
             });
+        }
+
+        protected override async Task<bool> Assess(Data? input = null)
+        {
+            return await Task.FromResult(true);
+
         }
     }
 }

@@ -4,14 +4,19 @@ namespace Agience.Templates
 {
     public class Debug : Template
     {
-        public Debug()
+        public override Data? Description => "Debug a template with user data.";
+
+        protected override Task<Data?> Process(Data? input = null)
         {
-            Description = "Provides Debugging Information.";
+            throw new NotImplementedException();
         }
 
-        public async override Task<Data?> Process(Data? data)
+
+
+        /*
+        internal override async Task<Data?> Process(Data? data = null)
         {
-            /*
+            
 #if DEBUG
             
             // Parse the input for the template id and user data
@@ -52,8 +57,10 @@ namespace Agience.Templates
             }
 
 #endif
-            */
+            
             return "Debug not enabled";
-        }
+        }*/
+
+
     }
 }

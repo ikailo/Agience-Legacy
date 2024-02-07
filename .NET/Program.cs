@@ -12,7 +12,7 @@ namespace Agience.Agents_Console
         {
             _instance.AddTemplate<Debug>(Debug_Callback);
             _instance.AddTemplate<ShowMessageToUser>();
-            _instance.AddTemplate<GetInputFromUser>();
+            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
             _instance.AddTemplate<InteractWithUser>();
 
             _instance.AgentConnected += _instance_AgentConnected;
@@ -20,29 +20,30 @@ namespace Agience.Agents_Console
             await _instance.Run();
         }
 
-        private static Task _instance_AgentConnected(Agent agent)
+        private static async Task _instance_AgentConnected(Agent agent)
         {
-            Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");            
+            Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
 
-            _ = agent.Invoke<InteractWithUser>("Ready for Input").ContinueWith(agent.Invoke(InteractWithUser_callback));
-
-            //var result = await agent.Invoke(typeof(InteractWithUser), "Ready for Input");
+            Data? message = null;
+            
+            while (_instance.IsConnected)
+            {
+                message = await agent.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+            }
+            
+            Console.WriteLine($"Instance Stopped");
+                        
             //var result = await agent.Dispatch("Agience.Templates.InteractWithUser", "Ready for Input");
-            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");
-
-            return Task.CompletedTask;
+            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");            
         }
 
-        private static async Task InteractWithUser_callback(Agent agent, Data? output)
-        {
-            while (output?.Raw?.Equals("quit", StringComparison.OrdinalIgnoreCase) == false)
+        private static async Task GetInputFromUser_callback(Agent agent, Data? output)
+        {  
+            if (output == "quit")
             {
-                output = await agent.Invoke<InteractWithUser>(output);
+                Console.WriteLine("Stopping Instance");
+                await _instance.Stop();
             }
-
-            await _instance.Stop();
-
-            Console.WriteLine($"Instance Stopped");
         }
 
         private static Task Debug_Callback(Agent agent, Data? output)

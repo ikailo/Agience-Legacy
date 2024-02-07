@@ -4,12 +4,9 @@ namespace Agience.Templates
 {
     public class ShowMessageToUser : Template
     {   
-        public ShowMessageToUser()
-        {
-            Description = "Show a message to the user.";            
-        }
+        public override Data? Description => "Show a message to the user.";        
 
-        public override Task<Data?> Process(Data? data)
+        protected override Task<Data?> Process(Data? data)
         {
             Console.Write($"{data}");
             

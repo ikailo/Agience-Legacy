@@ -4,16 +4,19 @@ namespace Agience.Templates
 {
     public class InteractWithUser : Template
     {
-        public InteractWithUser()
-        {
-            Description = "Show a message to the user and then receive a text input from the user. Find, and then respond with, the best template response to the user's input.";
-        }
+        public override Data? Description => "Show a message to the user and then receive a text input from the user. Find, and then respond with, the best template response to the user's input.";
 
-        public override async Task<Data?> Process(Data? data)
+        protected override async Task<Data?> Process(Data? input)
         {
-            await Agent.Invoke<ShowMessageToUser>($"{data}\r\n> ");
+            await Dispatch<ShowMessageToUser>($"{input}\r\n> ");
 
-            var userInput = await Agent.Invoke<GetInputFromUser>();
+            var userInput = await Dispatch<GetInputFromUser>();
+
+            //var baz = await Invoke<InteractWithUser>(input);
+
+            //var bar = await Dispatch("templateId", input);
+
+            //var foo = await Prompt(input);
 
             /*
 #if DEBUG
@@ -24,6 +27,7 @@ namespace Agience.Templates
             }
 #endif
             
+            x
 
             var bestTemplate = await Agent.Prompt(new Data
             {
@@ -33,8 +37,10 @@ namespace Agience.Templates
                 new string[] { "id" }
             );
 
+
+
             return await Agent.Dispatch(bestTemplate?.Structured?["id"] ?? "Agience.Templates.InputToOutput", userInput);            
-        */
+       */
             return userInput;
         }
     }
