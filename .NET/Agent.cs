@@ -1,4 +1,5 @@
 ﻿using Agience.Model;
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
@@ -12,7 +13,8 @@ namespace Agience.Client
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         public Agency Agency => _agency;
-        //public IReadOnlyList<Template> Templates => _templates.Values.Select(t => t.Item1).ToList().AsReadOnly();
+
+        internal IReadOnlyDictionary<string, (Template, OutputCallback?)> Templates => new ReadOnlyDictionary<string, (Template, OutputCallback?)>(_templates);
 
         private readonly Dictionary<string, (Template, OutputCallback?)> _templates = new();
         private readonly Authority _authority;
@@ -20,6 +22,18 @@ namespace Agience.Client
         private readonly Broker _broker;
 
         private Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
+
+
+        // Returns the top-level runner. Entry point for new information (without parent) processing. 
+        // TODO: Need to figure out how to handle multilevel threaded messaging.
+        private Runner _runner;
+        public Runner Runner
+        {
+            get
+            {
+                return _runner == null ? new Runner(this) : _runner;
+            }
+        }
 
         internal Agent(Authority authority, Broker broker, Model.Agency modelAgency)
         {
@@ -106,6 +120,16 @@ namespace Agience.Client
             }); ;
         }
 
+        private async Task SendInformationToAgent(Information information, Model.Agent agent)
+        {
+            await _broker.Publish(new Message()
+            {
+                Type = MessageType.INFORMATION,
+                Topic = _authority.AgentTopic(Id!, agent.Id!),
+                Payload = JsonSerializer.Serialize(information)
+            });
+        }
+
         internal async Task AddTemplates(List<(Template, OutputCallback?)> templates)
         {
             foreach (var (template, callback) in templates)
@@ -159,87 +183,6 @@ namespace Agience.Client
                     await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, (DateTime)timestamp);
                 }
             }
-        }
-
-        // For when the template type is known and local
-        public async Task<Data?> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
-        {
-            var templateId = typeof(T).FullName;
-
-            if (string.IsNullOrEmpty(templateId) || !_templates.ContainsKey(templateId))
-            {
-                return null;
-            }
-
-            return await Dispatch(templateId, input, localCallback);
-        }
-
-        // For when the templateId is known. Local or remote.
-        public async Task<Data?> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
-        {
-            // Check if the template is local, if so Invoke it.
-            if (_templates.TryGetValue(templateId, out (Template, OutputCallback?) templateAndCallback))
-            {
-                var (agentTemplate, globalCallback) = templateAndCallback;
-
-                var information = new Information()
-                {
-                    Input = input,
-                    InputAgentId = Id,
-                    TemplateId = agentTemplate.Id,
-                    Transformation = agentTemplate.Description
-                };                
-
-                if (await agentTemplate.Assess(information))
-                {   
-
-                    information = await agentTemplate.Process(information);
-
-                    // TODO: Information Tracking. Keep track of hierarchy, which templates were invoked and from which , etc.
-                                        
-                    // Invoke any callbacks
-                    await Task.WhenAll(
-                        localCallback?.Invoke(this, information.Output) ?? Task.CompletedTask,
-                        globalCallback?.Invoke(this, information.Output) ?? Task.CompletedTask
-                    ).ConfigureAwait(false);
-
-                    return information.Output;
-                }
-
-                return null;
-            }
-
-            // If not, try to find it in the Agency and dispatch it directly to the agent.
-            if (_agency.Templates.TryGetValue(templateId, out Model.Template? agencyTemplate))
-            {
-                // Send this via broker to the agent
-                
-
-                
-            }
-
-            return null;
-        }
-
-        private async Task DispatchInformationToAgent(Model.Template template)
-        {
-            await _broker.Publish(new Message()
-            {
-                Type = MessageType.EVENT,
-                Topic = _authority.AgencyTopic(Id!, _agency.Id!),
-                Payload = new Data(new()
-                {
-                    { "type", "template" },
-                    { "timestamp", _broker.Timestamp},
-                    { "template", JsonSerializer.Serialize(template) }
-                })
-            }); ;
-        }
-
-        // For when the template is not known
-        public async Task<Data?> Prompt(Data? input = null)
-        {
-            throw new NotImplementedException();
         }
 
         internal Model.Agent ToAgienceModel()

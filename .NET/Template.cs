@@ -43,7 +43,8 @@
 
         internal async Task<bool> Assess(Information information)
         {
-            return await Assess(information.Input);
+            var runner = new Runner(Agent!, information.Id);
+            return await Assess(runner, information.Input);
         }
 
         internal async Task<Information> Process(Information information)
