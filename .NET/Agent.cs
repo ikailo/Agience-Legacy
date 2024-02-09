@@ -1,6 +1,4 @@
-﻿using Agience.Model;
-using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
+﻿using System.Collections.ObjectModel;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
 
@@ -23,10 +21,9 @@ namespace Agience.Client
 
         private Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
 
-
         // Returns the top-level runner. Entry point for new information (without parent) processing. 
         // TODO: Need to figure out how to handle multilevel threaded messaging.
-        private Runner _runner;
+        private Runner? _runner;
         public Runner Runner
         {
             get
@@ -117,16 +114,19 @@ namespace Agience.Client
                     { "timestamp", _broker.Timestamp},
                     { "template", JsonSerializer.Serialize(template) }
                 })
-            }); ;
+            });
         }
 
-        private async Task SendInformationToAgent(Information information, Model.Agent agent)
+        internal async Task SendInformationToAgent(Information information, string targetAgentId)
         {
             await _broker.Publish(new Message()
             {
                 Type = MessageType.INFORMATION,
-                Topic = _authority.AgentTopic(Id!, agent.Id!),
-                Payload = JsonSerializer.Serialize(information)
+                Topic = _authority.AgentTopic(Id!, targetAgentId),
+                Payload = new Data(new()
+                {
+                    {"information",JsonSerializer.Serialize(information) } // FIXME: Too much serialization
+                })
             });
         }
 
@@ -182,6 +182,39 @@ namespace Agience.Client
                 {
                     await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, (DateTime)timestamp);
                 }
+            }
+
+            // Incoming Agent Information message
+            if (message.Type == MessageType.INFORMATION &&
+                message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Payload["information"] != null
+                )
+            {
+                var information = JsonSerializer.Deserialize<Information>(message.Payload["information"]!);
+
+                if (information != null)
+                {
+                    await ReceiveInformation(information);
+                }
+            }
+        }
+
+        private async Task ReceiveInformation(Information information)
+        {
+            if (information.InputAgentId == Id)
+            {
+                Console.WriteLine($"returned: {information}");
+                // This is returned information
+                // Find the runner that is waiting for this information
+            }
+
+            if (information.OutputAgentId == null)
+            {
+                // This is information that needs to be processed
+
+                _ = await new Runner(this, information).Dispatch();
+
+                await SendInformationToAgent(information, information?.InputAgentId!);
             }
         }
 

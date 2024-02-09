@@ -1,83 +1,128 @@
-﻿using Agience.Model;
-
-namespace Agience.Client
+﻿namespace Agience.Client
 {
     public class Runner : IDisposable
     {
         private readonly Agent _agent;
-        private readonly string? _informationId;
+        private Information? _information;
 
         private Runner() { throw new NotImplementedException(); }
 
-        internal Runner(Agent agent, string? informationId = null)
+        public Runner(Agent agent, Information? information = null)
         {
             _agent = agent;
-            _informationId = informationId;
-        }     
+            _information = information;
+        }
 
-        // For when the template type is known and local
-        public async Task<Data?> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
+        public async Task<(Runner, Data?)> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
             var templateId = typeof(T).FullName;
 
-            if (string.IsNullOrEmpty(templateId) || !_agent.Templates.ContainsKey(templateId))
+            if (!string.IsNullOrEmpty(templateId))
             {
-                return null;
+                return await Dispatch(templateId, input, localCallback);
             }
 
-            return await Dispatch(templateId, input, localCallback);
+            return (this, null);
         }
 
-        // For when the templateId is known. Local or remote.
-        public async Task<Data?> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
+        public async Task<(Runner, Data?)> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
         {
-            // Check if the template is local, if so Invoke it.
-            if (_agent.Templates.TryGetValue(templateId, out (Template, OutputCallback?) templateAndCallback))
+            if (_information == null)
             {
-                var (agentTemplate, globalCallback) = templateAndCallback;
+                _information = new Information()
+                {
+                    Input = input,
+                    InputAgentId = _agent.Id,
+                    TemplateId = templateId
+                };
 
+                return await Dispatch(localCallback);           }
+
+            else
+            {
                 var information = new Information()
                 {
                     Input = input,
                     InputAgentId = _agent.Id,
-                    TemplateId = agentTemplate.Id,
-                    Transformation = agentTemplate.Description
+                    TemplateId = templateId,
+                    ParentInformationId = _information.Id
                 };
 
-                if (await agentTemplate.Assess(information))
-                {
-
-                    information = await agentTemplate.Process(information);
-
-                    // TODO: Information Tracking. Keep track of hierarchy, which templates were invoked and from which , etc.
-
-                    // Invoke any callbacks
-                    await Task.WhenAll(
-                        localCallback?.Invoke(_agent, information.Output) ?? Task.CompletedTask,
-                        globalCallback?.Invoke(_agent, information.Output) ?? Task.CompletedTask
-                    ).ConfigureAwait(false);
-
-                    return information.Output;
-                }
-
-                return null;
+                return await new Runner(_agent, information).Dispatch(localCallback);
             }
-
-            // If not, try to find it in the Agency and dispatch it directly to the agent.
-            if (_agent.Agency.Templates.TryGetValue(templateId, out Model.Template? agencyTemplate))
-            {
-                // Send this via broker to the agent
-
-
-
-            }
-
-            return null;
         }
 
-        // For when the template is not known
+        public async Task<(Runner, Data?)> Dispatch(OutputCallback? localCallback = null)
+        {
+            if (_information?.TemplateId != null)
+            {
+                if (_agent.Templates.TryGetValue(_information.TemplateId, out (Template, OutputCallback?) templateAndGlobalCallback))
+                {
+                    var (agentTemplate, globalCallback) = templateAndGlobalCallback;
+
+                    _information.Transformation = agentTemplate.Description;
+                    
+                    return await Dispatch(agentTemplate, localCallback, globalCallback);
+                }
+
+                else if (_agent.Agency.Templates.TryGetValue(_information.TemplateId, out Model.Template? agencyTemplate) && agencyTemplate.AgentId != null)
+                {
+                    return await Dispatch(agencyTemplate, localCallback);
+                }
+            }
+            return (this, null);
+        }
+
+        private async Task<(Runner, Data?)> Dispatch(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
+        {
+            // Process this locally
+
+            if (_information != null)
+            {
+                // TODO: Debounce Assessments
+                if (await template.Assess(this, _information.Input))
+                {
+                    var output = await template.Process(this, _information.Input);
+
+                    _information.Output = output;
+                    _information.OutputAgentId = template.Agent?.Id;
+                }
+
+                // TODO: Write to timeline                
+                                
+                await Task.WhenAll(
+                    localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,
+                    globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
+                ).ConfigureAwait(false);
+
+                return (this, _information.Output);
+            }
+
+            return (this, null);
+        }
+
+        private async Task<(Runner, Data?)> Dispatch(Model.Template template, OutputCallback? localCallback)
+        {
+            // Process this remotely
+
+            if (_information != null && template?.AgentId != null)
+            {
+                await _agent.SendInformationToAgent(_information, template.AgentId);
+
+                // TODO: Await the message completed information and then invoke the local callback
+
+                Console.WriteLine($"Sent: {_information}");
+                Console.WriteLine($"TODO: wait for response. For now return null.");
+
+                return (this, _information.Output);
+            }
+
+            return (this, null);            
+        }
+                
         public async Task<Data?> Prompt(Data? input = null, OutputCallback? localCallback = null)
         {
+            // TODO: Get the default prompt template and dispatch it
             throw new NotImplementedException();
         }
 

@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Agience.Client
 {
-    public delegate Task OutputCallback(Agent agent, Data? data);
+    public delegate Task OutputCallback(Runner runner, Data? data);
 
     internal class Catalog : IEnumerable<string>
     {
