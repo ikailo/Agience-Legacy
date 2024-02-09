@@ -18,42 +18,16 @@
         public abstract Data? Description { get; } // Description is the template identifier. Future: Searchable, Inferable, Unique, Persist.
         public virtual string[]? InputKeys { get; protected set; }
         public virtual string[]? OutputKeys { get; protected set; }
-        protected internal Agent Agent
-        {
-            get { return _agent ?? throw new ArgumentNullException(nameof(Agent)); }
-            internal set { _agent = value; }
-        }
 
-        private Agent? _agent;
+        internal Agent? Agent;
 
         public Template()
         {
             Id = GetType().FullName ?? throw new ArgumentNullException("Type.FullName");
         }
 
-        internal Template(Agent? agent) : this()
-        {
-            _agent = agent;
-        }
-
-        protected internal virtual Task<bool> Assess(Data? input = null) => Task.FromResult(true);
-
-        protected internal abstract Task<Data?> Process(Data? input = null);
-
-        protected async Task<Data?> Dispatch<T>(Data? input = null) where T : Template, new()
-        {
-            return await Agent.Dispatch<T>(input);
-        }
-
-        protected async Task<Data?> Dispatch(string templateId, Data? input = null)
-        {
-            return await Agent.Dispatch(templateId, input);
-        }
-
-        protected async Task<Data?> Prompt(Data? input = null)
-        {
-            return await Agent.Prompt(input);
-        }
+        protected internal virtual Task<bool> Assess(Runner runner, Data? input = null) => Task.FromResult(true);
+        protected internal abstract Task<Data?> Process(Runner runner, Data? input = null);     
 
         internal Model.Template ToAgienceModel()
         {
@@ -67,10 +41,22 @@
             };
         }
 
-        /*
-        private string? _id;
+        internal async Task<bool> Assess(Information information)
+        {
+            return await Assess(information.Input);
+        }
 
-        
+        internal async Task<Information> Process(Information information)
+        {
+            var runner = new Runner(Agent!, information.Id);
+
+            information.Output = await Process(runner, information.Input);
+            information.OutputAgentId = Agent!.Id;
+            return information;            
+        }
+
+        /*
+        private string? _id;      
 
         // Template Ids are generated based on the template definition. 
         // TODO: Review, since this is not a unique identifier.

@@ -1,151 +1,65 @@
-﻿using Agience.Model;
+﻿using GuerrillaNtp;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
 namespace Agience.Client
-{/*
-    public enum InformationState
+{
+    public class Information
     {
-        DRAFT = 0,
-        OPEN = 1,
-        CLOSED = 2
-    }*/
-
-    public class Information //: IComparable<Information>
-    {
-        /*
-        [JsonIgnore]
-        public Agent? Agent { get; set; }
-
-        [JsonIgnore]
-        public Template? Template { get; set; }
-        */
-
         public string Id { get; }
-        //public string CreatorId { get; }
-        //public string? WorkerId { get; set; } // TODO: Rename to ???        
-        //public InformationState InformationState { get; internal set; }
-        //public TemplateState TemplateState { get; private set; }
-
-        public Data? Input { get; private set; }
-        public Data? Transform { get; private set; }
-        public Data? Output { get; private set; }
-        public string? TemplateId { get; set; }
+        public string? ParentInformationId { get; internal set; }
+        public string? InputAgentId { get; internal set; }
+        public string? OutputAgentId { get; internal set; }
+        public string? TemplateId { get; internal set; }
+        public Data? Input { get; internal set; }
+        public Data? Transformation { get; internal set; }
+        public Data? Output { get; internal set; }
 
         // TODO: History, Signatures, ReadOnly fields ?
+        // TODO: Account for partial information (e.g. input only, output only, etc.) when in transit. For performance.
 
-        public Information(Data? input = null, Data? prompt = null, Data? output = null)
-            : this(input, prompt, null, output) { }
-
-        public Information(Data? input = null, Data? prompt = null, string? templateId = null, Data? output = null)
+        public Information()
         {
-            Id = Client.Id.Create("<fixme>"); // FIXME
-            Input = input;
-            Transform = prompt;
-            Output = output;
-            TemplateId = templateId;
+            using (var sha256 = SHA256.Create())
+            {
+                // Using standard 256 bit urlsafe id.
+                // TODO: Consider composing it from related factors - agentId, timestamp, parentId, etc.. for traceability.                
+                Id = Base64UrlEncoder.Encode(sha256.ComputeHash(Guid.NewGuid().ToByteArray()));
+            }
         }
-        /*
+
+        public Information(string parentInformationId, string inputAgentId, Data? input = null, Template? template = null)
+            : this()
+        {
+            ParentInformationId = parentInformationId;
+            InputAgentId = inputAgentId;
+            Input = input;
+            Transformation = template?.Description;
+            TemplateId = template?.Id;
+
+        }
+
         [JsonConstructor]
-        public Information(string id, string creatorId, string? workerId, string templateId, InformationState informationState,
-                            TemplateState templateState, Data? input = null, Data? output = null)
+        public Information(string id, 
+                            string? parentInformationId,
+                            string? inputAgentId,
+                            string? outputAgentId,
+                            string? templateId,
+                            Data? input = null, 
+                            Data? transformation = null,                             
+                            Data? output = null
+                            )            
         {
             Id = id;
-            CreatorId = creatorId;
-            WorkerId = workerId;
-            Template = new Template() { Id = templateId };
-            InformationState = informationState;
-            TemplateState = templateState;
+            ParentInformationId = parentInformationId;
+            InputAgentId = inputAgentId;
+            OutputAgentId = outputAgentId;
+            TemplateId = templateId;
             Input = input;
+            Transformation = transformation;
             Output = output;
         }
-
-        public Information(Agent agent, string templateId, Data? input = null)
-            : this(MQTT.Id.Create(agent.Id), agent.Id, null, templateId, InformationState.OPEN, TemplateState.RESTING, input, null)
-        {
-            Agent = agent;
-            //WorkerId = Agent.Instance?.Catalog.GetTemplate(TemplateId).InstanceId;
-        }
-
-        public Information(Agent agent, Data? input = null, Data? instruction = null, Data? output = null)            
-        {
-            Id = MQTT.Id.Create(agent.Id);
-            CreatorId = agent.Id;
-            //Template = Agent?.Instance?.Catalog.GetTemplate(TemplateId);
-            WorkerId = Template?.InstanceId;
-            InformationState = InformationState.OPEN;
-            TemplateState = TemplateState.RESTING;
-            Input = input;
-            Transform = instruction;
-            Output = output;
-            //WorkerId = Agent.Instance?.Catalog.GetTemplate(TemplateId).InstanceId;
-        }
-
-        public int CompareTo(Information? other)
-        {
-            return ReferenceEquals(other, null) ? 1 : ((Id)Id).CompareTo((Id)other.Id);
-        }*/
-
-        /*
-        protected internal async Task<bool> Assess()
-        {
-            if (Agent == null || _assessmentQueued || TemplateState == TemplateState.PROCESSING || InformationState == InformationState.CLOSED) { return false; }
-
-            // Assessments are debounced. Only one assessment can be queued at a time.
-            // FIXME: Not Threadsafe
-
-            if (TemplateState == TemplateState.ASSESSING)
-            {
-                _assessmentQueued = true;
-
-                while (TemplateState == TemplateState.ASSESSING)
-                {
-                    await Task.Delay(10);
-                }
-            }
-
-            if (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false)
-            {
-                TemplateState = TemplateState.ASSESSING;
-
-                var result = await Agent.Instance.Catalog.GetTemplate(TemplateId).Assess(this);
-
-                TemplateState = TemplateState.RESTING;
-
-                _assessmentQueued = false;
-
-                return result;
-            }
-
-            _assessmentQueued = false;
-
-            return false;
-        }
-
-        protected internal async Task Process()
-        {
-            if (Agent == null) { return; }
-
-            // Only one process can be in progress at a time. We don't queue up another one.
-            // FIXME: Not Threadsafe
-
-            if (TemplateState == TemplateState.RESTING && (Agent?.Instance?.Catalog.ContainsKey(TemplateId) ?? false))
-            {
-                TemplateState = TemplateState.PROCESSING;
-
-                Output = await Agent.Instance.Catalog.GetTemplate(TemplateId).Process(this);
-
-                InformationState = InformationState.CLOSED;
-
-                TemplateState = TemplateState.RESTING;
-
-                WorkerId = CreatorId;
-
-                if (Agent?.Agency != null)
-                {
-                    await Agent.Agency.PublishAsync(this, null);
-                }
-            }
-        }
-        */
     }
 }

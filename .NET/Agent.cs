@@ -182,23 +182,28 @@ namespace Agience.Client
             {
                 var (agentTemplate, globalCallback) = templateAndCallback;
 
-                if (agentTemplate.Agent != this)
+                var information = new Information()
                 {
-                    throw new InvalidOperationException("Template is not local to this agent.");
-                }   
+                    Input = input,
+                    InputAgentId = Id,
+                    TemplateId = agentTemplate.Id,
+                    Transformation = agentTemplate.Description
+                };                
 
-                if (await agentTemplate.Assess(input))
-                {
-                    var output = await agentTemplate.Process(input);
+                if (await agentTemplate.Assess(information))
+                {   
+
+                    information = await agentTemplate.Process(information);
 
                     // TODO: Information Tracking. Keep track of hierarchy, which templates were invoked and from which , etc.
-
+                                        
+                    // Invoke any callbacks
                     await Task.WhenAll(
-                        localCallback?.Invoke(this, output) ?? Task.CompletedTask,
-                        globalCallback?.Invoke(this, output) ?? Task.CompletedTask
+                        localCallback?.Invoke(this, information.Output) ?? Task.CompletedTask,
+                        globalCallback?.Invoke(this, information.Output) ?? Task.CompletedTask
                     ).ConfigureAwait(false);
 
-                    return output;
+                    return information.Output;
                 }
 
                 return null;
