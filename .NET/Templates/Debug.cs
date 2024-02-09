@@ -6,7 +6,7 @@ namespace Agience.Templates
     {
         public override Data? Description => "Debug a template with user data.";
 
-        protected override Task<Data?> Process(Data? input = null)
+        protected override Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
         }

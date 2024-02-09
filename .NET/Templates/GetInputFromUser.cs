@@ -6,7 +6,7 @@ namespace Agience.Templates
     {
         public override Data? Description => "Get input from the user.";
 
-        protected override async Task<Data?> Process(Data? data)
+        protected override async Task<Data?> Process(Runner runner, Data? data)
         {
             return await Task.Run(() =>
             {
@@ -14,7 +14,7 @@ namespace Agience.Templates
             });
         }
 
-        protected override async Task<bool> Assess(Data? input = null)
+        protected override async Task<bool> Assess(Runner runner, Data? input = null)
         {
             return await Task.FromResult(true);
 

@@ -28,7 +28,7 @@ namespace Agience.Agents_Console
             
             while (_instance.IsConnected)
             {
-                message = await agent.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+                message = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
             }
             
             Console.WriteLine($"Instance Stopped");

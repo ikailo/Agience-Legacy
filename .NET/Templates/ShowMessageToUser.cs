@@ -6,7 +6,7 @@ namespace Agience.Templates
     {   
         public override Data? Description => "Show a message to the user.";        
 
-        protected override Task<Data?> Process(Data? data)
+        protected override Task<Data?> Process(Runner runner, Data? data)
         {
             Console.Write($"{data}");
             
