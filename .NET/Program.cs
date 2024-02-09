@@ -24,11 +24,11 @@ namespace Agience.Agents_Console
         {
             Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
 
-            Data? message = null;
+            Data? message = null;            
             
             while (_instance.IsConnected)
             {
-                message = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+                await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
             }
             
             Console.WriteLine($"Instance Stopped");
@@ -37,8 +37,14 @@ namespace Agience.Agents_Console
             //var result = await agent.Prompt("Interact with the user.", "Ready for Input");            
         }
 
-        private static async Task GetInputFromUser_callback(Agent agent, Data? output)
+        private static async Task GetInputFromUser_callback(Runner runner, Data? output)
         {  
+            if (((string?)output)?.StartsWith("echo:") ?? false)
+            {   
+                var (echoRunner, echo) = await runner.Dispatch("Agience.Templates.Examples.Echo", ((string?)output)?.Substring(5));
+                Console.WriteLine(echo);
+            }
+
             if (output == "quit")
             {
                 Console.WriteLine("Stopping Instance");
@@ -46,7 +52,7 @@ namespace Agience.Agents_Console
             }
         }
 
-        private static Task Debug_Callback(Agent agent, Data? output)
+        private static Task Debug_Callback(Runner runner, Data? output)
         {
             Console.WriteLine($"Debug_Template: {output?.Raw}");
 

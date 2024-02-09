@@ -10,7 +10,7 @@ namespace Agience.Templates
         {
             await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
 
-            var userInput = await runner.Dispatch<GetInputFromUser>();
+            var (responseRunner, userInput) = await runner.Dispatch<GetInputFromUser>();
 
 
             // Possible methods during Processing

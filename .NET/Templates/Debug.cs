@@ -11,8 +11,6 @@ namespace Agience.Templates
             throw new NotImplementedException();
         }
 
-
-
         /*
         internal override async Task<Data?> Process(Data? data = null)
         {
