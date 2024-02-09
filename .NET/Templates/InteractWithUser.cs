@@ -6,11 +6,18 @@ namespace Agience.Templates
     {
         public override Data? Description => "Show a message to the user and then receive a text input from the user. Find, and then respond with, the best template response to the user's input.";
 
-        protected override async Task<Data?> Process(Data? input)
+        protected override async Task<Data?> Process(Runner runner, Data? input)
         {
-            await Dispatch<ShowMessageToUser>($"{input}\r\n> ");
+            await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
 
-            var userInput = await Dispatch<GetInputFromUser>();
+            var userInput = await runner.Dispatch<GetInputFromUser>();
+
+
+            // Possible methods during Processing
+
+
+
+
 
             //var baz = await Invoke<InteractWithUser>(input);
 
