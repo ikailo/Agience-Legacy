@@ -10,12 +10,19 @@ namespace Agience.Client
     {
         public string Id { get; }
         public string? ParentInformationId { get; internal set; }
-        public string? InputAgentId { get; internal set; }
-        public string? OutputAgentId { get; internal set; }
-        public string? TemplateId { get; internal set; }
+
         public Data? Input { get; internal set; }
-        public Data? Transformation { get; internal set; }
+        public string? InputAgentId { get; internal set; }
+        public string? InputTimestamp { get; internal set; }
+
         public Data? Output { get; internal set; }
+        public string? OutputAgentId { get; internal set; }
+        public string? OutputTimestamp { get; internal set; }
+
+
+        public string? TemplateId { get; internal set; }
+        public Data? Transformation { get; internal set; }
+
 
         // TODO: History, Signatures, ReadOnly fields ?
         // TODO: Account for partial information (e.g. input only, output only, etc.) when in transit. For performance.
@@ -30,36 +37,30 @@ namespace Agience.Client
             }
         }
 
-        public Information(string parentInformationId, string inputAgentId, Data? input = null, Template? template = null)
-            : this()
-        {
-            ParentInformationId = parentInformationId;
-            InputAgentId = inputAgentId;
-            Input = input;
-            Transformation = template?.Description;
-            TemplateId = template?.Id;
-
-        }
-
+        // TODO: Is a separate constructor for deserialization necessary?
         [JsonConstructor]
-        public Information(string id, 
+        public Information( string id,
                             string? parentInformationId,
+                            Data? input,
                             string? inputAgentId,
+                            string? inputTimestamp,
+                            Data? output,
                             string? outputAgentId,
-                            string? templateId,
-                            Data? input = null, 
-                            Data? transformation = null,                             
-                            Data? output = null
-                            )            
+                            string? outputTimestamp,                            
+                            Data? transformation,
+                            string? templateId
+                            )
         {
             Id = id;
-            ParentInformationId = parentInformationId;
-            InputAgentId = inputAgentId;
-            OutputAgentId = outputAgentId;
-            TemplateId = templateId;
+            ParentInformationId = parentInformationId;            
             Input = input;
-            Transformation = transformation;
+            InputAgentId = inputAgentId;
+            InputTimestamp = inputTimestamp;
             Output = output;
+            OutputAgentId = outputAgentId;
+            OutputTimestamp = outputTimestamp;            
+            TemplateId = templateId;            
+            Transformation = transformation;            
         }
     }
 }

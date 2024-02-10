@@ -1,4 +1,6 @@
-﻿namespace Agience.Client
+﻿using Agience.Model;
+
+namespace Agience.Client
 {
     public class Runner : IDisposable
     {
@@ -33,10 +35,12 @@
                 {
                     Input = input,
                     InputAgentId = _agent.Id,
+                    InputTimestamp = _agent.Timestamp,
                     TemplateId = templateId
                 };
 
-                return await Dispatch(localCallback);           }
+                return await Dispatch(localCallback);
+            }
 
             else
             {
@@ -44,6 +48,7 @@
                 {
                     Input = input,
                     InputAgentId = _agent.Id,
+                    InputTimestamp = _agent.Timestamp,
                     TemplateId = templateId,
                     ParentInformationId = _information.Id
                 };
@@ -61,7 +66,7 @@
                     var (agentTemplate, globalCallback) = templateAndGlobalCallback;
 
                     _information.Transformation = agentTemplate.Description;
-                    
+
                     return await Dispatch(agentTemplate, localCallback, globalCallback);
                 }
 
@@ -86,10 +91,11 @@
 
                     _information.Output = output;
                     _information.OutputAgentId = template.Agent?.Id;
+                    _information.OutputTimestamp = _agent.Timestamp;
                 }
 
-                // TODO: Write to timeline                
-                                
+                // TODO: Write to local timeline                
+
                 await Task.WhenAll(
                     localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,
                     globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
@@ -101,25 +107,47 @@
             return (this, null);
         }
 
+        internal void ReceiveOutput(Information information)
+        {
+            if (_information == null)
+            {
+                throw new InvalidOperationException("No Information to receive output.");
+            }
+
+            if (string.IsNullOrEmpty(information?.OutputTimestamp) || string.IsNullOrEmpty(information?.OutputAgentId))
+            {
+                throw new InvalidOperationException("Incoming Information is incomplete.");
+            }
+
+            _information.Output = information.Output;
+            _information.OutputAgentId = information.OutputAgentId;
+            _information.OutputTimestamp = information.OutputTimestamp;
+        }
+
         private async Task<(Runner, Data?)> Dispatch(Model.Template template, OutputCallback? localCallback)
         {
             // Process this remotely
 
             if (_information != null && template?.AgentId != null)
             {
-                await _agent.SendInformationToAgent(_information, template.AgentId);
+                await _agent.SendInformationToAgent(_information, template.AgentId, this);
 
-                // TODO: Await the message completed information and then invoke the local callback
+                while (string.IsNullOrEmpty(_information.OutputTimestamp))
+                {
+                    Task.Delay(10).Wait();
+                }
 
-                Console.WriteLine($"Sent: {_information}");
-                Console.WriteLine($"TODO: wait for response. For now return null.");
+                if (localCallback != null)
+                {
+                    await localCallback.Invoke(this, _information.Output);
+                }
 
                 return (this, _information.Output);
             }
 
-            return (this, null);            
+            return (this, null);
         }
-                
+
         public async Task<Data?> Prompt(Data? input = null, OutputCallback? localCallback = null)
         {
             // TODO: Get the default prompt template and dispatch it
@@ -130,6 +158,8 @@
         {
             throw new NotImplementedException();
         }
+
+
 
 
         //public async Task Retrieve() { }

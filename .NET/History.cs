@@ -1,6 +1,6 @@
 ﻿namespace Agience.Client
 {
-    public class Timeline
+    public class History
     {
         internal void Add(Information information)
         {

@@ -25,6 +25,7 @@ namespace Agience.Client
         public string? BrokerUri { get; private set; }
         public string? TokenEndpoint { get; private set; }
         public bool IsConnected { get; private set; }
+        public string Timestamp => _broker.Timestamp;
 
         private readonly Uri _authorityUri; // Expect without trailing slash
         private readonly Broker _broker = new();        

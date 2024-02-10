@@ -12,6 +12,7 @@ namespace Agience.Client
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
+        public string Timestamp => _broker.Timestamp;
         internal IReadOnlyDictionary<string, Model.Template> Templates => new ReadOnlyDictionary<string, Model.Template>(_templates);
 
         private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();

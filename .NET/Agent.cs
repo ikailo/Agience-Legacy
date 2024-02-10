@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
 
@@ -11,6 +12,8 @@ namespace Agience.Client
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         public Agency Agency => _agency;
+        public string Timestamp => _broker.Timestamp;
+        public History History { get; } = new();
 
         internal IReadOnlyDictionary<string, (Template, OutputCallback?)> Templates => new ReadOnlyDictionary<string, (Template, OutputCallback?)>(_templates);
 
@@ -117,8 +120,13 @@ namespace Agience.Client
             });
         }
 
-        internal async Task SendInformationToAgent(Information information, string targetAgentId)
+        internal async Task SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
+            if (runner != null)
+            {
+                _informationCallbacks[information.Id!] = runner;
+            }
+
             await _broker.Publish(new Message()
             {
                 Type = MessageType.INFORMATION,
@@ -199,21 +207,25 @@ namespace Agience.Client
             }
         }
 
+        private ConcurrentDictionary<string, Runner> _informationCallbacks = new();
+
         private async Task ReceiveInformation(Information information)
         {
             if (information.InputAgentId == Id)
-            {
-                Console.WriteLine($"returned: {information}");
+            {                
                 // This is returned information
-                // Find the runner that is waiting for this information
+                if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
+                {
+                    runner.ReceiveOutput(information);
+                }
             }
 
             if (information.OutputAgentId == null)
             {
-                // This is information that needs to be processed
+                // This is information that needs to be processed. Presumably Local. Dispatch it.
+                var (runner, output) = await new Runner(this, information).Dispatch();
 
-                _ = await new Runner(this, information).Dispatch();
-
+                // Return the output to the input agent
                 await SendInformationToAgent(information, information?.InputAgentId!);
             }
         }
