@@ -94,7 +94,7 @@ namespace Agience.Client
                     _information.OutputTimestamp = _agent.Timestamp;
                 }
 
-                // TODO: Write to local timeline                
+                _agent.History.Add(_information);
 
                 await Task.WhenAll(
                     localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,

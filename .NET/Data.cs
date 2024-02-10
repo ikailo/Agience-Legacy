@@ -76,7 +76,7 @@ namespace Agience.Client
     }
 
     [JsonConverter(typeof(DataJsonConverter))]
-    public class Data : IEnumerable<KeyValuePair<string, string?>>
+    public class Data : IEnumerable<KeyValuePair<string, string?>>, IEquatable<Data>
     {
         // TODO: Data should have a unique id and a creator id and timestamp
         // TODO: Data should have a unique hash based on the data. Use as Id?  Data should be immutable.
@@ -187,6 +187,11 @@ namespace Agience.Client
         IEnumerator<KeyValuePair<string, string?>> IEnumerable<KeyValuePair<string, string?>>.GetEnumerator()
         {
             return _structured?.GetEnumerator() ?? default;
+        }
+
+        public bool Equals(Data? other)
+        {
+            return other != null && Raw == other.Raw;
         }
 
         public static implicit operator Data?(string? raw) => new Data(raw);
