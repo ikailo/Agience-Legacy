@@ -13,7 +13,7 @@ namespace Agience.Client
         public bool IsConnected { get; private set; }
         public Agency Agency => _agency;
         public string Timestamp => _broker.Timestamp;
-        public History History { get; } = new();
+        public History History { get; } = new(); // TODO: Make History ReadOnly for external access
 
         internal IReadOnlyDictionary<string, (Template, OutputCallback?)> Templates => new ReadOnlyDictionary<string, (Template, OutputCallback?)>(_templates);
 

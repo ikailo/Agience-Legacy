@@ -3,6 +3,22 @@ using QuikGraph;
 
 namespace Agience.Client
 {
+    public class InformationVertex
+    {
+        public string? Id { get; internal set; }
+        public Data? Input { get; internal set; }
+        public DateTime? InputTimestamp { get; internal set; }
+        public Data? Output { get; internal set; }
+        public DateTime? OutputTimestamp { get; internal set; }
+        public Data? Transformation { get; internal set; }
+        public string? TemplateId { get; internal set; } // TODO: This should be implict to the Transformation.
+    }
+
+    public class InformationEdge : Edge<InformationVertex>
+    {
+        internal InformationEdge(InformationVertex source, InformationVertex target) : base(source, target) { }
+    }
+
     public class History : BidirectionalGraph<InformationVertex, InformationEdge>
     {
         // Define a ConcurrentDictionary to store locks for each vertex
@@ -80,7 +96,7 @@ namespace Agience.Client
                     }
 
                     AddEdge(new InformationEdge(parentVertex, currentVertex));
-                    
+
                     var foo = this;
                 }
                 finally
