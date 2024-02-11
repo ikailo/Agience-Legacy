@@ -6,14 +6,14 @@ namespace Agience.Client
 {
     public class Agency
     {
-        //private Dictionary<string, string> _defaultTemplates = new();
-
+        
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
         internal IReadOnlyDictionary<string, Model.Template> Templates => new ReadOnlyDictionary<string, Model.Template>(_templates);
+        internal IReadOnlyDictionary<string, Model.Template> DefaultTemplates => new ReadOnlyDictionary<string, Model.Template>(_templates);
 
         private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();
         private readonly ConcurrentDictionary<string, Model.Template> _templates = new();

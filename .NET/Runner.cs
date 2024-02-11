@@ -2,7 +2,7 @@
 
 namespace Agience.Client
 {
-    public class Runner : IDisposable
+    public class Runner
     {
         private readonly Agent _agent;
         private Information? _information;
@@ -148,19 +148,10 @@ namespace Agience.Client
             return (this, null);
         }
 
-        public async Task<Data?> Prompt(Data? input = null, OutputCallback? localCallback = null)
+        public async Task<(Runner, Data?)> Prompt(Data? input = null, OutputCallback? localCallback = null)
         {
-            // TODO: Get the default prompt template and dispatch it
-            throw new NotImplementedException();
+            return await Dispatch("Agience.Templates.Default.Prompt", input, localCallback);            
         }
-
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
-
-
 
         //public async Task Retrieve() { }
         //public async Task Record() { }

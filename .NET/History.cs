@@ -21,18 +21,15 @@ namespace Agience.Client
 
     public class History : BidirectionalGraph<InformationVertex, InformationEdge>
     {
-        // Define a ConcurrentDictionary to store locks for each vertex
         private readonly ConcurrentDictionary<string, object> _vertexLocks = new ConcurrentDictionary<string, object>();
         //private readonly ConcurrentDictionary<string, InformationVertex> _verticesById = new ConcurrentDictionary<string, InformationVertex>();
 
-        // Define a ReaderWriterLockSlim for write operations
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
         internal void Add(Information information)
         {
             InformationVertex? currentVertex;
 
-            // Get or create the lock for the current vertex
             var currentVertexLock = _vertexLocks.GetOrAdd(information.Id, _ => new object());
 
             lock (currentVertexLock)
@@ -57,7 +54,7 @@ namespace Agience.Client
                         };
                         AddVertex(currentVertex);
                     }
-                    else // TODO: Make sure we're not overwriting imporant info. Assume for now it's only been added as a parent.
+                    else // Information is expected to be immutable, so overwriting should be ok.
                     {
                         currentVertex.Input = information.Input;
                         currentVertex.InputTimestamp = DateTime.TryParse(information.InputTimestamp!, out var inputTimestamp) ? inputTimestamp : null;
@@ -75,7 +72,6 @@ namespace Agience.Client
 
             if (string.IsNullOrEmpty(information.ParentInformationId)) { return; }
 
-            // Get or create the lock for the parent vertex
             var parentVertexLock = _vertexLocks.GetOrAdd(information.ParentInformationId, _ => new object());
 
             lock (parentVertexLock)
