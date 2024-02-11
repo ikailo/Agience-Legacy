@@ -10,10 +10,9 @@ namespace Agience.Agents_Console
 
         internal static async Task Main(string[] args)
         {
-            _instance.AddTemplate<Debug>(Debug_Callback);
-            _instance.AddTemplate<ShowMessageToUser>();
-            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
             _instance.AddTemplate<InteractWithUser>();
+            _instance.AddTemplate<ShowMessageToUser>();
+            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);            
 
             _instance.AgentConnected += _instance_AgentConnected;
 
@@ -28,7 +27,7 @@ namespace Agience.Agents_Console
             
             while (_instance.IsConnected)
             {
-                await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+                (var runner, message) = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
             }
             
             Console.WriteLine($"Instance Stopped");
@@ -41,7 +40,7 @@ namespace Agience.Agents_Console
         {  
             if (((string?)output)?.StartsWith("echo:") ?? false)
             {   
-                var (echoRunner, echo) = await runner.Dispatch("Agience.Templates.Examples.Echo", ((string?)output)?.Substring(5));
+                var (echoRunner, echo) = await runner.Dispatch("Agience.Templates.Default.Echo", ((string?)output)?.Substring(5));
                 Console.WriteLine(echo);
             }
 
@@ -50,13 +49,6 @@ namespace Agience.Agents_Console
                 Console.WriteLine("Stopping Instance");
                 await _instance.Stop();
             }
-        }
-
-        private static Task Debug_Callback(Runner runner, Data? output)
-        {
-            Console.WriteLine($"Debug_Template: {output?.Raw}");
-
-            return Task.CompletedTask;
         }
     }
 }
