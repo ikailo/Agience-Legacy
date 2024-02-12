@@ -12,11 +12,12 @@ namespace Agience.Client
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
-        internal IReadOnlyDictionary<string, Model.Template> Templates => new ReadOnlyDictionary<string, Model.Template>(_templates);
-        internal IReadOnlyDictionary<string, Model.Template> DefaultTemplates => new ReadOnlyDictionary<string, Model.Template>(_templates);
+        internal ReadOnlyDictionary<string, Model.Template> Templates => new(_templates);
+        internal ReadOnlyDictionary<string, string> DefaultTemplates => new(_defaultTemplates);
 
         private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();
         private readonly ConcurrentDictionary<string, Model.Template> _templates = new();
+        private readonly ConcurrentDictionary<string,string> _defaultTemplates = new();
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent;
@@ -61,7 +62,8 @@ namespace Agience.Client
                     { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agentTimestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
-                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) }
+                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) },
+                    { "default_templates", JsonSerializer.Serialize(_defaultTemplates.Values.ToList()) },
                 })
             }); ;
         }
