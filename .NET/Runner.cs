@@ -4,6 +4,9 @@ namespace Agience.Client
 {
     public class Runner
     {
+        public string? AgentId => _agent.Id;
+        public string? AgencyId => _agent.Agency.Id;
+
         private readonly Agent _agent;
         private Information? _information;
 
@@ -59,6 +62,9 @@ namespace Agience.Client
 
         public async Task<(Runner, Data?)> Dispatch(OutputCallback? localCallback = null)
         {
+
+            (Runner, Data?) result = (this, null);
+
             if (_information?.TemplateId != null)
             {
                 if (_agent.Templates.TryGetValue(_information.TemplateId, out (Template, OutputCallback?) templateAndGlobalCallback))
@@ -67,15 +73,17 @@ namespace Agience.Client
 
                     _information.Transformation = agentTemplate.Description;
 
-                    return await Dispatch(agentTemplate, localCallback, globalCallback);
+                    result = await Dispatch(agentTemplate, localCallback, globalCallback);
                 }
 
                 else if (_agent.Agency.Templates.TryGetValue(_information.TemplateId, out Model.Template? agencyTemplate) && agencyTemplate.AgentId != null)
                 {
-                    return await Dispatch(agencyTemplate, localCallback);
+                    result = await Dispatch(agencyTemplate, localCallback);
                 }
             }
-            return (this, null);
+            // TODO: Invoke Event Notificaiton
+
+            return result;
         }
 
         private async Task<(Runner, Data?)> Dispatch(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
@@ -150,7 +158,11 @@ namespace Agience.Client
 
         public async Task<(Runner, Data?)> Prompt(Data? input = null, OutputCallback? localCallback = null)
         {
-            return await Dispatch("Agience.Templates.Default.Prompt", input, localCallback);            
+            // TODO: Default Templates            
+            
+            // HERE
+
+            return await Dispatch("Agience.Agents._Console.Templates.ShowMessageToUser", input, localCallback);            
         }
 
         //public async Task Retrieve() { }

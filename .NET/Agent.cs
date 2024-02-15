@@ -31,7 +31,8 @@ namespace Agience.Client
         {
             get
             {
-                return _runner == null ? new Runner(this) : _runner;
+                // TODO: Should this be a new runner each time?
+                return _runner == null ? new Runner(this) : _runner;                
             }
         }
 
