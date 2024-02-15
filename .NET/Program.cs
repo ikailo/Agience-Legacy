@@ -11,7 +11,7 @@ namespace Agience.Agents_Console
         internal static async Task Main(string[] args)
         {
             _instance.AddTemplate<InteractWithUser>();
-            _instance.AddTemplate<ShowMessageToUser>();
+            _instance.AddTemplate<Agents._Console.Templates.ShowMessageToUser>();
             _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);            
 
             _instance.AgentConnected += _instance_AgentConnected;

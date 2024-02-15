@@ -8,7 +8,7 @@ namespace Agience.Templates
 
         protected override async Task<Data?> Process(Runner runner, Data? input)
         {
-            await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
+            await runner.Dispatch<Agents._Console.Templates.ShowMessageToUser>($"{input}\r\n> ");
 
             var (responseRunner, userInput) = await runner.Dispatch<GetInputFromUser>();
 
