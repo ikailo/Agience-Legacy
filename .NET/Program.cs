@@ -30,10 +30,7 @@ namespace Agience.Agents_Console
                 (var runner, message) = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
             }
             
-            Console.WriteLine($"Instance Stopped");
-                        
-            //var result = await agent.Dispatch("Agience.Templates.InteractWithUser", "Ready for Input");
-            //var result = await agent.Prompt("Interact with the user.", "Ready for Input");            
+            Console.WriteLine($"Instance Stopped"); 
         }
 
         private static async Task GetInputFromUser_callback(Runner runner, Data? output)
@@ -42,6 +39,12 @@ namespace Agience.Agents_Console
             {   
                 var (echoRunner, echo) = await runner.Dispatch("Agience.Templates.Default.Echo", ((string?)output)?.Substring(5));
                 Console.WriteLine(echo);
+            }
+
+            if (((string?)output)?.StartsWith("web:") ?? false)
+            {
+                var (webRunner, webResponse) = await runner.Dispatch("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
+                Console.WriteLine(webResponse);
             }
 
             if (output == "quit")
