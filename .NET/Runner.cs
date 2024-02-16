@@ -1,4 +1,5 @@
 ﻿using Agience.Model;
+using System.Text;
 
 namespace Agience.Client
 {
@@ -20,6 +21,7 @@ namespace Agience.Client
 
         public async Task<(Runner, Data?)> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
+            // TODO: Allow registering a Type with a different templateIds, so we can have multiple templates with the same handler.
             var templateId = typeof(T).FullName;
 
             if (!string.IsNullOrEmpty(templateId))
@@ -44,7 +46,6 @@ namespace Agience.Client
 
                 return await Dispatch(localCallback);
             }
-
             else
             {
                 var information = new Information()
@@ -158,20 +159,39 @@ namespace Agience.Client
 
         public async Task<(Runner, Data?)> Prompt(Data? input = null, OutputCallback? localCallback = null)
         {
-            // TODO: Default Templates            
-            
-            // HERE
-
-            return await Dispatch("Agience.Agents._Console.Templates.ShowMessageToUser", input, localCallback);            
+            return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input, localCallback);
         }
 
-        //public async Task Retrieve() { }
-        //public async Task Record() { }
-        //public async Task Log() { }
-        //public async Task Validate() { }
-        //public async Task Sanitize() { }
-        //public async Task Monitor() { }
-        //public async Task Predict() { }
-        //public async Task Transcribe() { }
+        public async Task<(Runner, Data?)> Echo(Data? input = null, OutputCallback? localCallback = null)
+        {
+            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input, localCallback);
+        }
+
+        public async Task AddContext(Data? input = null)
+        {
+            _ = await Dispatch(_agent.Agency.DefaultTemplates["add_context"], input, null);
+        }
+
+        public async Task<Data?> GetContext(OutputCallback? localCallback = null)
+        {
+            var (_, output) = await Dispatch(_agent.Agency.DefaultTemplates["get_context"], null, localCallback);
+
+            return output;
+        }
+
+        public async Task<Data?> Debug(Data? input = null, OutputCallback? localCallback = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<Data?> GetHistory(Data? input = null, OutputCallback? localCallback = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task Log(Data? input = null)
+        {
+            Console.WriteLine(input?.Raw);
+        }
     }
 }

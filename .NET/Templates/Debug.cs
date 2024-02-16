@@ -1,10 +1,9 @@
-﻿using Agience.Client;
-
-namespace Agience.Templates.Default
+﻿namespace Agience.Client.Templates.Default
 {
     public class Debug : Template
     {
-        public override Data? Description => throw new NotImplementedException();
+        public override Data? Description => "Debug a template with input data.";
+        public override string[] InputKeys => new string[] { "template_id", "input_string" };
 
         protected internal override Task<Data?> Process(Runner runner, Data? input = null)
         {

@@ -13,11 +13,10 @@ namespace Agience.Client
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
         internal ReadOnlyDictionary<string, Model.Template> Templates => new(_templates);
-        internal ReadOnlyDictionary<string, string> DefaultTemplates => new(_defaultTemplates);
+        //internal ReadOnlyDictionary<string, string> DefaultTemplates => new(_defaultTemplates);
 
         private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();
-        private readonly ConcurrentDictionary<string, Model.Template> _templates = new();
-        private readonly ConcurrentDictionary<string,string> _defaultTemplates = new();
+        private readonly ConcurrentDictionary<string, Model.Template> _templates = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent;
@@ -49,7 +48,10 @@ namespace Agience.Client
 
         private async Task SendWelcome(Model.Agent agent)
         {
-            Console.WriteLine($"Sending welcome to {agent.Name} with {_agents.Values.Count} Agents and {_templates.Values.Count} Templates.");
+            // Add default templates to current templates
+
+            _ = _agent.Runner.Log($"Sending welcome to {agent.Name} with {_agents.Values.Count} Agents and {_templates.Values.Count} Templates.");            
+            
             await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
@@ -63,7 +65,7 @@ namespace Agience.Client
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agentTimestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
                     { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) },
-                    { "default_templates", JsonSerializer.Serialize(_defaultTemplates.Values.ToList()) },
+                    //{ "default_templates", JsonSerializer.Serialize(_defaultTemplates.Values.ToList()) },
                 })
             }); ;
         }
@@ -123,7 +125,7 @@ namespace Agience.Client
         }
         private async Task ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
         {
-            Console.WriteLine($"Received join from {modelAgent.Name}");
+            _ = _agent.Runner.Log($"Received join from {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
             if (_agents.TryGetValue(modelAgent.Id!, out (Model.Agent, DateTime) agent))
@@ -151,12 +153,12 @@ namespace Agience.Client
                                             List<Model.Template> templates,
                                             DateTime timestamp)
         {
-            Console.WriteLine($"Received welcome from {agency.Name}");
+            _ = _agent.Runner.Log($"Received welcome from {agency.Name}");
 
             if (RepresentativeId != representativeId)
             {
                 RepresentativeId = representativeId;
-                Console.WriteLine($"Set representative id {RepresentativeId}");
+                _ = _agent.Runner.Log($"Set representative id {RepresentativeId}");
             }
 
             foreach (var agent in agents)
@@ -176,12 +178,12 @@ namespace Agience.Client
         // Network Latency, Simultaneous Joins, etc.
         private async Task ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
         {
-            Console.WriteLine($"Received representative claim from {modelAgent.Name}");
+            _ = _agent.Runner.Log($"Received representative claim from {modelAgent.Name}");
 
             if (RepresentativeId != modelAgent.Id)
             {
                 RepresentativeId = modelAgent.Id;
-                Console.WriteLine($"Set representative id {RepresentativeId}");
+                _ = _agent.Runner.Log($"Set representative id {RepresentativeId}");
             }
 
             if (_agent.Id == RepresentativeId)
@@ -200,7 +202,7 @@ namespace Agience.Client
             if (modelTemplate?.Id != null)
             {
                 _templates[modelTemplate.Id] = modelTemplate;  // Replace whatever is there
-                Console.WriteLine($"Received template {modelTemplate.Id} from {modelTemplate.AgentId}");
+                _ = _agent.Runner.Log($"Received template {modelTemplate.Id} from {modelTemplate.AgentId}");
             }
         }
 
@@ -211,8 +213,6 @@ namespace Agience.Client
                 Id = Id,
                 Name = Name
             };
-        }
-
-        
+        }        
     }
 }

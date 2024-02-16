@@ -8,6 +8,7 @@ namespace Agience.Client
     public class Instance
     {
         public event Func<Agent, Task>? AgentConnected;
+        public event Func<Agent, Task>? AgentReady;
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
@@ -98,15 +99,16 @@ namespace Agience.Client
                 message.Payload["agent"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string,string>>(message.Payload["defaultTemplates"]!);
                 var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
 
                 if (agent == null) { return; } // Invalid Agent
 
-                await AgentConnect(agent, timestamp);
+                await AgentConnect(agent, defaultTemplates, timestamp);
             }
         }
 
-        private async Task AgentConnect(Model.Agent modelAgent, DateTime? timestamp)
+        private async Task AgentConnect(Model.Agent modelAgent, Dictionary<string,string> defaultTemplates, DateTime? timestamp)
         {
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Instance?.Id != Id)
             {
@@ -119,11 +121,14 @@ namespace Agience.Client
                 Name = modelAgent.Name,
             };
 
+            await agent.AddTemplates(defaultTemplates);
+
             await agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
 
             await agent.Connect();
 
             _agents.Add(agent.Id, agent);
+
 
             if (AgentConnected != null)
             {
@@ -137,6 +142,24 @@ namespace Agience.Client
                         }
                     });
             }
+
+            // Adding a short delay to accept incoming Templates, set defaults, etc.
+            // TODO: Improve this.
+            // Ideally we would wait until each Agent in the agency has sent templates.
+            await Task.Delay(5000);
+
+            if (AgentReady != null)
+            {
+                _ = Task.Run(() => AgentReady.Invoke(agent))
+                    .ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                        {   
+                            ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
+                        }
+                    });
+            }
+
         }
 
         private async Task<string?> GetAccessToken()

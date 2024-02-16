@@ -39,7 +39,8 @@ namespace Agience.Client
         {
             await StartNtpClock();
 
-            Console.WriteLine($"Connected Status: {IsConnected}");
+            // TODO: Write to local logger
+            //Console.WriteLine($"Connected Status: {IsConnected}");
 
             if (!_client.IsConnected)
             {

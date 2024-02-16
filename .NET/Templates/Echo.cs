@@ -1,6 +1,4 @@
-﻿using Agience.Client;
-
-namespace Agience.Templates.Default
+﻿namespace Agience.Client.Templates.Default
 {
     public class Echo : Template
     {

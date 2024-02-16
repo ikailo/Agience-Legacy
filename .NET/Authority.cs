@@ -6,17 +6,7 @@ namespace Agience.Client
 {
     public class Authority
     {
-        private static Dictionary<string, string> _defaultTemplates = new()
-        {
-            { "prompt", "Agience.Templates.Default.Prompt" },
-            { "write_log", "Agience.Templates.Default.WriteLog" },
-            //{ "find_template","Agience.Templates.Default.FindTemplate" },
-            //{ "add_context", "Agience.Templates.Default.AddContext" },
-            //{ "get_context", "Agience.Templates.Default.GetContext" },
-            //{ "kill", "Agience.Templates.Default.Kill" }
-        };
-
-    private const string BROKER_URI_KEY = "broker_uri";
+        private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
         public event Func<Model.Instance, Task>? InstanceConnected;
@@ -28,7 +18,15 @@ namespace Agience.Client
         public string Timestamp => _broker.Timestamp;
 
         private readonly Uri _authorityUri; // Expect without trailing slash
-        private readonly Broker _broker = new();        
+        private readonly Broker _broker = new();
+
+
+        private static Dictionary<string, string> _defaultTemplates = new()
+        {
+            { "prompt", "Agience.Client.Templates.Default.Prompt" },
+            { "add_context", "Agience.Client.Templates.Default.AddContext" },
+            { "get_context", "Agience.Client.Templates.Default.GetContext" }
+        };
 
         public Authority(string authorityUri)
         {
@@ -99,7 +97,7 @@ namespace Agience.Client
         }
 
         public async Task PublishAgentConnectEvent(Model.Agent agent)
-        {   
+        {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
