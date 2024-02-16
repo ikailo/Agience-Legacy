@@ -12,8 +12,9 @@ namespace Agience.Agents_Console
         {
             _instance.AddTemplate<InteractWithUser>();
             _instance.AddTemplate<Agents._Console.Templates.ShowMessageToUser>();
-            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);            
+            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
 
+            _instance.AgentReady += _instance_AgentReady;
             _instance.AgentConnected += _instance_AgentConnected;
 
             await _instance.Run();
@@ -21,7 +22,22 @@ namespace Agience.Agents_Console
 
         private static async Task _instance_AgentConnected(Agent agent)
         {
-            Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
+            await agent.Runner.Log($"{agent.Agency.Name} / {agent.Name} Connected");
+
+            // Set Default Templates here?
+            // The Agent needs to have Agency Admin access to set default templates
+
+            //agent.Agency.SetDefaultTemplate("context", "Agience.Templates.Default.Context");
+            //agent.Agency.SetDefaultTemplate("debug", "Agience.Templates.Default.Debug");
+            //agent.Agency.SetDefaultTemplate("echo", "Agience.Templates.Default.Echo");
+            //agent.Agency.SetDefaultTemplate("history", "Agience.Templates.Default.History");
+            //agent.Agency.SetDefaultTemplate("logger", "Agience.Templates.Default.Logger");
+            //agent.Agency.SetDefaultTemplate("prompt", "Agience.Templates.Default.Prompt");
+        }
+
+        private static async Task _instance_AgentReady(Agent agent)
+        {
+            await agent.Runner.Log($"{agent.Name} Ready");
 
             Data? message = null;            
             
@@ -37,7 +53,8 @@ namespace Agience.Agents_Console
         {  
             if (((string?)output)?.StartsWith("echo:") ?? false)
             {   
-                var (echoRunner, echo) = await runner.Dispatch("Agience.Templates.Default.Echo", ((string?)output)?.Substring(5));
+                var (echoRunner, echo) = await runner.Echo(((string?)output)?.Substring(5));
+
                 Console.WriteLine(echo);
             }
 
