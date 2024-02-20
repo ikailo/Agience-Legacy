@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Agience.Agents_Console
+namespace Agience.Agents._Console
 {
     internal class AppConfig : Client.Config
     {

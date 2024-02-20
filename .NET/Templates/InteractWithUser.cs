@@ -1,6 +1,6 @@
 ﻿using Agience.Client;
 
-namespace Agience.Templates
+namespace Agience.Agents._Console.Templates
 {
     public class InteractWithUser : Template
     {
@@ -8,10 +8,11 @@ namespace Agience.Templates
 
         protected override async Task<Data?> Process(Runner runner, Data? input)
         {
-            await runner.Dispatch<Agents._Console.Templates.ShowMessageToUser>($"{input}\r\n> ");
+            await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
 
             var (responseRunner, userInput) = await runner.Dispatch<GetInputFromUser>();
 
+            await runner.Prompt("foo");
             
 
             // Possible methods during Processing

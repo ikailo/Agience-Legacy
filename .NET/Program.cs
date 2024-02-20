@@ -1,7 +1,7 @@
 ﻿using Agience.Client;
-using Agience.Templates;
+using Agience.Agents._Console.Templates;
 
-namespace Agience.Agents_Console
+namespace Agience.Agents._Console
 {
     internal class Program
     {
@@ -11,11 +11,12 @@ namespace Agience.Agents_Console
         internal static async Task Main(string[] args)
         {
             _instance.AddTemplate<InteractWithUser>();
-            _instance.AddTemplate<Agents._Console.Templates.ShowMessageToUser>();
+            _instance.AddTemplate<ShowMessageToUser>();
             _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
+            _instance.AddTemplate<PromptOverride>();
 
-            _instance.AgentReady += _instance_AgentReady;
             _instance.AgentConnected += _instance_AgentConnected;
+            _instance.AgentReady += _instance_AgentReady;            
 
             await _instance.Run();
         }
@@ -24,15 +25,8 @@ namespace Agience.Agents_Console
         {
             await agent.Runner.Log($"{agent.Agency.Name} / {agent.Name} Connected");
 
-            // Set Default Templates here?
-            // The Agent needs to have Agency Admin access to set default templates
-
-            //agent.Agency.SetDefaultTemplate("context", "Agience.Templates.Default.Context");
-            //agent.Agency.SetDefaultTemplate("debug", "Agience.Templates.Default.Debug");
-            //agent.Agency.SetDefaultTemplate("echo", "Agience.Templates.Default.Echo");
-            //agent.Agency.SetDefaultTemplate("history", "Agience.Templates.Default.History");
-            //agent.Agency.SetDefaultTemplate("logger", "Agience.Templates.Default.Logger");
-            //agent.Agency.SetDefaultTemplate("prompt", "Agience.Templates.Default.Prompt");
+            // Update default templates TODO: only if allowed
+            agent.Agency.SetDefaultTemplate<PromptOverride>("prompt");
         }
 
         private static async Task _instance_AgentReady(Agent agent)

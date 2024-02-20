@@ -1,6 +1,6 @@
 ﻿using Agience.Client;
 
-namespace Agience.Templates
+namespace Agience.Agents._Console.Templates
 {
     public class GetInputFromUser : Template
     {
