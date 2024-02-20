@@ -16,7 +16,7 @@ namespace Agience.Agents._Console
             _instance.AddTemplate<PromptOverride>();
 
             _instance.AgentConnected += _instance_AgentConnected;
-            _instance.AgentReady += _instance_AgentReady;            
+            _instance.AgentReady += _instance_AgentReady;
 
             await _instance.Run();
         }
@@ -26,36 +26,37 @@ namespace Agience.Agents._Console
             await agent.Runner.Log($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Update default templates TODO: only if allowed
-            agent.Agency.SetDefaultTemplate<PromptOverride>("prompt");
+            await agent.Agency.SetTemplateAsDefault<PromptOverride>("prompt");
         }
 
         private static async Task _instance_AgentReady(Agent agent)
         {
             await agent.Runner.Log($"{agent.Name} Ready");
 
-            Data? message = null;            
-            
+            Data? message = null;
+
             while (_instance.IsConnected)
             {
-                (var runner, message) = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+                var response = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+                message = response.Output;                
             }
-            
-            Console.WriteLine($"Instance Stopped"); 
+
+            Console.WriteLine($"Instance Stopped");
         }
 
         private static async Task GetInputFromUser_callback(Runner runner, Data? output)
-        {  
+        {
             if (((string?)output)?.StartsWith("echo:") ?? false)
-            {   
-                var (echoRunner, echo) = await runner.Echo(((string?)output)?.Substring(5));
+            {
+                var response = await runner.Echo(((string?)output)?.Substring(5));
 
-                Console.WriteLine(echo);
+                Console.WriteLine(response.Output);
             }
 
             if (((string?)output)?.StartsWith("web:") ?? false)
             {
-                var (webRunner, webResponse) = await runner.Dispatch("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
-                Console.WriteLine(webResponse);
+                var response = await runner.Dispatch("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
+                Console.WriteLine(response.Output);
             }
 
             if (output == "quit")

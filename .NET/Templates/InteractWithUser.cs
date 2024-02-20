@@ -10,23 +10,13 @@ namespace Agience.Agents._Console.Templates
         {
             await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
 
-            var (responseRunner, userInput) = await runner.Dispatch<GetInputFromUser>();
+            var inputResponse = await runner.Dispatch<GetInputFromUser>();
 
-            await runner.Prompt("foo");
+            var promptResponse = await inputResponse.Runner.Prompt(inputResponse.Output);
+
+            return promptResponse.Output;
+
             
-
-            // Possible methods during Processing
-
-
-
-
-
-            //var baz = await Invoke<InteractWithUser>(input);
-
-            //var bar = await Dispatch("templateId", input);
-
-            //var foo = await Prompt(input);
-
             /*
 #if DEBUG
             
@@ -50,7 +40,7 @@ namespace Agience.Agents._Console.Templates
 
             return await Agent.Dispatch(bestTemplate?.Structured?["id"] ?? "Agience.Templates.InputToOutput", userInput);            
        */
-            return userInput;
+            //return userInput;
         }
     }
 }
