@@ -130,6 +130,22 @@ namespace Agience.Client
             });
         }
 
+        internal async Task SendTemplateDefaultToAgency(string defaultName, string templateId)
+        {
+            await _broker.Publish(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = _authority.AgencyTopic(Id!, _agency.Id!),
+                Payload = new Data(new()
+                {
+                    { "type", "template_default" },
+                    { "timestamp", _broker.Timestamp},
+                    { "default_name", defaultName },
+                    { "template_id", templateId }
+                })
+            });
+        }
+
         internal async Task SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
             if (runner != null)
@@ -233,7 +249,7 @@ namespace Agience.Client
             if (information.OutputAgentId == null)
             {
                 // This is information that needs to be processed. Presumably Local. Dispatch it.
-                var (runner, output) = await new Runner(this, information).Dispatch();
+                await new Runner(this, information).Dispatch();
 
                 // Return the output to the input agent
                 await SendInformationToAgent(information, information?.InputAgentId!);

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace Agience.Client
 {
@@ -49,8 +50,6 @@ namespace Agience.Client
 
         private async Task SendWelcome(Model.Agent agent)
         {
-            // Add default templates to current templates
-
             _ = _agent.Runner.Log($"Sending welcome to {agent.Name} with {_agents.Values.Count} Agents and {_templates.Values.Count} Templates.");            
             
             await _broker.Publish(new Message()
@@ -69,6 +68,8 @@ namespace Agience.Client
                 })
             }); ;
         }
+
+
 
         private async Task _broker_ReceiveMessage(Message message)
         {
@@ -120,6 +121,20 @@ namespace Agience.Client
                 {
                     ReceiveTemplate(template);
                 }
+            }
+
+            // Incoming Template Default message
+            if (message.Type == MessageType.EVENT &&
+                message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Payload["type"] == "template_default" &&
+                message.Payload["default_name"] != null &&
+                message.Payload["template_id"] != null)
+            {
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var defaultName = message.Payload["default_name"]!;
+                var templateId = message.Payload["template_id"]!;
+
+                ReceiveTemplateDefault(defaultName, templateId);               
             }
 
         }
@@ -209,6 +224,11 @@ namespace Agience.Client
             }
         }
 
+        private void ReceiveTemplateDefault(string defaultName, string templateId)
+        {
+            _defaultTemplates[defaultName] = templateId;
+        }
+
         private Model.Agency ToAgienceModel()
         {
             return new Model.Agency()
@@ -228,11 +248,9 @@ namespace Agience.Client
             }            
         }
 
-        public void SetDefaultTemplate<T>(string name) where T : Template, new()
-        {  
-            // TODO: This needs to be broadcasted/synced to other Agents
-
-            _defaultTemplates[name] = typeof(T).FullName!;
+        public async Task SetTemplateAsDefault<T>(string name) where T : Template, new()
+        {              
+            await _agent.SendTemplateDefaultToAgency(name, typeof(T).FullName!);
         }
     }
 }

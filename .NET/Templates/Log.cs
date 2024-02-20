@@ -6,7 +6,9 @@
 
         protected internal override Task<Data?> Process(Runner runner, Data? input = null)
         {
-            throw new NotImplementedException();
+            Console.WriteLine($"LOG: {input}");
+            
+            return Task.FromResult<Data?>(null);
         }
     }
 }

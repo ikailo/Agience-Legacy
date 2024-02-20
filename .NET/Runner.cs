@@ -3,6 +3,18 @@ using System.Text;
 
 namespace Agience.Client
 {
+    public class DispatchResponse
+    {
+        public Runner Runner { get; set; }
+        public Data? Output { get; set; }
+
+        public DispatchResponse(Runner runner, Data? output = null)
+        {
+            Runner = runner;
+            Output = output;
+        }
+    }
+
     public class Runner
     {
         public string? AgentId => _agent.Id;
@@ -19,7 +31,7 @@ namespace Agience.Client
             _information = information;
         }
 
-        public async Task<(Runner, Data?)> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
+        public async Task<DispatchResponse> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
             // TODO: Allow registering a Type with a different templateIds, so we can have multiple templates with the same handler.
             var templateId = typeof(T).FullName;
@@ -29,10 +41,10 @@ namespace Agience.Client
                 return await Dispatch(templateId, input, localCallback);
             }
 
-            return (this, null);
+            return new(this, null);
         }
 
-        public async Task<(Runner, Data?)> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
         {
             if (_information == null)
             {
@@ -61,10 +73,10 @@ namespace Agience.Client
             }
         }
 
-        public async Task<(Runner, Data?)> Dispatch(OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> Dispatch(OutputCallback? localCallback = null)
         {
 
-            (Runner, Data?) result = (this, null);
+            var result = new DispatchResponse(this, null);
 
             if (_information?.TemplateId != null)
             {
@@ -87,7 +99,7 @@ namespace Agience.Client
             return result;
         }
 
-        private async Task<(Runner, Data?)> Dispatch(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
+        private async Task<DispatchResponse> Dispatch(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
         {
             // Process this locally
 
@@ -110,10 +122,10 @@ namespace Agience.Client
                     globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
                 ).ConfigureAwait(false);
 
-                return (this, _information.Output);
+                return new (this, _information.Output);
             }
 
-            return (this, null);
+            return new (this, null);
         }
 
         internal void ReceiveOutput(Information information)
@@ -133,7 +145,7 @@ namespace Agience.Client
             _information.OutputTimestamp = information.OutputTimestamp;
         }
 
-        private async Task<(Runner, Data?)> Dispatch(Model.Template template, OutputCallback? localCallback)
+        private async Task<DispatchResponse> Dispatch(Model.Template template, OutputCallback? localCallback)
         {
             // Process this remotely
 
@@ -151,47 +163,40 @@ namespace Agience.Client
                     await localCallback.Invoke(this, _information.Output);
                 }
 
-                return (this, _information.Output);
+                return new(this, _information.Output);
             }
 
-            return (this, null);
+            return new(this, null);
         }
 
-        public async Task<(Runner, Data?)> Prompt(Data? input = null, OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> Prompt(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input, localCallback);
+            return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input, null);
         }
 
-        public async Task AddContext(Data? input = null)
+        public async Task<DispatchResponse> Context(Data? input = null)
         {
-            _ = await Dispatch(_agent.Agency.DefaultTemplates["add_context"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["context"], input, null);
         }
 
-        public async Task<Data?> GetContext(OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> Echo(Data? input = null)
         {
-            var (_, output) = await Dispatch(_agent.Agency.DefaultTemplates["get_context"], null, localCallback);
-
-            return output;
+            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input, null);
         }
 
-        public async Task<(Runner, Data?)> Echo(Data? input = null, OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> Debug(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input, localCallback);
+            return await Dispatch(_agent.Agency.DefaultTemplates["debug"], input, null);
         }
 
-        public async Task<Data?> Debug(Data? input = null, OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> History(Data? input = null)
         {
-            throw new NotImplementedException();
+            return await Dispatch(_agent.Agency.DefaultTemplates["history"], input, null);
         }
 
-        public async Task<Data?> GetHistory(Data? input = null, OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> Log(Data? input = null)
         {
-            throw new NotImplementedException();
-        }
-
-        public async Task Log(Data? input = null)
-        {
-            Console.WriteLine(input?.Raw);
+            return await Dispatch(_agent.Agency.DefaultTemplates["log"], input, null);
         }
     }
 }

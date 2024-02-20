@@ -8,7 +8,9 @@
 
         protected internal override Task<Data?> Process(Runner runner, Data? input = null)
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Default History template has been called. //TODO: Implement.");
+
+            return Task.FromResult<Data?>(null);
         }
     }
 }
