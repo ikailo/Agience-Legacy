@@ -36,7 +36,7 @@ namespace Agience.Client
                 Id = Base64UrlEncoder.Encode(sha256.ComputeHash(Guid.NewGuid().ToByteArray()));
             }
         }
-
+        
         // TODO: Is a separate constructor for deserialization necessary?
         [JsonConstructor]
         public Information( string id,
@@ -46,9 +46,9 @@ namespace Agience.Client
                             string? inputTimestamp,
                             Data? output,
                             string? outputAgentId,
-                            string? outputTimestamp,                            
-                            Data? transformation,
-                            string? templateId
+                            string? outputTimestamp,
+                            string? templateId,
+                            Data? transformation                            
                             )
         {
             Id = id;
@@ -58,9 +58,9 @@ namespace Agience.Client
             InputTimestamp = inputTimestamp;
             Output = output;
             OutputAgentId = outputAgentId;
-            OutputTimestamp = outputTimestamp;            
-            TemplateId = templateId;            
-            Transformation = transformation;            
+            OutputTimestamp = outputTimestamp;
+            Transformation = transformation;
+            TemplateId = templateId;
         }
     }
 }

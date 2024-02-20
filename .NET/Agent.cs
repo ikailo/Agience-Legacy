@@ -80,13 +80,13 @@ namespace Agience.Client
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "join" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
                     { "random", new Random().NextInt64().ToString() }
-                })
+                }
             });
         }
 
@@ -106,12 +106,12 @@ namespace Agience.Client
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "representative_claim" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
-                })
+                }
             });
         }
 
@@ -121,12 +121,12 @@ namespace Agience.Client
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "template" },
                     { "timestamp", _broker.Timestamp},
                     { "template", JsonSerializer.Serialize(template) }
-                })
+                }
             });
         }
 
@@ -136,13 +136,13 @@ namespace Agience.Client
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "template_default" },
                     { "timestamp", _broker.Timestamp},
                     { "default_name", defaultName },
                     { "template_id", templateId }
-                })
+                }
             });
         }
 
@@ -157,10 +157,7 @@ namespace Agience.Client
             {
                 Type = MessageType.INFORMATION,
                 Topic = _authority.AgentTopic(Id!, targetAgentId),
-                Payload = new Data(new()
-                {
-                    {"information",JsonSerializer.Serialize(information) } // FIXME: Too much serialization
-                })
+                Information = information
             });
         }
 
@@ -193,24 +190,24 @@ namespace Agience.Client
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload == null) { return; }
+            if (message.SenderId == null || (message.Data == null && message.Information == null)) { return; }
 
             // Incoming Agency Welcome message
             if (message.Type == MessageType.EVENT &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "welcome" &&
-                message.Payload["agency"] != null &&
-                message.Payload["representative_id"] != null &&
-                message.Payload["timestamp"] != null &&
-                message.Payload["agents"] != null &&
-                message.Payload["templates"] != null)
+                //message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Data?["type"] == "welcome" &&
+                message.Data?["agency"] != null &&
+                message.Data?["representative_id"] != null &&
+                message.Data?["timestamp"] != null &&
+                message.Data?["agents"] != null &&
+                message.Data?["templates"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agency = JsonSerializer.Deserialize<Model.Agency>(message.Payload["agency"]!);
-                var representativeId = message.Payload["representative_id"]!;
-                var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Payload["agents"]!);
-                var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Payload["agent_timestamps"]!);
-                var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Payload["templates"]!);
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var agency = JsonSerializer.Deserialize<Model.Agency>(message.Data?["agency"]!);
+                var representativeId = message.Data?["representative_id"]!;
+                var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Data?["agents"]!);
+                var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
+                var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Data?["templates"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null && templates != null && timestamp != null)
                 {
@@ -220,15 +217,15 @@ namespace Agience.Client
 
             // Incoming Agent Information message
             if (message.Type == MessageType.INFORMATION &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["information"] != null
+               // message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Information != null
                 )
             {
-                var information = JsonSerializer.Deserialize<Information>(message.Payload["information"]!);
+                              
 
-                if (information != null)
+               // if (information != null)
                 {
-                    await ReceiveInformation(information);
+                    await ReceiveInformation(message.Information);
                 }
             }
         }

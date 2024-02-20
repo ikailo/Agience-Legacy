@@ -5,6 +5,7 @@ using MQTTnet.Formatter;
 using MQTTnet.Diagnostics;
 using GuerrillaNtp;
 using Timer = System.Timers.Timer;
+using System.Text.Json;
 
 namespace Agience.Client
 {
@@ -59,7 +60,7 @@ namespace Agience.Client
                     .Build();
 
                 await _client.ConnectAsync(options);
-                               
+
                 Console.WriteLine($"Broker Connected");
             }
         }
@@ -71,15 +72,28 @@ namespace Agience.Client
 
             if (_callbacks.TryGetValue(callbackTopic, out var callbackContainers))
             {
+                var messageType = Enum.TryParse<MessageType>(
+                    args.ApplicationMessage.UserProperties.FirstOrDefault(x => x.Name == MESSAGE_TYPE_KEY)?.Value.ToString(), out var parsedMessageType) ?
+                    parsedMessageType :
+                    MessageType.UNKNOWN;
+
                 var message = new Message()
                 {
-                    Type = Enum.TryParse<MessageType>(
-                        args.ApplicationMessage.UserProperties.FirstOrDefault(x => x.Name == MESSAGE_TYPE_KEY)?.Value.ToString(), out var messageType) ?
-                        messageType :
-                        MessageType.UNKNOWN,
-                    Topic = args.ApplicationMessage.Topic,
-                    Payload = args.ApplicationMessage.ConvertPayloadToString()
+                    Type = messageType,
+                    Topic = args.ApplicationMessage.Topic //,
+                    //Payload = args.ApplicationMessage.ConvertPayloadToString()
                 };
+
+                switch (messageType)
+                {
+                    case MessageType.EVENT:
+                        message.Data = args.ApplicationMessage.ConvertPayloadToString();
+                        break;
+                    case MessageType.INFORMATION:
+                        var payloadString = args.ApplicationMessage.ConvertPayloadToString();
+                        message.Information = JsonSerializer.Deserialize<Information>(payloadString);
+                        break;
+                }
 
                 foreach (var container in callbackContainers)
                 {
@@ -114,7 +128,7 @@ namespace Agience.Client
             _callbacks[callbackTopic].Add(container);
 
             var options = new MqttClientSubscribeOptionsBuilder()
-                .WithTopicFilter(topic, MqttQualityOfServiceLevel.AtMostOnce)                
+                .WithTopicFilter(topic, MqttQualityOfServiceLevel.AtMostOnce)
                 .Build();
 
             await _client.SubscribeAsync(options);
@@ -141,9 +155,21 @@ namespace Agience.Client
         {
             if (_client.IsConnected)
             {
+                string payload = string.Empty;
+
+                switch (message.Type)
+                {
+                    case MessageType.EVENT:
+                        payload = message.Data?.Raw ?? string.Empty;
+                        break;
+                    case MessageType.INFORMATION:
+                        payload = JsonSerializer.Serialize(message.Information);
+                        break;
+                }
+
                 var mqMessage = new MqttApplicationMessageBuilder()
                     .WithTopic(message.Topic ?? throw new ArgumentNullException(nameof(message.Topic)))
-                    .WithPayload(message.Payload?.ToString() ?? throw new ArgumentNullException(nameof(message.Payload)))
+                    .WithPayload(payload)
                     .WithRetainFlag(false)
                     .WithUserProperty(MESSAGE_TYPE_KEY, message.Type.ToString())
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)

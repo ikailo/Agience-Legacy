@@ -85,13 +85,16 @@ namespace Agience.Client
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload == null || message.Payload.Format != DataFormat.STRUCTURED) { return; }
+            if (message.SenderId == null || 
+                message.Data == null //|| 
+                //message.Payload.Format != DataFormat.STRUCTURED
+                ) { return; }
                         
             if (message.Type == MessageType.EVENT && 
-                message.Payload["type"] == "instance_connect" && 
-                message.Payload.ContainsKey("instance"))
+                message.Data?["type"] == "instance_connect" && 
+                message.Data?["instance"] != null)
             {
-                var instance = JsonSerializer.Deserialize<Model.Instance>(message.Payload["instance"]!);
+                var instance = JsonSerializer.Deserialize<Model.Instance>(message.Data?["instance"]!);
 
                 // TODO: Move to seperate method
                 if (instance?.Id == message.SenderId && InstanceConnected != null)
@@ -111,13 +114,13 @@ namespace Agience.Client
             {
                 Type = MessageType.EVENT,
                 Topic = InstanceTopic(Id, agent.Instance.Id),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) },
                     { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
-                })
+                }
             });
         }
 
@@ -131,12 +134,12 @@ namespace Agience.Client
             {
                 Type = MessageType.EVENT,
                 Topic = InstanceTopic(Id, agent.Instance.Id),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "agent_disconnect" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) }
-                })
+                }
             });
         }
 
@@ -165,7 +168,5 @@ namespace Agience.Client
         {
             return Topic(senderId, null, null, agentId);
         }
-
-
     }
 }

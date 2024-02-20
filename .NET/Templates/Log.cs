@@ -4,6 +4,8 @@
     {
         public override Data? Description => "Write entries to the Agency log.";
 
+        public override string[] InputKeys => new[] { "timestamp", "agent_id", "level", "message" };
+
         protected internal override Task<Data?> Process(Runner runner, Data? input = null)
         {
             Console.WriteLine($"LOG: {input}");

@@ -122,10 +122,10 @@ namespace Agience.Client
                     globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
                 ).ConfigureAwait(false);
 
-                return new (this, _information.Output);
+                return new(this, _information.Output);
             }
 
-            return new (this, null);
+            return new(this, null);
         }
 
         internal void ReceiveOutput(Information information)
@@ -194,9 +194,17 @@ namespace Agience.Client
             return await Dispatch(_agent.Agency.DefaultTemplates["history"], input);
         }
 
-        public async Task<DispatchResponse> Log(Data? input = null)
+        public void Log(string message, string level = "info")
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["log"], input);
+            Data data = new Data
+            {
+                { "timestamp", _agent.Timestamp},
+                { "agent_id", _agent.Id! },
+                { "level", level },
+                { "message", message }
+            };            
+
+            _ = Dispatch(_agent.Agency.DefaultTemplates["log"], data);
         }
     }
 }

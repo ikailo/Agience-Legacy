@@ -50,40 +50,40 @@ namespace Agience.Client
 
         private async Task SendWelcome(Model.Agent agent)
         {
-            _ = _agent.Runner.Log($"Sending welcome to {agent.Name} with {_agents.Values.Count} Agents and {_templates.Values.Count} Templates.");            
-            
+            _agent.Runner.Log($"Sending welcome to {agent.Name} with {_agents.Values.Count} Agents and {_templates.Values.Count} Templates.");
+
             await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgentTopic(Id!, agent.Id!),
-                Payload = new Data(new()
+                Data = new Data
                 {
                     { "type", "welcome" },
-                    { "timestamp", _broker.Timestamp},
+                    { "timestamp", _broker.Timestamp },
                     { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
                     { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
                     { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) }
-                })
-            }); ;
+                }
+            });
         }
 
 
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload == null) { return; }
+            if (message.SenderId == null || message.Data == null) { return; }
 
             // Incoming Agent Join message
             if (message.Type == MessageType.EVENT &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "join" &&
-                message.Payload["agent"] != null &&
-                message.Payload["timestamp"] != null)
+                //message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Data?["type"] == "join" &&
+                message.Data?["agent"] != null &&
+                message.Data?["timestamp"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -93,13 +93,13 @@ namespace Agience.Client
 
             // Incoming Representative Claim message
             if (message.Type == MessageType.EVENT &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "representative_claim" &&
-                message.Payload["agent"] != null &&
-                message.Payload["timestamp"] != null)
+                //message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Data?["type"] == "representative_claim" &&
+                message.Data?["agent"] != null &&
+                message.Data?["timestamp"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -109,13 +109,13 @@ namespace Agience.Client
 
             // Incoming Template message
             if (message.Type == MessageType.EVENT &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "template" &&
-                message.Payload["template"] != null &&
-                message.Payload["timestamp"] != null)
+                //message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Data?["type"] == "template" &&
+                message.Data?["template"] != null &&
+                message.Data?["timestamp"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var template = JsonSerializer.Deserialize<Model.Template>(message.Payload["template"]!);
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var template = JsonSerializer.Deserialize<Model.Template>(message.Data?["template"]!);
 
                 if (template?.AgentId == message.SenderId && timestamp != null)
                 {
@@ -125,14 +125,14 @@ namespace Agience.Client
 
             // Incoming Template Default message
             if (message.Type == MessageType.EVENT &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "template_default" &&
-                message.Payload["default_name"] != null &&
-                message.Payload["template_id"] != null)
+                //message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Data?["type"] == "template_default" &&
+                message.Data?["default_name"] != null &&
+                message.Data?["template_id"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var defaultName = message.Payload["default_name"]!;
-                var templateId = message.Payload["template_id"]!;
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var defaultName = message.Data?["default_name"]!;
+                var templateId = message.Data?["template_id"]!;
 
                 ReceiveTemplateDefault(defaultName, templateId);               
             }
@@ -140,7 +140,7 @@ namespace Agience.Client
         }
         private async Task ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
         {
-            _ = _agent.Runner.Log($"Received join from {modelAgent.Name}");
+            _agent.Runner.Log($"Received join from {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
             if (_agents.TryGetValue(modelAgent.Id!, out (Model.Agent, DateTime) agent))
@@ -168,12 +168,12 @@ namespace Agience.Client
                                             List<Model.Template> templates,
                                             DateTime timestamp)
         {
-            _ = _agent.Runner.Log($"Received welcome from {agency.Name}");
+            _agent.Runner.Log($"Received welcome from {agency.Name}");
 
             if (RepresentativeId != representativeId)
             {
                 RepresentativeId = representativeId;
-                _ = _agent.Runner.Log($"Set representative id {RepresentativeId}");
+                _agent.Runner.Log($"Set representative id {RepresentativeId}");
             }
 
             foreach (var agent in agents)
@@ -196,12 +196,12 @@ namespace Agience.Client
         // Network Latency, Simultaneous Joins, etc.
         private async Task ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
         {
-            _ = _agent.Runner.Log($"Received representative claim from {modelAgent.Name}");
+            _agent.Runner.Log($"Received representative claim from {modelAgent.Name}");
 
             if (RepresentativeId != modelAgent.Id)
             {
                 RepresentativeId = modelAgent.Id;
-                _ = _agent.Runner.Log($"Set representative id {RepresentativeId}");
+                _agent.Runner.Log($"Set representative id {RepresentativeId}");
             }
 
             if (_agent.Id == RepresentativeId)
@@ -220,7 +220,7 @@ namespace Agience.Client
             {                
                 _templates[modelTemplate.Id] = modelTemplate;
 
-                _ = _agent.Runner.Log($"Received template {modelTemplate.Id} from {modelTemplate.AgentId}");
+                _agent.Runner.Log($"Received template {modelTemplate.Id} from {modelTemplate.AgentId}");
             }
         }
 

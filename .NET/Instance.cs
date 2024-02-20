@@ -12,7 +12,7 @@ namespace Agience.Client
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
-        public IReadOnlyList<Model.Agent> Agents => _agents.Values.Select(agent => agent.ToAgienceModel()).ToList().AsReadOnly();
+        public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
 
         private readonly Config _config;
         private readonly Authority _authority;
@@ -55,17 +55,19 @@ namespace Agience.Client
 
             await _broker.Subscribe(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); // This Instance
 
+            var data = new Data
+            {
+                { "type", "instance_connect" },
+                { "timestamp", _broker.Timestamp},
+                { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
+            };
+
             await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
-                Payload = new Data(new()
-                {
-                    { "type", "instance_connect" },
-                    { "timestamp", _broker.Timestamp},
-                    { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
-                })
-            }); ;
+                Data = data
+            });
 
             IsConnected = true;
         }
@@ -90,17 +92,17 @@ namespace Agience.Client
 
         private async Task _broker_ReceiveMessage(Message message)
         {
-            if (message.SenderId == null || message.Payload == null) { return; }
+            if (message.SenderId == null || message.Data == null) { return; }
 
             // Incoming Agent Connect Message
             if (message.Type == MessageType.EVENT &&
-                message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "agent_connect" &&
-                message.Payload["agent"] != null)
+               // message.Payload.Format == DataFormat.STRUCTURED &&
+                message.Data?["type"] == "agent_connect" &&
+                message.Data?["agent"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;                
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
-                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Payload["default_templates"]!);
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;                
+                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
+                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Data?["default_templates"]!);
 
                 if (agent == null) { return; } // Invalid Agent
 
