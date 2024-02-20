@@ -54,11 +54,12 @@ namespace Agience.Client
                     .WithoutThrowOnNonSuccessfulConnectResponse()
                     .WithTimeout(TimeSpan.FromSeconds(300))
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(60))
-                    .WithCleanSession()
+                    .WithSessionExpiryInterval(60)
+                    .WithCleanStart()
                     .Build();
 
                 await _client.ConnectAsync(options);
-
+                               
                 Console.WriteLine($"Broker Connected");
             }
         }
@@ -113,7 +114,7 @@ namespace Agience.Client
             _callbacks[callbackTopic].Add(container);
 
             var options = new MqttClientSubscribeOptionsBuilder()
-                .WithTopicFilter(builder => builder.WithTopic(topic))
+                .WithTopicFilter(topic, MqttQualityOfServiceLevel.AtMostOnce)                
                 .Build();
 
             await _client.SubscribeAsync(options);

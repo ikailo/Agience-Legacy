@@ -171,32 +171,32 @@ namespace Agience.Client
 
         public async Task<DispatchResponse> Prompt(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input);
         }
 
         public async Task<DispatchResponse> Context(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["context"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["context"], input);
         }
 
         public async Task<DispatchResponse> Echo(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input);
         }
 
         public async Task<DispatchResponse> Debug(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["debug"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["debug"], input);
         }
 
         public async Task<DispatchResponse> History(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["history"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["history"], input);
         }
 
         public async Task<DispatchResponse> Log(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["log"], input, null);
+            return await Dispatch(_agent.Agency.DefaultTemplates["log"], input);
         }
     }
 }
