@@ -23,9 +23,12 @@ namespace Agience.Client
 
         private static Dictionary<string, string> _defaultTemplates = new()
         {
+            { "context", "Agience.Client.Templates.Default.Context" },
+            { "debug", "Agience.Client.Templates.Default.Debug" },
+            { "echo", "Agience.Client.Templates.Default.Echo" },            
+            { "history", "Agience.Client.Templates.Default.History" },            
+            { "log", "Agience.Client.Templates.Default.Log" },
             { "prompt", "Agience.Client.Templates.Default.Prompt" },
-            { "add_context", "Agience.Client.Templates.Default.AddContext" },
-            { "get_context", "Agience.Client.Templates.Default.GetContext" }
         };
 
         public Authority(string authorityUri)
@@ -83,12 +86,14 @@ namespace Agience.Client
         private async Task _broker_ReceiveMessage(Message message)
         {
             if (message.SenderId == null || message.Payload == null || message.Payload.Format != DataFormat.STRUCTURED) { return; }
-
-            // TODO: Move to seperate method
-            if (message.Type == MessageType.EVENT && message.Payload["type"] == "instanceConnect" && message.Payload.ContainsKey("instance"))
+                        
+            if (message.Type == MessageType.EVENT && 
+                message.Payload["type"] == "instance_connect" && 
+                message.Payload.ContainsKey("instance"))
             {
                 var instance = JsonSerializer.Deserialize<Model.Instance>(message.Payload["instance"]!);
 
+                // TODO: Move to seperate method
                 if (instance?.Id == message.SenderId && InstanceConnected != null)
                 {
                     await InstanceConnected.Invoke(instance);
@@ -108,10 +113,10 @@ namespace Agience.Client
                 Topic = InstanceTopic(Id, agent.Instance.Id),
                 Payload = new Data(new()
                 {
-                    { "type", "agentConnect" },
+                    { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) },
-                    { "defaultTemplates", JsonSerializer.Serialize(_defaultTemplates) }
+                    { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
                 })
             });
         }
@@ -128,7 +133,7 @@ namespace Agience.Client
                 Topic = InstanceTopic(Id, agent.Instance.Id),
                 Payload = new Data(new()
                 {
-                    { "type", "agentDisconnect" },
+                    { "type", "agent_disconnect" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(agent) }
                 })

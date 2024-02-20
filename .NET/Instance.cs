@@ -61,7 +61,7 @@ namespace Agience.Client
                 Topic = _authority.AuthorityTopic(Id!),
                 Payload = new Data(new()
                 {
-                    { "type", "instanceConnect" },
+                    { "type", "instance_connect" },
                     { "timestamp", _broker.Timestamp},
                     { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
                 })
@@ -95,20 +95,20 @@ namespace Agience.Client
             // Incoming Agent Connect Message
             if (message.Type == MessageType.EVENT &&
                 message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "agentConnect" &&
+                message.Payload["type"] == "agent_connect" &&
                 message.Payload["agent"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string,string>>(message.Payload["defaultTemplates"]!);
+                var timestamp = DateTime.TryParse(message.Payload["timestamp"], out DateTime result) ? (DateTime?)result : null;                
                 var agent = JsonSerializer.Deserialize<Model.Agent>(message.Payload["agent"]!);
+                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Payload["default_templates"]!);
 
                 if (agent == null) { return; } // Invalid Agent
 
-                await AgentConnect(agent, defaultTemplates, timestamp);
+                await ReceiveAgentConnect(agent, defaultTemplates, timestamp);
             }
         }
 
-        private async Task AgentConnect(Model.Agent modelAgent, Dictionary<string,string> defaultTemplates, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Model.Agent modelAgent, Dictionary<string,string>? defaultTemplates, DateTime? timestamp)
         {
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Instance?.Id != Id)
             {
@@ -121,14 +121,13 @@ namespace Agience.Client
                 Name = modelAgent.Name,
             };
 
-            await agent.AddTemplates(defaultTemplates);
+            agent.Agency.SetDefaultTemplates(defaultTemplates);
 
             await agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
 
             await agent.Connect();
 
             _agents.Add(agent.Id, agent);
-
 
             if (AgentConnected != null)
             {
@@ -197,7 +196,7 @@ namespace Agience.Client
 
                 if (template.HasValue)
                 {
-                    agent.AddTemplate(template.Value);
+                    _ = agent.AddTemplate(template.Value);
                 }
             }
         }

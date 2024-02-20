@@ -13,10 +13,11 @@ namespace Agience.Client
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
         internal ReadOnlyDictionary<string, Model.Template> Templates => new(_templates);
-        //internal ReadOnlyDictionary<string, string> DefaultTemplates => new(_defaultTemplates);
+        internal ReadOnlyDictionary<string, string> DefaultTemplates => new(_defaultTemplates);
 
         private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();
-        private readonly ConcurrentDictionary<string, Model.Template> _templates = new();        
+        private readonly ConcurrentDictionary<string, Model.Template> _templates = new();
+        private Dictionary<string, string> _defaultTemplates = new();
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent;
@@ -63,9 +64,8 @@ namespace Agience.Client
                     { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
                     { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
-                    { "agentTimestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
-                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) },
-                    //{ "default_templates", JsonSerializer.Serialize(_defaultTemplates.Values.ToList()) },
+                    { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
+                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) }
                 })
             }); ;
         }
@@ -93,7 +93,7 @@ namespace Agience.Client
             // Incoming Representative Claim message
             if (message.Type == MessageType.EVENT &&
                 message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Payload["type"] == "representativeClaim" &&
+                message.Payload["type"] == "representative_claim" &&
                 message.Payload["agent"] != null &&
                 message.Payload["timestamp"] != null)
             {
@@ -167,8 +167,11 @@ namespace Agience.Client
             }
 
             foreach (var template in templates)
-            {
-                ReceiveTemplate(template);
+            {   
+                if (template.AgentId != _agent.Id)
+                {
+                    ReceiveTemplate(template);
+                }
             }
 
             await _agent.SendTemplatesToAgency();
@@ -197,11 +200,11 @@ namespace Agience.Client
         }
 
         private void ReceiveTemplate(Model.Template modelTemplate)
-        {            
-            // TODO: Remove templates when Agent leaves
-            if (modelTemplate?.Id != null)
-            {
-                _templates[modelTemplate.Id] = modelTemplate;  // Replace whatever is there
+        {   
+            if (modelTemplate?.Id != null && !_templates.ContainsKey(modelTemplate.Id))
+            {                
+                _templates[modelTemplate.Id] = modelTemplate;
+
                 _ = _agent.Runner.Log($"Received template {modelTemplate.Id} from {modelTemplate.AgentId}");
             }
         }
@@ -213,6 +216,23 @@ namespace Agience.Client
                 Id = Id,
                 Name = Name
             };
-        }        
+        }
+
+        internal void SetDefaultTemplates(Dictionary<string, string>? defaultTemplates)
+        {
+            if (defaultTemplates == null) { return; }
+
+            foreach(var item in defaultTemplates)
+            {
+                _defaultTemplates[item.Key] = item.Value;
+            }            
+        }
+
+        public void SetDefaultTemplate<T>(string name) where T : Template, new()
+        {  
+            // TODO: This needs to be broadcasted/synced to other Agents
+
+            _defaultTemplates[name] = typeof(T).FullName!;
+        }
     }
 }

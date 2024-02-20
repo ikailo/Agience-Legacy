@@ -162,11 +162,6 @@ namespace Agience.Client
             return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input, localCallback);
         }
 
-        public async Task<(Runner, Data?)> Echo(Data? input = null, OutputCallback? localCallback = null)
-        {
-            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input, localCallback);
-        }
-
         public async Task AddContext(Data? input = null)
         {
             _ = await Dispatch(_agent.Agency.DefaultTemplates["add_context"], input, null);
@@ -177,6 +172,11 @@ namespace Agience.Client
             var (_, output) = await Dispatch(_agent.Agency.DefaultTemplates["get_context"], null, localCallback);
 
             return output;
+        }
+
+        public async Task<(Runner, Data?)> Echo(Data? input = null, OutputCallback? localCallback = null)
+        {
+            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input, localCallback);
         }
 
         public async Task<Data?> Debug(Data? input = null, OutputCallback? localCallback = null)

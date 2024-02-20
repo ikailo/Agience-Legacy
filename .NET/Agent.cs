@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Agience.Model;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
@@ -32,7 +33,7 @@ namespace Agience.Client
             get
             {
                 // TODO: Should this be a new runner each time?
-                return _runner == null ? new Runner(this) : _runner;                
+                return _runner == null ? new Runner(this) : _runner;
             }
         }
 
@@ -93,13 +94,21 @@ namespace Agience.Client
         {
             if (_agency.RepresentativeId != null) { return; } // Was set by another agent
 
+            // Take ownership of the default templates
+            await AddTemplate(new(new Templates.Default.Context() { Agent = this }, null));
+            await AddTemplate(new(new Templates.Default.Debug() { Agent = this }, null));
+            await AddTemplate(new(new Templates.Default.Echo() { Agent = this }, null));            
+            await AddTemplate(new(new Templates.Default.History() { Agent = this }, null));
+            await AddTemplate(new(new Templates.Default.Log() { Agent = this }, null));
+            await AddTemplate(new(new Templates.Default.Prompt() { Agent = this }, null));
+
             await _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
                 Payload = new Data(new()
                 {
-                    { "type", "representativeClaim" },
+                    { "type", "representative_claim" },
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
                 })
@@ -184,7 +193,7 @@ namespace Agience.Client
                 var agency = JsonSerializer.Deserialize<Model.Agency>(message.Payload["agency"]!);
                 var representativeId = message.Payload["representative_id"]!;
                 var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Payload["agents"]!);
-                var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Payload["agentTimestamps"]!);
+                var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Payload["agent_timestamps"]!);
                 var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Payload["templates"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null && templates != null && timestamp != null)
@@ -213,7 +222,7 @@ namespace Agience.Client
         private async Task ReceiveInformation(Information information)
         {
             if (information.InputAgentId == Id)
-            {                
+            {
                 // This is returned information
                 if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
                 {
