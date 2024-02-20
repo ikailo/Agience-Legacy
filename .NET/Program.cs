@@ -23,7 +23,7 @@ namespace Agience.Agents._Console
 
         private static async Task _instance_AgentConnected(Agent agent)
         {
-            await agent.Runner.Log($"{agent.Agency.Name} / {agent.Name} Connected");
+            agent.Runner.Log($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Update default templates TODO: only if allowed
             await agent.Agency.SetTemplateAsDefault<PromptOverride>("prompt");
@@ -31,7 +31,7 @@ namespace Agience.Agents._Console
 
         private static async Task _instance_AgentReady(Agent agent)
         {
-            await agent.Runner.Log($"{agent.Name} Ready");
+            agent.Runner.Log($"{agent.Name} Ready");
 
             Data? message = null;
 
@@ -51,6 +51,11 @@ namespace Agience.Agents._Console
                 var response = await runner.Echo(((string?)output)?.Substring(5));
 
                 Console.WriteLine(response.Output);
+            }
+
+            if (((string?)output)?.StartsWith("log:") ?? false)
+            {
+                runner.Log(((string?)output)?.Substring(4) ?? string.Empty);                
             }
 
             if (((string?)output)?.StartsWith("web:") ?? false)

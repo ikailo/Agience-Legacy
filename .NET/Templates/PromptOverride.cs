@@ -10,7 +10,7 @@ namespace Agience.Agents._Console.Templates
         {
             await runner.Dispatch<ShowMessageToUser>("Prompt Override");
 
-            return null;
+            return input;
         }
     }
 }
