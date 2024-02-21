@@ -8,9 +8,13 @@ namespace Agience.Agents._Console.Templates
 
         protected override async Task<Data?> Process(Runner runner, Data? input)
         {
-            await runner.Dispatch<ShowMessageToUser>("Prompt Override");
+            // TODO: Do something with the prompt input
+            
+            // HERE
+            
+            _ = await runner.Dispatch<ShowMessageToUser>($"Prompt: {input}");
 
-            return input;
+            return null;
         }
     }
 }

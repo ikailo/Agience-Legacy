@@ -13,11 +13,5 @@ namespace Agience.Agents._Console.Templates
                 return Console.ReadLine() ?? string.Empty;
             });
         }
-
-        protected override async Task<bool> Assess(Runner runner, Data? input = null)
-        {
-            return await Task.FromResult(true);
-
-        }
     }
 }

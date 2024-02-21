@@ -33,11 +33,11 @@ namespace Agience.Agents._Console
         {
             agent.Runner.Log($"{agent.Name} Ready");
 
-            Data? message = null;
+            Data? message = "Ready For Input";
 
             while (_instance.IsConnected)
             {
-                var response = await agent.Runner.Dispatch<InteractWithUser>(message ?? "Ready For Input");
+                var response = await agent.Runner.Dispatch<InteractWithUser>(message);
                 message = response.Output;                
             }
 
@@ -60,8 +60,8 @@ namespace Agience.Agents._Console
 
             if (((string?)output)?.StartsWith("web:") ?? false)
             {
-                var response = await runner.Dispatch("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
-                Console.WriteLine(response.Output);
+                _ = await runner.Dispatch("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
+                //Console.WriteLine(response.Output);
             }
 
             if (output == "quit")
