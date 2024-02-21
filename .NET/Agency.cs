@@ -64,7 +64,8 @@ namespace Agience.Client
                     { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
-                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) }
+                    { "templates", JsonSerializer.Serialize(_templates.Values.ToList()) },
+                    { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
                 }
             });
         }
@@ -166,6 +167,7 @@ namespace Agience.Client
                                             List<Model.Agent> agents,
                                             Dictionary<string, DateTime> agentTimestamps,
                                             List<Model.Template> templates,
+                                            Dictionary<string,string> defaultTemplates,
                                             DateTime timestamp)
         {
             _agent.Runner.Log($"Received welcome from {agency.Name}");
@@ -188,6 +190,8 @@ namespace Agience.Client
                     ReceiveTemplate(template);
                 }
             }
+
+            SetDefaultTemplates(defaultTemplates);
 
             await _agent.SendTemplatesToAgency();
         }
@@ -251,6 +255,11 @@ namespace Agience.Client
         public async Task SetTemplateAsDefault<T>(string name) where T : Template, new()
         {              
             await _agent.SendTemplateDefaultToAgency(name, typeof(T).FullName!);
+        }
+
+        internal string? GetAgentName(string agentId)
+        {
+            return _agents.TryGetValue(agentId, out (Model.Agent, DateTime) agent) ? agent.Item1.Name : null;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Agience.Model;
 using System.Text;
+using System.Text.Json;
 
 namespace Agience.Client
 {
@@ -30,6 +31,11 @@ namespace Agience.Client
             _agent = agent;
             _information = information;
         }
+
+        public string? GetAgentName(string agentId)
+        {
+            return _agent.Agency.GetAgentName(agentId);
+        }   
 
         public async Task<DispatchResponse> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
@@ -68,6 +74,9 @@ namespace Agience.Client
                     TemplateId = templateId,
                     ParentInformationId = _information.Id
                 };
+
+                var serialized = JsonSerializer.Serialize(information);
+                var deserialized = JsonSerializer.Deserialize<Information>(serialized);
 
                 return await new Runner(_agent, information).Dispatch(localCallback);
             }

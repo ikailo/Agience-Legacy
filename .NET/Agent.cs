@@ -208,10 +208,12 @@ namespace Agience.Client
                 var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
                 var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Data?["templates"]!);
+                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string,string>>(message.Data?["default_templates"]!);
+
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null && templates != null && timestamp != null)
                 {
-                    await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, (DateTime)timestamp);
+                    await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, defaultTemplates, (DateTime)timestamp);
                 }
             }
 
