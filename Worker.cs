@@ -1,24 +1,58 @@
+using Agience.Client;
+
 namespace Agience.Agents.Primary
 {
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
+        private readonly AppConfig _appConfig;
 
-        public Worker(ILogger<Worker> logger)
+        private Instance? _instance;
+
+        public Worker(ILogger<Worker> logger, AppConfig appConfig)
         {
             _logger = logger;
+            _appConfig = appConfig;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            _instance = new Instance(new Config
             {
-                if (_logger.IsEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                }
-                await Task.Delay(1000, stoppingToken);
-            }
+                AuthorityUri = _appConfig.AuthorityUri,
+                ClientId = _appConfig.ClientId,
+                ClientSecret = _appConfig.ClientSecret                
+                
+            });
+
+            //_instance.AddTemplate<IncomingWebChatMessage>();               
+
+            _instance.AgentReady += _instance_AgentReady;
+            _instance.AgentConnected += _instance_AgentConnected;
+
+            _logger.LogInformation("Starting Instance");
+
+            await _instance.Run();
+
+            _logger.LogInformation("Instance Stopped");
+        }
+
+        private Task _instance_AgentConnected(Agent agent)
+        {
+            _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
+
+            // Register template defaults
+            // agent.Agency.SetTemplateDefault<IncomingLogMessage>("log");
+
+            return Task.CompletedTask;
+
+        }
+
+        private Task _instance_AgentReady(Agent agent)
+        {
+            _logger.LogInformation($"{agent.Name} Ready");
+
+            return Task.CompletedTask;
         }
     }
 }
