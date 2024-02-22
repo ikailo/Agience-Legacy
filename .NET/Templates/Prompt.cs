@@ -2,13 +2,13 @@
 {
     public class Prompt : Template
     {
-        public override Data? Description => "Receive and process a prompt from the User.";
+        public override Data? Description => "Receive a prompt from the User. Respond with a default message indicating the data has not been processed.";
 
         protected internal override Task<Data?> Process(Runner runner, Data? input = null)
         {
-            Console.WriteLine("Default Prompt template has been called. //TODO: Implement.");
+            string response = "The prompt template default cannot process input data. Please add a new prompt template default to the Agency.";
             
-            return Task.FromResult<Data?>(null);
+            return Task.FromResult<Data?>(response);
         }
     }
 }

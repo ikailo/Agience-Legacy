@@ -37,7 +37,7 @@ namespace Agience.Client
             return _agent.Agency.GetAgentName(agentId);
         }   
 
-        public async Task<DispatchResponse> Dispatch<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
+        public async Task<DispatchResponse> DispatchAsync<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
             // TODO: Allow registering a Type with a different templateIds, so we can have multiple templates with the same handler.
             var templateId = typeof(T).FullName;
@@ -75,9 +75,6 @@ namespace Agience.Client
                     ParentInformationId = _information.Id
                 };
 
-                //var serialized = JsonSerializer.Serialize(information);
-                //var deserialized = JsonSerializer.Deserialize<Information>(serialized);
-
                 return await new Runner(_agent, information).DispatchAsync(localCallback);
             }
         }
@@ -101,7 +98,13 @@ namespace Agience.Client
                 {
                     result = await DispatchRemoteAsync(agencyTemplate, localCallback);
                 }
+
+                else
+                {
+                    Log($"No template found for {_information.TemplateId}", "error");
+                }
             }
+
             // TODO: Invoke Event Notificaiton
 
             return result;
@@ -162,6 +165,9 @@ namespace Agience.Client
                 _agent.SendInformationToAgent(_information, template.AgentId, this);
 
                 // Wait for the response
+                
+                // TODO: Implement a timeout-decay. This could potentially wait forever if the remote agent is disconnected.
+                
                 while (string.IsNullOrEmpty(_information.OutputTimestamp))
                 {
                     Task.Delay(10).Wait();
