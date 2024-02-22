@@ -101,7 +101,7 @@ namespace Agience.Client
 
                 else
                 {
-                    Log($"No template found for {_information.TemplateId}", "error");
+                    // Log($"No template found for {_information.TemplateId}", "error"); // Stack Overflow
                 }
             }
 
