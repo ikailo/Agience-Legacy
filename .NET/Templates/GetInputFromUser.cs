@@ -6,12 +6,11 @@ namespace Agience.Agents._Console.Templates
     {
         public override Data? Description => "Get input from the user.";
 
+        private readonly StreamReader _inputReader = new(Console.OpenStandardInput());
+
         protected override async Task<Data?> Process(Runner runner, Data? data)
         {
-            return await Task.Run(() =>
-            {
-                return Console.ReadLine() ?? string.Empty;
-            });
+            return await _inputReader.ReadLineAsync() ?? string.Empty; ;
         }
     }
 }

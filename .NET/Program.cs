@@ -1,5 +1,6 @@
 ﻿using Agience.Client;
 using Agience.Agents._Console.Templates;
+using Agience.Agents.Primary.Templates.OpenAI;
 
 namespace Agience.Agents._Console
 {
@@ -13,7 +14,7 @@ namespace Agience.Agents._Console
             _instance.AddTemplate<InteractWithUser>();
             _instance.AddTemplate<ShowMessageToUser>();
             _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
-            _instance.AddTemplate<PromptOverride>();
+            _instance.AddTemplate<PromptChatGPT>();
 
             _instance.AgentConnected += _instance_AgentConnected;
             _instance.AgentReady += _instance_AgentReady;
@@ -21,17 +22,20 @@ namespace Agience.Agents._Console
             await _instance.Run();
         }
 
-        private static async Task _instance_AgentConnected(Agent agent)
+        private static Task _instance_AgentConnected(Agent agent)
         {
-            agent.Runner.Log($"{agent.Agency.Name} / {agent.Name} Connected");
+            Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Update default templates TODO: only if allowed
-            await agent.Agency.SetTemplateAsDefault<PromptOverride>("prompt");
+            agent.Agency.SetTemplateDefault<PromptChatGPT>("prompt");
+
+            return Task.CompletedTask;
+
         }
 
         private static async Task _instance_AgentReady(Agent agent)
         {
-            agent.Runner.Log($"{agent.Name} Ready");
+            Console.WriteLine($"{agent.Name} Ready");
 
             Data? message = "Ready For Input";
 
@@ -60,8 +64,7 @@ namespace Agience.Agents._Console
 
             if (((string?)output)?.StartsWith("web:") ?? false)
             {
-                _ = await runner.Dispatch("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
-                //Console.WriteLine(response.Output);
+                await runner.DispatchAsync("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));                
             }
 
             if (output == "quit")

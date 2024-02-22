@@ -8,39 +8,11 @@ namespace Agience.Agents._Console.Templates
 
         protected override async Task<Data?> Process(Runner runner, Data? input)
         {
-            await runner.Dispatch<ShowMessageToUser>($"{input}\r\n>");
+            await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
 
             var inputResponse = await runner.Dispatch<GetInputFromUser>();
 
-            var promptResponse = await inputResponse.Runner.Prompt(inputResponse.Output);
-
-            return promptResponse.Output;
-
-            
-            /*
-#if DEBUG
-            
-           if (userInput?.Raw?.StartsWith("DEBUG:") ?? false)
-            {
-                //return await Agent.Prompt(userInput, null, "debug");
-            }
-#endif
-            
-            x
-
-            var bestTemplate = await Agent.Prompt(new Data
-            {
-                { "prompt","Get the ID for the template which is best described by: {input}."},
-                { "input", userInput?.Raw ?? string.Empty }
-            },
-                new string[] { "id" }
-            );
-
-
-
-            return await Agent.Dispatch(bestTemplate?.Structured?["id"] ?? "Agience.Templates.InputToOutput", userInput);            
-       */
-            //return userInput;
+            return (await inputResponse.Runner.Prompt(inputResponse.Output)).Output;
         }
     }
 }
