@@ -8,9 +8,9 @@ namespace Agience.Agents._Console.Templates
 
         protected override async Task<Data?> Process(Runner runner, Data? input)
         {
-            await runner.Dispatch<ShowMessageToUser>($"{input}\r\n> ");
+            await runner.DispatchAsync<ShowMessageToUser>($"{input}\r\n> ");
 
-            var inputResponse = await runner.Dispatch<GetInputFromUser>();
+            var inputResponse = await runner.DispatchAsync<GetInputFromUser>();
 
             return (await inputResponse.Runner.Prompt(inputResponse.Output)).Output;
         }

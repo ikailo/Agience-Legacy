@@ -41,7 +41,7 @@ namespace Agience.Agents._Console
 
             while (_instance.IsConnected)
             {
-                var response = await agent.Runner.Dispatch<InteractWithUser>(message);
+                var response = await agent.Runner.DispatchAsync<InteractWithUser>(message);
                 message = response.Output;                
             }
 
