@@ -23,11 +23,11 @@ namespace Agience.Client
 
         private static Dictionary<string, string> _defaultTemplates = new()
         {
+            { "log", "Agience.Client.Templates.Default.Log" },
             { "context", "Agience.Client.Templates.Default.Context" },
             { "debug", "Agience.Client.Templates.Default.Debug" },
             { "echo", "Agience.Client.Templates.Default.Echo" },            
-            { "history", "Agience.Client.Templates.Default.History" },            
-            { "log", "Agience.Client.Templates.Default.Log" },
+            { "history", "Agience.Client.Templates.Default.History" },                        
             { "prompt", "Agience.Client.Templates.Default.Prompt" },
         };
 
@@ -104,13 +104,13 @@ namespace Agience.Client
             }
         }
 
-        public async Task PublishAgentConnectEvent(Model.Agent agent)
+        public void PublishAgentConnectEvent(Model.Agent agent)
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
 
-            await _broker.Publish(new Message()
+            _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = InstanceTopic(Id, agent.Instance.Id),
@@ -124,13 +124,13 @@ namespace Agience.Client
             });
         }
 
-        public async Task PublishAgentDisconnectEvent(Model.Agent agent)
+        public void PublishAgentDisconnectEvent(Model.Agent agent)
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
 
-            await _broker!.Publish(new Message()
+            _broker!.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = InstanceTopic(Id, agent.Instance.Id),

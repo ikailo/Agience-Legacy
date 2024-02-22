@@ -18,12 +18,12 @@ namespace Agience.Client
 
         internal IReadOnlyDictionary<string, (Template, OutputCallback?)> Templates => new ReadOnlyDictionary<string, (Template, OutputCallback?)>(_templates);
 
-        private readonly Dictionary<string, (Template, OutputCallback?)> _templates = new();
+        private readonly Dictionary<string, (Template, OutputCallback?)> _templates = new();        
+        private readonly ConcurrentDictionary<string, Runner> _informationCallbacks = new();
+        private readonly Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
         private readonly Authority _authority;
         private readonly Agency _agency;
-        private readonly Broker _broker;
-
-        private Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
+        private readonly Broker _broker;        
 
         // Returns the top-level runner. Entry point for new information (without parent) processing. 
         // TODO: Need to figure out how to handle multilevel threaded messaging.
@@ -48,7 +48,7 @@ namespace Agience.Client
             };
 
             _representativeClaimTimer.AutoReset = false;
-            _representativeClaimTimer.Elapsed += async (s, e) => await SendRepresentativeClaim();
+            _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
         }
 
         internal async Task Connect()
@@ -59,7 +59,7 @@ namespace Agience.Client
                 await _agency.Connect();
                 IsConnected = true;
             }
-            await SendJoin();
+            SendJoin();
             _representativeClaimTimer.Start();
         }
 
@@ -74,9 +74,11 @@ namespace Agience.Client
             }
         }
 
-        private async Task SendJoin()
+        private void SendJoin()
         {
-            await _broker.Publish(new Message()
+            Runner.Log("SendJoin");
+
+            _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
@@ -90,19 +92,23 @@ namespace Agience.Client
             });
         }
 
-        private async Task SendRepresentativeClaim()
+        private void SendRepresentativeClaim()
         {
             if (_agency.RepresentativeId != null) { return; } // Was set by another agent
 
             // Take ownership of the default templates
-            await AddTemplate(new(new Templates.Default.Context() { Agent = this }, null));
-            await AddTemplate(new(new Templates.Default.Debug() { Agent = this }, null));
-            await AddTemplate(new(new Templates.Default.Echo() { Agent = this }, null));            
-            await AddTemplate(new(new Templates.Default.History() { Agent = this }, null));
-            await AddTemplate(new(new Templates.Default.Log() { Agent = this }, null));
-            await AddTemplate(new(new Templates.Default.Prompt() { Agent = this }, null));
+            // TODO: Not sure if this is the best way to do this
+            
+            Runner.Log("SendRepresentativeClaim");
 
-            await _broker.Publish(new Message()
+            AddTemplate(new(new Templates.Default.Log() { Agent = this }, null));
+            AddTemplate(new(new Templates.Default.Context() { Agent = this }, null));
+            AddTemplate(new(new Templates.Default.Debug() { Agent = this }, null));
+            AddTemplate(new(new Templates.Default.Echo() { Agent = this }, null));
+            AddTemplate(new(new Templates.Default.History() { Agent = this }, null));            
+            AddTemplate(new(new Templates.Default.Prompt() { Agent = this }, null));
+
+            _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
@@ -115,9 +121,11 @@ namespace Agience.Client
             });
         }
 
-        private async Task SendTemplateToAgency(Model.Template template)
+        private void SendTemplateToAgency(Model.Template template)
         {
-            await _broker.Publish(new Message()
+            Runner.Log($"SendTemplateToAgency {template.Id}");
+
+            _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
@@ -130,9 +138,11 @@ namespace Agience.Client
             });
         }
 
-        internal async Task SendTemplateDefaultToAgency(string defaultName, string templateId)
+        internal void SendTemplateDefaultToAgency(string defaultName, string templateId)
         {
-            await _broker.Publish(new Message()
+            Runner.Log($"SendTemplateDefaultToAgency {defaultName} {defaultName}");
+
+            _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
@@ -146,14 +156,16 @@ namespace Agience.Client
             });
         }
 
-        internal async Task SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
+        internal void SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
+            //Runner.Log("SendInformationToAgent"); //Stack overflow
+
             if (runner != null)
             {
                 _informationCallbacks[information.Id!] = runner;
             }
 
-            await _broker.Publish(new Message()
+            _broker.Publish(new Message()
             {
                 Type = MessageType.INFORMATION,
                 Topic = _authority.AgentTopic(Id!, targetAgentId),
@@ -161,30 +173,30 @@ namespace Agience.Client
             });
         }
 
-        internal async Task AddTemplates(List<(Template, OutputCallback?)> templates)
+        internal void AddTemplates(List<(Template, OutputCallback?)> templates)
         {
             foreach (var (template, callback) in templates)
             {
-                await AddTemplate((template, callback));
+                AddTemplate((template, callback));
             }
         }
 
-        internal async Task AddTemplate((Template, OutputCallback?) template)
+        internal void AddTemplate((Template, OutputCallback?) template)
         {
             // TODO: Duplicate templates could be an issue.  Maybe need versioning.
             _templates[template.Item1.Id!] = template;
 
             if (IsConnected)
             {
-                await SendTemplateToAgency(template.Item1.ToAgienceModel());
+                SendTemplateToAgency(template.Item1.ToAgienceModel());
             }
         }
 
-        internal async Task SendTemplatesToAgency()
+        internal void SendTemplatesToAgency()
         {
             foreach (var item in _templates.Values)
             {
-                await SendTemplateToAgency(item.Item1.ToAgienceModel());
+                SendTemplateToAgency(item.Item1.ToAgienceModel());
             }
         }
 
@@ -193,8 +205,7 @@ namespace Agience.Client
             if (message.SenderId == null || (message.Data == null && message.Information == null)) { return; }
 
             // Incoming Agency Welcome message
-            if (message.Type == MessageType.EVENT &&
-                //message.Payload.Format == DataFormat.STRUCTURED &&
+            if (message.Type == MessageType.EVENT &&                
                 message.Data?["type"] == "welcome" &&
                 message.Data?["agency"] != null &&
                 message.Data?["representative_id"] != null &&
@@ -208,34 +219,28 @@ namespace Agience.Client
                 var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
                 var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Data?["templates"]!);
-                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string,string>>(message.Data?["default_templates"]!);
+                var templateDefaults = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Data?["template_defaults"]!);
 
 
-                if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null && templates != null && timestamp != null)
+                if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && 
+                    agentTimestamps != null && templates != null && timestamp != null && templateDefaults != null)
                 {
-                    await _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, defaultTemplates, (DateTime)timestamp);
+                    _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, templateDefaults, (DateTime)timestamp);
                 }
             }
 
             // Incoming Agent Information message
             if (message.Type == MessageType.INFORMATION &&
-               // message.Payload.Format == DataFormat.STRUCTURED &&
-                message.Information != null
-                )
+                message.Information != null)
             {
-                              
-
-               // if (information != null)
-                {
-                    await ReceiveInformation(message.Information);
-                }
+                await ReceiveInformation(message.Information);
             }
-        }
-
-        private ConcurrentDictionary<string, Runner> _informationCallbacks = new();
+        }        
 
         private async Task ReceiveInformation(Information information)
         {
+            // Runner.Log($"ReceiveInformation {information.Id}"); // Stack Overflow
+
             if (information.InputAgentId == Id)
             {
                 // This is returned information
@@ -248,10 +253,10 @@ namespace Agience.Client
             if (information.OutputAgentId == null)
             {
                 // This is information that needs to be processed. Presumably Local. Dispatch it.
-                await new Runner(this, information).Dispatch();
+                await new Runner(this, information).DispatchAsync();
 
                 // Return the output to the input agent
-                await SendInformationToAgent(information, information?.InputAgentId!);
+                SendInformationToAgent(information, information?.InputAgentId!);
             }
         }
 

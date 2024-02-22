@@ -151,7 +151,18 @@ namespace Agience.Client
             await _client.UnsubscribeAsync(callbackTopic);
         }
 
-        internal async Task Publish(Message message)
+        internal void Publish(Message message)
+        {
+            PublishAsync(message).ContinueWith(task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    throw task.Exception;                    
+                }
+            }, TaskScheduler.Current);
+        }
+
+        internal async Task PublishAsync(Message message)
         {
             if (_client.IsConnected)
             {
@@ -175,7 +186,7 @@ namespace Agience.Client
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                     .Build();
 
-                await _client.PublishAsync(mqMessage);
+                await _client.PublishAsync(mqMessage);                
             }
         }
 

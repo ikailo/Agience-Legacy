@@ -44,13 +44,13 @@ namespace Agience.Client
 
             if (!string.IsNullOrEmpty(templateId))
             {
-                return await Dispatch(templateId, input, localCallback);
+                return await DispatchAsync(templateId, input, localCallback);
             }
 
             return new(this, null);
         }
 
-        public async Task<DispatchResponse> Dispatch(string templateId, Data? input = null, OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> DispatchAsync(string templateId, Data? input = null, OutputCallback? localCallback = null)
         {
             if (_information == null)
             {
@@ -62,7 +62,7 @@ namespace Agience.Client
                     TemplateId = templateId
                 };
 
-                return await Dispatch(localCallback);
+                return await DispatchAsync(localCallback);
             }
             else
             {
@@ -75,16 +75,15 @@ namespace Agience.Client
                     ParentInformationId = _information.Id
                 };
 
-                var serialized = JsonSerializer.Serialize(information);
-                var deserialized = JsonSerializer.Deserialize<Information>(serialized);
+                //var serialized = JsonSerializer.Serialize(information);
+                //var deserialized = JsonSerializer.Deserialize<Information>(serialized);
 
-                return await new Runner(_agent, information).Dispatch(localCallback);
+                return await new Runner(_agent, information).DispatchAsync(localCallback);
             }
         }
 
-        public async Task<DispatchResponse> Dispatch(OutputCallback? localCallback = null)
+        public async Task<DispatchResponse> DispatchAsync(OutputCallback? localCallback = null)
         {
-
             var result = new DispatchResponse(this, null);
 
             if (_information?.TemplateId != null)
@@ -95,12 +94,12 @@ namespace Agience.Client
 
                     _information.Transformation = agentTemplate.Description;
 
-                    result = await Dispatch(agentTemplate, localCallback, globalCallback);
+                    result = await DispatchLocalAsync(agentTemplate, localCallback, globalCallback);
                 }
 
                 else if (_agent.Agency.Templates.TryGetValue(_information.TemplateId, out Model.Template? agencyTemplate) && agencyTemplate.AgentId != null)
                 {
-                    result = await Dispatch(agencyTemplate, localCallback);
+                    result = await DispatchRemoteAsync(agencyTemplate, localCallback);
                 }
             }
             // TODO: Invoke Event Notificaiton
@@ -108,7 +107,7 @@ namespace Agience.Client
             return result;
         }
 
-        private async Task<DispatchResponse> Dispatch(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
+        private async Task<DispatchResponse> DispatchLocalAsync(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
         {
             // Process this locally
 
@@ -154,14 +153,15 @@ namespace Agience.Client
             _information.OutputTimestamp = information.OutputTimestamp;
         }
 
-        private async Task<DispatchResponse> Dispatch(Model.Template template, OutputCallback? localCallback)
+        private async Task<DispatchResponse> DispatchRemoteAsync(Model.Template template, OutputCallback? localCallback)
         {
             // Process this remotely
 
             if (_information != null && template?.AgentId != null)
             {
-                await _agent.SendInformationToAgent(_information, template.AgentId, this);
+                _agent.SendInformationToAgent(_information, template.AgentId, this);
 
+                // Wait for the response
                 while (string.IsNullOrEmpty(_information.OutputTimestamp))
                 {
                     Task.Delay(10).Wait();
@@ -180,40 +180,53 @@ namespace Agience.Client
 
         public async Task<DispatchResponse> Prompt(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["prompt"], input);
+            return await DispatchAsync(_agent.Agency.TemplateDefaults["prompt"], input);
         }
 
         public async Task<DispatchResponse> Context(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["context"], input);
+            return await DispatchAsync(_agent.Agency.TemplateDefaults["context"], input);
         }
 
         public async Task<DispatchResponse> Echo(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["echo"], input);
+            return await DispatchAsync(_agent.Agency.TemplateDefaults["echo"], input);
         }
 
         public async Task<DispatchResponse> Debug(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["debug"], input);
+            return await DispatchAsync(_agent.Agency.TemplateDefaults["debug"], input);
         }
 
         public async Task<DispatchResponse> History(Data? input = null)
         {
-            return await Dispatch(_agent.Agency.DefaultTemplates["history"], input);
+            return await DispatchAsync(_agent.Agency.TemplateDefaults["history"], input);
         }
 
         public void Log(string message, string level = "info")
         {
+            if (!_agent.Agency.TemplateDefaults.ContainsKey("log"))
+            {
+                Console.WriteLine($"{_agent.Timestamp} | local-{level} | {_agent.Name!} | {message}");
+                return;
+            }
+
             Data data = new Data
             {
                 { "timestamp", _agent.Timestamp},
                 { "agent_id", _agent.Id! },
+                { "agent_name", _agent.Name! },
                 { "level", level },
                 { "message", message }
-            };            
+            };
 
-            _ = Dispatch(_agent.Agency.DefaultTemplates["log"], data);
+            DispatchAsync(_agent.Agency.TemplateDefaults["log"], data).ContinueWith(task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    throw task.Exception;
+                }
+            }, TaskScheduler.Current);
         }
     }
 }

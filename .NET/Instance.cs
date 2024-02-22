@@ -62,7 +62,7 @@ namespace Agience.Client
                 { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
             };
 
-            await _broker.Publish(new Message()
+            await _broker.PublishAsync(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
@@ -96,11 +96,11 @@ namespace Agience.Client
 
             // Incoming Agent Connect Message
             if (message.Type == MessageType.EVENT &&
-               // message.Payload.Format == DataFormat.STRUCTURED &&
+                // message.Payload.Format == DataFormat.STRUCTURED &&
                 message.Data?["type"] == "agent_connect" &&
                 message.Data?["agent"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;                
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
                 var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Data?["default_templates"]!);
 
@@ -110,7 +110,7 @@ namespace Agience.Client
             }
         }
 
-        private async Task ReceiveAgentConnect(Model.Agent modelAgent, Dictionary<string,string>? defaultTemplates, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Model.Agent modelAgent, Dictionary<string, string>? templateDefaults, DateTime? timestamp)
         {
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Instance?.Id != Id)
             {
@@ -123,9 +123,9 @@ namespace Agience.Client
                 Name = modelAgent.Name,
             };
 
-            agent.Agency.SetDefaultTemplates(defaultTemplates);
+            agent.Agency.SetTemplateDefaults(templateDefaults);
 
-            await agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
+            agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
 
             await agent.Connect();
 
@@ -133,34 +133,17 @@ namespace Agience.Client
 
             if (AgentConnected != null)
             {
-                _ = Task.Run(() => AgentConnected.Invoke(agent))
-                    .ContinueWith(t =>
-                    {
-                        if (t.IsFaulted)
-                        {
-                            // Rethrow the exception on the ThreadPool
-                            ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
-                        }
-                    });
+                await AgentConnected.Invoke(agent);
             }
 
             // Adding a short delay to accept incoming Templates, set defaults, etc.
-            // TODO: Improve this.
-            // Ideally we would wait until each Agent in the agency has sent templates.
+            // TODO: Improve this.Ideally we would wait just until each Agent in the agency has sent templates.
             await Task.Delay(5000);
 
             if (AgentReady != null)
             {
-                _ = Task.Run(() => AgentReady.Invoke(agent))
-                    .ContinueWith(t =>
-                    {
-                        if (t.IsFaulted)
-                        {   
-                            ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
-                        }
-                    });
+                await AgentReady.Invoke(agent);
             }
-
         }
 
         private async Task<string?> GetAccessToken()
@@ -190,6 +173,8 @@ namespace Agience.Client
 
         public void AddTemplate<T>(OutputCallback? callback = null) where T : Template, new()
         {
+            // TODO: Add constructor parameters
+
             _catalog.Add<T>(callback);
 
             foreach (var agent in _agents.Values)
@@ -198,7 +183,7 @@ namespace Agience.Client
 
                 if (template.HasValue)
                 {
-                    _ = agent.AddTemplate(template.Value);
+                    agent.AddTemplate(template.Value);
                 }
             }
         }

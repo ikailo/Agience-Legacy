@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -8,10 +9,7 @@ namespace Agience.Client
     {
         public override Data Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            var rootElement = JsonDocument.ParseValue(ref reader).RootElement;
-            var raw = rootElement.Deserialize<string>();
-
-            return new Data { Raw = raw };
+            return new Data { Raw = JsonDocument.ParseValue(ref reader).RootElement.Deserialize<string>() };
         }
 
         public override void Write(Utf8JsonWriter writer, Data data, JsonSerializerOptions options)
@@ -49,9 +47,7 @@ namespace Agience.Client
                     }                    
                 }
             }
-        }
-
-        public Data() { }
+        }        
 
         public void Add(string key, string? value)
         {
@@ -77,7 +73,7 @@ namespace Agience.Client
 
         public IEnumerator<KeyValuePair<string, string?>> GetEnumerator()
         {
-            return _structured.GetEnumerator();
+            return new ReadOnlyDictionary<string,string?>(_structured).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
