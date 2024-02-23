@@ -1,8 +1,8 @@
 ﻿using Agience.Client;
 
-namespace Agience.Agents.Primary.Templates.Text
+namespace Agience.Agents.Primary.Templates.OpenAI
 {
-    internal class Append : Template
+    internal class GetEmbeddings : Template
     {
         public override Data? Description => throw new NotImplementedException();
 

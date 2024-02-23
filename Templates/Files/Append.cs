@@ -2,13 +2,18 @@
 
 namespace Agience.Agents.Primary.Templates.Files
 {
-    internal class Clone : Template
+    internal class Append : Template
     {
-        public override Data? Description => throw new NotImplementedException();
+        public override Data? Description => "Append text to file in the local filesystem.";
+        public override string[] InputKeys => ["file_path", "content"];
 
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        protected override async Task<Data?> Process(Runner runner, Data? input = null)
         {
-            throw new NotImplementedException();
+            using (var writer = new StreamWriter(input?["file_path"] ?? throw new ArgumentNullException("file_path")))
+            {
+                await writer.WriteAsync(input?["content"]);
+            }
+            return null;
         }
     }
 }

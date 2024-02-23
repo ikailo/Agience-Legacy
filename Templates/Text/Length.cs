@@ -1,14 +1,15 @@
 ﻿using Agience.Client;
+using Microsoft.VisualBasic;
 
 namespace Agience.Agents.Primary.Templates.Text
 {
     internal class Length : Template
     {
-        public override Data? Description => throw new NotImplementedException();
+        public override Data? Description => "Count the number of characters in the input.";
 
         protected override Task<Data?> Process(Runner runner, Data? input = null)
         {
-            throw new NotImplementedException();
+            return Task.FromResult<Data?>(input?.ToString()?.Length.ToString());
         }
     }
 }

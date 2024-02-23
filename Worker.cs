@@ -1,3 +1,4 @@
+using OpenAI = Agience.Agents.Primary.Templates.OpenAI;
 using Agience.Client;
 
 namespace Agience.Agents.Primary
@@ -25,7 +26,7 @@ namespace Agience.Agents.Primary
                 
             });
 
-            //_instance.AddTemplate<IncomingWebChatMessage>();               
+            _instance.AddTemplate<OpenAI.Prompt>();
 
             _instance.AgentReady += _instance_AgentReady;
             _instance.AgentConnected += _instance_AgentConnected;
@@ -42,7 +43,7 @@ namespace Agience.Agents.Primary
             _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Register template defaults
-            // agent.Agency.SetTemplateDefault<IncomingLogMessage>("log");
+            agent.Agency.SetTemplateDefault<OpenAI.Prompt>("prompt");
 
             return Task.CompletedTask;
 
