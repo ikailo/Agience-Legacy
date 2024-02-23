@@ -1,6 +1,5 @@
 ﻿using Agience.Client;
 using Agience.Agents._Console.Templates;
-using Agience.Agents.Primary.Templates.OpenAI;
 
 namespace Agience.Agents._Console
 {
@@ -13,8 +12,7 @@ namespace Agience.Agents._Console
         {
             _instance.AddTemplate<InteractWithUser>();
             _instance.AddTemplate<ShowMessageToUser>();
-            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
-            _instance.AddTemplate<PromptChatGPT>();
+            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);            
 
             _instance.AgentConnected += _instance_AgentConnected;
             _instance.AgentReady += _instance_AgentReady;
@@ -26,8 +24,7 @@ namespace Agience.Agents._Console
         {
             Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
 
-            // Update default templates TODO: only if allowed
-            agent.Agency.SetTemplateDefault<PromptChatGPT>("prompt");
+            // Update default templates here. TODO: only if allowed            
 
             return Task.CompletedTask;
 
