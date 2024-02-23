@@ -65,6 +65,8 @@ namespace Agience.Client
 
         internal async Task Disconnect()
         {
+            // TODO: Auto-disconnect via MQTT Will message
+
             if (IsConnected)
             {
                 await _broker.Unsubscribe(_authority.AgentTopic("+", Id!));
