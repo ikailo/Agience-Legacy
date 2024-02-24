@@ -4,7 +4,7 @@ namespace Agience.Agents._Console.Templates
 {
     public class InteractWithUser : Template
     {
-        public override Data? Description => "Show a message to the user and then receive a text input from the user. Find, and then respond with, the best template response to the user's input.";
+        public override Data? Description => "Interact with the user. Send them a message and then receive a response.";
 
         protected override async Task<Data?> Process(Runner runner, Data? input)
         {

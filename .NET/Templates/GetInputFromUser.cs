@@ -4,7 +4,7 @@ namespace Agience.Agents._Console.Templates
 {
     public class GetInputFromUser : Template
     {
-        public override Data? Description => "Get input from the user.";
+        public override Data? Description => "Wait for the user to respond.";
 
         private readonly StreamReader _inputReader = new(Console.OpenStandardInput());
 
