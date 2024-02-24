@@ -28,7 +28,7 @@ namespace Agience.Agents.Primary.Templates.OpenAI
                 Model = MODEL,
                 Messages = new List<Message>
                 {
-                    new Message { Role = "system", Content = "You are a helpful assistant." },
+                    //new Message { Role = "system", Content = "You are a helpful assistant." },
                     new Message { Role = "user", Content = input }
                 }
             };

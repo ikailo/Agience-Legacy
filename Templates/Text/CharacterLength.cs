@@ -1,9 +1,8 @@
 ﻿using Agience.Client;
-using Microsoft.VisualBasic;
 
 namespace Agience.Agents.Primary.Templates.Text
 {
-    internal class Length : Template
+    internal class CharacterLength : Template
     {
         public override Data? Description => "Count the number of characters in the input.";
 

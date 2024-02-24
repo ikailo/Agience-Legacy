@@ -1,4 +1,5 @@
-using OpenAI = Agience.Agents.Primary.Templates.OpenAI;
+using Agience.Agents.Primary.Templates.OpenAI;
+using Agience.Agents.Primary.Templates.Process;
 using Agience.Client;
 
 namespace Agience.Agents.Primary
@@ -26,7 +27,11 @@ namespace Agience.Agents.Primary
                 
             });
 
-            _instance.AddTemplate<OpenAI.Prompt>();
+            _instance.AddTemplate<Input>();
+            _instance.AddTemplate<Plan>();
+            _instance.AddTemplate<Select>();
+            _instance.AddTemplate<Execute>();
+            _instance.AddTemplate<Prompt>();
 
             _instance.AgentReady += _instance_AgentReady;
             _instance.AgentConnected += _instance_AgentConnected;
@@ -43,7 +48,7 @@ namespace Agience.Agents.Primary
             _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Register template defaults
-            agent.Agency.SetTemplateDefault<OpenAI.Prompt>("prompt");
+            agent.Agency.SetTemplateDefault<Input>("prompt");
 
             return Task.CompletedTask;
 
