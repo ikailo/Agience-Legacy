@@ -7,8 +7,8 @@
     {
         public string Id { get; }
         public abstract Data? Description { get; } // Description is the template identifier. Future: Searchable, Inferable, Unique, Persist.
-        public virtual string[]? InputKeys { get; protected set; }
-        public virtual string[]? OutputKeys { get; protected set; }
+        public virtual string[]? InputKeys { get; protected set; } // TODO: Use a Format string instead?
+        public virtual string[]? OutputKeys { get; protected set; } // TODO: Use a Format string instead?
 
         internal Agent? Agent;
 
@@ -18,7 +18,8 @@
         }
 
         protected internal virtual Task<bool> Assess(Runner runner, Data? input = null) => Task.FromResult(true);
-        protected internal abstract Task<Data?> Process(Runner runner, Data? input = null);     
+        protected internal abstract Task<Data?> Process(Runner runner, Data? input = null);
+        protected internal virtual Task<string?> Context(Runner runner, Data? input = null, Data? output = null) => Task.FromResult<string?>(null);
 
         internal Model.Template ToAgienceModel()
         {

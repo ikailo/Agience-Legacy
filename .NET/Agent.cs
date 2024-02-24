@@ -1,4 +1,5 @@
 ﻿using Agience.Model;
+using Microsoft.VisualBasic;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text.Json;
@@ -244,7 +245,8 @@ namespace Agience.Client
             // Runner.Log($"ReceiveInformation {information.Id}"); // Stack Overflow
 
             if (information.InputAgentId == Id)
-            {
+            {                
+
                 // This is returned information
                 if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
                 {

@@ -35,7 +35,12 @@ namespace Agience.Client
         public string? GetAgentName(string agentId)
         {
             return _agent.Agency.GetAgentName(agentId);
-        }   
+        }
+
+        public List<Model.Template> GetAvailableTemplates()
+        {
+            return _agent.Agency.Templates.Values.ToList();
+        }
 
         public async Task<DispatchResponse> DispatchAsync<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
         {
@@ -102,6 +107,8 @@ namespace Agience.Client
                 else
                 {
                     // Log($"No template found for {_information.TemplateId}", "error"); // Stack Overflow
+                    var message = $"No template found for {_information.TemplateId}";
+                    Console.WriteLine($"{_agent.Timestamp} | error | {_agent.Name!} | {message}");
                 }
             }
 
@@ -124,16 +131,18 @@ namespace Agience.Client
                     _information.Output = output;
                     _information.OutputAgentId = template.Agent?.Id;
                     _information.OutputTimestamp = _agent.Timestamp;
+
+                    _agent.History.Add(_information);
+
+                    //AddContext(await template.Context(this, _information.Input, _information.Output));
+
+                    await Task.WhenAll(
+                        localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,
+                        globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
+                    ).ConfigureAwait(false);
+
+                    return new(this, _information.Output);
                 }
-
-                _agent.History.Add(_information);
-
-                await Task.WhenAll(
-                    localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,
-                    globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
-                ).ConfigureAwait(false);
-
-                return new(this, _information.Output);
             }
 
             return new(this, null);
@@ -189,9 +198,17 @@ namespace Agience.Client
             return await DispatchAsync(_agent.Agency.TemplateDefaults["prompt"], input);
         }
 
-        public async Task<DispatchResponse> Context(Data? input = null)
+        public void AddContext(string? context)
         {
-            return await DispatchAsync(_agent.Agency.TemplateDefaults["context"], input);
+            if (context != null)
+            {   
+                _agent.Agency.AddContext($"{context} ({_information?.TemplateId})");
+            }
+        }   
+
+        public string GetContext()
+        {
+            return _agent.Agency.GetContext();
         }
 
         public async Task<DispatchResponse> Echo(Data? input = null)

@@ -21,7 +21,7 @@ namespace Agience.Client
     [JsonConverter(typeof(DataJsonConverter))]
     public class Data : IEnumerable<KeyValuePair<string, string?>>
     {
-        private Dictionary<string, string?> _structured = new();        
+        private Dictionary<string, string?> _structured = new();
         private string? _raw;
 
         [JsonPropertyName("Raw")]
@@ -33,21 +33,32 @@ namespace Agience.Client
             }
             set
             {
-                _raw = value;                
+                _raw = value;
+                
+                _structured.Clear();
 
                 if (!string.IsNullOrEmpty(_raw) && _raw.StartsWith("{") && _raw.EndsWith("}"))
                 {
                     try
                     {
-                        _structured = JsonSerializer.Deserialize<Dictionary<string, string?>>(_raw) ?? new();
+                        var elements = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(_raw) ?? new Dictionary<string, JsonElement>();
+
+                        foreach (var (key, element) in elements)
+                        {
+                            _structured[key] = element.ValueKind != JsonValueKind.String ? JsonSerializer.Serialize(element) : element.ToString();
+                        }
                     }
                     catch (JsonException)
                     {
-                        // If deserialization fails, Structured remains null
-                    }                    
+                        // do nothing
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // do nothing
+                    }
                 }
             }
-        }        
+        }
 
         public void Add(string key, string? value)
         {
@@ -73,7 +84,7 @@ namespace Agience.Client
 
         public IEnumerator<KeyValuePair<string, string?>> GetEnumerator()
         {
-            return new ReadOnlyDictionary<string,string?>(_structured).GetEnumerator();
+            return new ReadOnlyDictionary<string, string?>(_structured).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

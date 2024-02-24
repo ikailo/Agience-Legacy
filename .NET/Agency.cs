@@ -1,12 +1,14 @@
-﻿using Agience.Model;
+﻿using Agience.Client.Templates.Default;
+using Agience.Model;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Text;
 using System.Text.Json;
 
 namespace Agience.Client
 {
     public class Agency
-    {        
+    {
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
@@ -21,6 +23,20 @@ namespace Agience.Client
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent;
+
+        private StringBuilder _context = new();
+        private readonly object _contextLock = new();
+
+        public string Context
+        {
+            get
+            {
+                lock (_contextLock)
+                {
+                    return _context.ToString();
+                }
+            }
+        }
 
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
@@ -128,10 +144,31 @@ namespace Agience.Client
                 var defaultName = message.Data?["default_name"]!;
                 var templateId = message.Data?["template_id"]!;
 
-                SetTemplateDefault(defaultName, templateId);               
+                SetTemplateDefault(defaultName, templateId);
             }
-                  
+
+            // Incoming Context message
+            if (message.Type == MessageType.EVENT &&
+                message.Data?["type"] == "context" &&
+                message.Data?["timestamp"] != null &&
+                message.Data?["context"] != null)
+            {
+                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
+                var context = message.Data?["context"]!;
+
+                ReceiveContext(context, timestamp);
+            }
+
             return Task.CompletedTask;
+        }
+
+        private void ReceiveContext(string context, DateTime? timestamp)
+        {
+            lock (_contextLock)
+            {
+                _context.Append($"{context}\r\n\r\n");
+                //_context.Append($"{timestamp} - {context}\r\n\r\n");
+            }
         }
 
         private void ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
@@ -162,7 +199,7 @@ namespace Agience.Client
                                             List<Model.Agent> agents,
                                             Dictionary<string, DateTime> agentTimestamps,
                                             List<Model.Template> templates,
-                                            Dictionary<string,string> templateDefaults,
+                                            Dictionary<string, string> templateDefaults,
                                             DateTime timestamp)
         {
             _agent.Runner.Log($"ReceiveWelcome from {agency.Name} {GetAgentName(representativeId)}");
@@ -179,7 +216,7 @@ namespace Agience.Client
             }
 
             foreach (var template in templates)
-            {   
+            {
                 if (template.AgentId != _agent.Id)
                 {
                     ReceiveTemplate(template);
@@ -216,11 +253,11 @@ namespace Agience.Client
         }
 
         private void ReceiveTemplate(Model.Template modelTemplate)
-        {   
+        {
             if (modelTemplate?.Id != null)
             {
                 _agent.Runner.Log($"ReceiveTemplate {modelTemplate.Id} from {GetAgentName(modelTemplate.AgentId) ?? modelTemplate.AgentId ?? "null"}");
-                
+
                 _templates[modelTemplate.Id] = modelTemplate;
             }
         }
@@ -245,10 +282,10 @@ namespace Agience.Client
         {
             if (templateDefaults == null) { return; }
 
-            foreach(var item in templateDefaults)
+            foreach (var item in templateDefaults)
             {
                 SetTemplateDefault(item.Key, item.Value);
-            }            
+            }
         }
 
         public void SetTemplateDefault<T>(string name) where T : Template, new()
@@ -265,6 +302,33 @@ namespace Agience.Client
             if (agentId == null) { return null; }
 
             return _agents.TryGetValue(agentId, out (Model.Agent, DateTime) agent) ? agent.Item1.Name : null;
+        }
+
+        internal void AddContext(string? context = null)
+        {
+            if (context == null) { return; }
+
+            _agent.Runner.Log($"AddContext {context}");
+
+            _broker.Publish(new Message()
+            {
+                Type = MessageType.EVENT,
+                Topic = _authority.AgencyTopic(_agent.Id!, Id!),
+                Data = new Data
+                {
+                    { "type", "context" },
+                    { "timestamp", _broker.Timestamp },
+                    { "context", context }
+                }
+            });
+        }
+
+        internal string GetContext()
+        {
+            lock (_contextLock)
+            {
+                return _context.ToString();                
+            }
         }
     }
 }
