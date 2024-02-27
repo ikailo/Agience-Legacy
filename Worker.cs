@@ -48,7 +48,7 @@ namespace Agience.Agents.Primary
             _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Register template defaults
-            agent.Agency.SetTemplateDefault<Input>("prompt");
+            agent.Agency.SetTemplateDefault<Prompt>("prompt");
 
             return Task.CompletedTask;
 
