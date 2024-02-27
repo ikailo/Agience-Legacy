@@ -15,10 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Client\.NET\Agience.Client.csproj" />
+    <Folder Include="Templates\Time\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Templates\Time\" />
+    <ProjectReference Include="..\..\Client\dotnet\Agience.Client.csproj" />
   </ItemGroup>
 </Project>
