@@ -6,21 +6,21 @@ namespace Agience.Agents._Console
     internal class Program
     {
         private static readonly AppConfig _config = new();
-        private static readonly Instance _instance = new(_config);
+        private static readonly Host _host = new(_config);
 
         internal static async Task Main(string[] args)
         {
-            _instance.AddTemplate<InteractWithUser>();
-            _instance.AddTemplate<ShowMessageToUser>();
-            _instance.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);            
+            _host.AddTemplate<InteractWithUser>();
+            _host.AddTemplate<ShowMessageToUser>();
+            _host.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);            
 
-            _instance.AgentConnected += _instance_AgentConnected;
-            _instance.AgentReady += _instance_AgentReady;
+            _host.AgentConnected += _host_AgentConnected;
+            _host.AgentReady += _host_AgentReady;
 
-            await _instance.Run();
+            await _host.Run();
         }
 
-        private static Task _instance_AgentConnected(Agent agent)
+        private static Task _host_AgentConnected(Agent agent)
         {
             Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
 
@@ -30,19 +30,19 @@ namespace Agience.Agents._Console
 
         }
 
-        private static async Task _instance_AgentReady(Agent agent)
+        private static async Task _host_AgentReady(Agent agent)
         {
             Console.WriteLine($"{agent.Name} Ready");
 
             Data? message = "Ready For Input";
 
-            while (_instance.IsConnected)
+            while (_host.IsConnected)
             {
                 var response = await agent.Runner.DispatchAsync<InteractWithUser>(message);
                 message = response.Output;                
             }
 
-            Console.WriteLine($"Instance Stopped");
+            Console.WriteLine($"Host Stopped");
         }
 
         private static async Task GetInputFromUser_callback(Runner runner, Data? output)
@@ -66,8 +66,8 @@ namespace Agience.Agents._Console
 
             if (output == "quit")
             {
-                Console.WriteLine("Stopping Instance");
-                await _instance.Stop();
+                Console.WriteLine("Stopping Host");
+                await _host.Stop();
             }
         }
     }
