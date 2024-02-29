@@ -1,6 +1,8 @@
 using Agience.Agents.Primary.Templates.OpenAI;
 using Agience.Agents.Primary.Templates.Process;
 using Agience.Client;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Experimental;
 
 namespace Agience.Agents.Primary
 {
@@ -9,7 +11,7 @@ namespace Agience.Agents.Primary
         private readonly ILogger<Worker> _logger;
         private readonly AppConfig _appConfig;
 
-        private Instance? _instance;
+        private Client.Host? _host;
 
         public Worker(ILogger<Worker> logger, AppConfig appConfig)
         {
@@ -19,31 +21,45 @@ namespace Agience.Agents.Primary
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _instance = new Instance(new Config
+            _host = new Client.Host(new Config
             {
                 AuthorityUri = _appConfig.AuthorityUri,
                 ClientId = _appConfig.ClientId,
-                ClientSecret = _appConfig.ClientSecret                
-                
+                ClientSecret = _appConfig.ClientSecret
             });
 
-            _instance.AddTemplate<Input>();
-            _instance.AddTemplate<Plan>();
-            _instance.AddTemplate<Select>();
-            _instance.AddTemplate<Execute>();
-            _instance.AddTemplate<Prompt>();
+            KernelPluginCollection plugins = new();
+            plugins.AddFromType<Input>();
+            plugins.AddFromType<Plan>();
+            plugins.AddFromType<Select>();
+            plugins.AddFromType<Execute>();
+            plugins.AddFromType<Prompt>();            
 
-            _instance.AgentReady += _instance_AgentReady;
-            _instance.AgentConnected += _instance_AgentConnected;
+            ServiceCollection services = new();
+            services.AddOpenAIChatCompletion("", "");
 
-            _logger.LogInformation("Starting Instance");
 
-            await _instance.Run();
 
-            _logger.LogInformation("Instance Stopped");
+
+            /*
+            _host.AddTemplate<Input>();
+            _host.AddTemplate<Plan>();
+            _host.AddTemplate<Select>();
+            _host.AddTemplate<Execute>();
+            _host.AddTemplate<Prompt>();
+            */
+
+            _host.AgentReady += _host_AgentReady;
+            _host.AgentConnected += _host_AgentConnected;
+
+            _logger.LogInformation("Starting Host");
+
+            await _host.Run();
+
+            _logger.LogInformation("Host Stopped");
         }
 
-        private Task _instance_AgentConnected(Agent agent)
+        private Task _host_AgentConnected(Agent agent)
         {
             _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
 
@@ -54,7 +70,7 @@ namespace Agience.Agents.Primary
 
         }
 
-        private Task _instance_AgentReady(Agent agent)
+        private Task _host_AgentReady(Agent agent)
         {
             _logger.LogInformation($"{agent.Name} Ready");
 
