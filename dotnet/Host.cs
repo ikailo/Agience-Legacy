@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Agience.Client
 {
-    public class Instance
+    public class Host
     {
         public event Func<Agent, Task>? AgentConnected;
         public event Func<Agent, Task>? AgentReady;
@@ -20,7 +20,7 @@ namespace Agience.Client
         private readonly Catalog _catalog = new();
         private readonly Broker _broker = new();
 
-        public Instance(Config config)
+        public Host(Config config)
         {
             _config = config;
             _authority = new Authority(_config.AuthorityUri ?? throw new ArgumentNullException("AuthorityUri"));
@@ -51,22 +51,20 @@ namespace Agience.Client
 
             await _broker.Connect(accessToken, brokerUri);
 
-            await _broker.Subscribe(_authority.InstanceTopic("+", "0"), _broker_ReceiveMessage); // All Instances
+            await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // All Hosts
 
-            await _broker.Subscribe(_authority.InstanceTopic("+", Id), _broker_ReceiveMessage); // This Instance
-
-            var data = new Data
-            {
-                { "type", "instance_connect" },
-                { "timestamp", _broker.Timestamp},
-                { "instance", JsonSerializer.Serialize(ToAgienceModel()) }
-            };
+            await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
 
             await _broker.PublishAsync(new Message()
             {
                 Type = MessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
-                Data = data
+                Data = new Data
+                {
+                    { "type", "host_connect" },
+                    { "timestamp", _broker.Timestamp},
+                    { "host", JsonSerializer.Serialize(ToAgienceModel()) }
+                }
             });
 
             IsConnected = true;
@@ -81,8 +79,8 @@ namespace Agience.Client
                     await agent.Disconnect();
                 }
 
-                await _broker.Unsubscribe(_authority.InstanceTopic("+", "0"));
-                await _broker.Unsubscribe(_authority.InstanceTopic("+", Id));
+                await _broker.Unsubscribe(_authority.HostTopic("+", "0"));
+                await _broker.Unsubscribe(_authority.HostTopic("+", Id));
 
                 await _broker.Disconnect();
 
@@ -96,7 +94,6 @@ namespace Agience.Client
 
             // Incoming Agent Connect Message
             if (message.Type == MessageType.EVENT &&
-                // message.Payload.Format == DataFormat.STRUCTURED &&
                 message.Data?["type"] == "agent_connect" &&
                 message.Data?["agent"] != null)
             {
@@ -112,7 +109,7 @@ namespace Agience.Client
 
         private async Task ReceiveAgentConnect(Model.Agent modelAgent, Dictionary<string, string>? templateDefaults, DateTime? timestamp)
         {
-            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Instance?.Id != Id)
+            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
             {
                 return; // Invalid Agent
             }
@@ -151,7 +148,7 @@ namespace Agience.Client
             var clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");
             var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("TokenEndpoint");
 
-            // TODO: Use a shared HttpClient instance
+            // TODO: Use a shared HttpClient host
             using (var httpClient = new HttpClient())
             {
                 var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{clientSecret}"));
@@ -188,9 +185,9 @@ namespace Agience.Client
             }
         }
 
-        internal Model.Instance ToAgienceModel()
+        internal Model.Host ToAgienceModel()
         {
-            return new Model.Instance
+            return new Model.Host
             {
                 Id = Id,
                 Name = Name

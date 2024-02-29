@@ -74,7 +74,7 @@ namespace Agience.Client
 
             if (_types.TryGetValue(templateId, out Type? templateType))
             {
-                var template = (Template?)Activator.CreateInstance(templateType);
+                var template = (Template?)Activator.CreateHost(templateType);
 
                 if (template != null)
                 {

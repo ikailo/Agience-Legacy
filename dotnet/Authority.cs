@@ -9,7 +9,7 @@ namespace Agience.Client
         private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
-        public event Func<Model.Instance, Task>? InstanceConnected;
+        public event Func<Model.Host, Task>? HostConnected;
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -91,15 +91,15 @@ namespace Agience.Client
                 ) { return; }
                         
             if (message.Type == MessageType.EVENT && 
-                message.Data?["type"] == "instance_connect" && 
-                message.Data?["instance"] != null)
+                message.Data?["type"] == "host_connect" && 
+                message.Data?["host"] != null)
             {
-                var instance = JsonSerializer.Deserialize<Model.Instance>(message.Data?["instance"]!);
+                var host = JsonSerializer.Deserialize<Model.Host>(message.Data?["host"]!);
 
                 // TODO: Move to seperate method
-                if (instance?.Id == message.SenderId && InstanceConnected != null)
+                if (host?.Id == message.SenderId && HostConnected != null)
                 {
-                    await InstanceConnected.Invoke(instance);
+                    await HostConnected.Invoke(host);
                 }
             }
         }
@@ -108,12 +108,12 @@ namespace Agience.Client
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
-            if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
+            if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
 
             _broker.Publish(new Message()
             {
                 Type = MessageType.EVENT,
-                Topic = InstanceTopic(Id, agent.Instance.Id),
+                Topic = HostTopic(Id, agent.Host.Id),
                 Data = new Data
                 {
                     { "type", "agent_connect" },
@@ -128,12 +128,12 @@ namespace Agience.Client
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
-            if (agent.Instance?.Id == null) { throw new ArgumentNullException(nameof(agent.Instance.Id)); }
+            if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
 
             _broker!.Publish(new Message()
             {
                 Type = MessageType.EVENT,
-                Topic = InstanceTopic(Id, agent.Instance.Id),
+                Topic = HostTopic(Id, agent.Host.Id),
                 Data = new Data
                 {
                     { "type", "agent_disconnect" },
@@ -143,9 +143,9 @@ namespace Agience.Client
             });
         }
 
-        public string Topic(string senderId, string? instanceId, string? agencyId, string? agentId)
+        public string Topic(string senderId, string? hostId, string? agencyId, string? agentId)
         {
-            var result = $"{(senderId != Id ? senderId : "-")}/{Id}/{instanceId ?? "-"}/{agencyId ?? "-"}/{agentId ?? "-"}";
+            var result = $"{(senderId != Id ? senderId : "-")}/{Id}/{hostId ?? "-"}/{agencyId ?? "-"}/{agentId ?? "-"}";
             return result;
         }
 
@@ -154,9 +154,9 @@ namespace Agience.Client
             return Topic(senderId, null, null, null);
         }
 
-        public string InstanceTopic(string senderId, string? instanceId)
+        public string HostTopic(string senderId, string? hostId)
         {
-            return Topic(senderId, instanceId, null, null);
+            return Topic(senderId, hostId, null, null);
         }
 
         public string AgencyTopic(string senderId, string agencyId)

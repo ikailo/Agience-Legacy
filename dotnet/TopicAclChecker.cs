@@ -22,7 +22,7 @@
 
         // TODO: Return better status codes, logging.
 
-        public async Task<bool> CheckAccessControl(AclCheckRequest? aclRequest, string? instanceId, List<string> roles, string? authorityId)
+        public async Task<bool> CheckAccessControl(AclCheckRequest? aclRequest, string? hostId, List<string> roles, string? authorityId)
         {
             if (aclRequest == null || string.IsNullOrWhiteSpace(aclRequest.topic) || aclRequest.acc == 0)
             {
@@ -38,9 +38,9 @@
                 //return Unauthorized("READ_WRITE access is not permitted.");
             }
 
-            var masks = GetUserMasks(aclRequest.acc, roles, authorityId, instanceId);
+            var masks = GetUserMasks(aclRequest.acc, roles, authorityId, hostId);
 
-            if (await IsTopicAllowed(aclRequest.topic, masks, instanceId, aclRequest.acc))
+            if (await IsTopicAllowed(aclRequest.topic, masks, hostId, aclRequest.acc))
             {
                 return true;
                 //return Ok();
@@ -50,10 +50,10 @@
             //return Unauthorized();
         }
 
-        private List<string> GetUserMasks(int accessType, List<string> roles, string? authorityId, string? instanceId)
+        private List<string> GetUserMasks(int accessType, List<string> roles, string? authorityId, string? hostId)
         {
             bool isAuthority = roles.Contains("authority");
-            bool isInstance = roles.Contains("instance");
+            bool isHost = roles.Contains("host");
 
             List<string> masks = new();
 
@@ -65,22 +65,22 @@
                 }
                 if (accessType == WRITE)
                 {
-                    masks.Add($"{NONE}/{authorityId}/{ANY_INCLUSIVE}/{NONE}/{NONE}"); // Authority -> Any or All Instances                    
+                    masks.Add($"{NONE}/{authorityId}/{ANY_INCLUSIVE}/{NONE}/{NONE}"); // Authority -> Any or All Hosts                    
                 }
             }
 
-            if (isInstance && instanceId != null)
+            if (isHost && hostId != null)
             {
                 if (accessType == READ || accessType == SUBSCRIBE)
                 {
-                    masks.Add($"{NONE}/{authorityId}/{ALL}/{NONE}/{NONE}"); // Authority -> All Instances
-                    masks.Add($"{NONE}/{authorityId}/{instanceId}/{NONE}/{NONE}"); // Authority -> Instance
+                    masks.Add($"{NONE}/{authorityId}/{ALL}/{NONE}/{NONE}"); // Authority -> All Hosts
+                    masks.Add($"{NONE}/{authorityId}/{hostId}/{NONE}/{NONE}"); // Authority -> Host
                     masks.Add($"{ANY_EXCLUSIVE}/{authorityId}/{NONE}/{QUERY}/{NONE}"); // Any -> Agency
                     masks.Add($"{ANY_EXCLUSIVE}/{authorityId}/{NONE}/{NONE}/{QUERY}"); // Any -> Agent
                 }
                 if (accessType == WRITE)
                 {
-                    masks.Add($"{instanceId}/{authorityId}/{NONE}/{NONE}/{NONE}"); // Instance -> Authority
+                    masks.Add($"{hostId}/{authorityId}/{NONE}/{NONE}/{NONE}"); // Host -> Authority
                     masks.Add($"{QUERY}/{authorityId}/{NONE}/{QUERY}/{NONE}"); // Agent -> Agency
                     masks.Add($"{QUERY}/{authorityId}/{NONE}/{NONE}/{QUERY}"); // Agency OR Agent -> Agent                    
                 }
@@ -88,7 +88,7 @@
             return masks;
         }
 
-        private async Task<bool> IsTopicAllowed(string topic, List<string> masks, string? instanceId, int accessType)
+        private async Task<bool> IsTopicAllowed(string topic, List<string> masks, string? hostId, int accessType)
         {
             foreach (var mask in masks)
             {
@@ -96,16 +96,16 @@
 
                 else if (mask.Contains(QUERY)) // TODO: Subject to "?" injection attack.
                 {
-                    if (instanceId == null) throw new ArgumentNullException(nameof(instanceId));
+                    if (hostId == null) throw new ArgumentNullException(nameof(hostId));
 
-                    if (await CheckQueryMaskAsync(topic, mask, instanceId, accessType)) { return true; }
+                    if (await CheckQueryMaskAsync(topic, mask, hostId, accessType)) { return true; }
                 }
             }
 
             return false;
         }
 
-        private async Task<bool> CheckQueryMaskAsync(string topic, string mask, string instanceId, int accessType)
+        private async Task<bool> CheckQueryMaskAsync(string topic, string mask, string hostId, int accessType)
         {
             var topicParts = topic.Split('/');
             var maskParts = mask.Split('/');
@@ -135,7 +135,7 @@
                 }
             }
 
-            return await _checkRelationships(instanceId, sourceId, targetAgencyId, targetAgentId);
+            return await _checkRelationships(hostId, sourceId, targetAgencyId, targetAgentId);
         }
 
         private bool CheckMask(string topic, string mask, int accessType)
