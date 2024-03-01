@@ -1,4 +1,7 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -16,9 +19,14 @@ namespace Agience.Client
 
         private readonly Config _config;
         private readonly Authority _authority;
-        private readonly Dictionary<string, Agent> _agents = new();
-        private readonly Catalog _catalog = new();
         private readonly Broker _broker = new();
+
+        private readonly Dictionary<string, Agent> _agents = new();
+        private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
+
+        private readonly KernelPluginCollection _plugins = new();
+        private readonly ServiceCollection _services = new();
+
 
         public Host(Config config)
         {
@@ -113,16 +121,14 @@ namespace Agience.Client
             {
                 return; // Invalid Agent
             }
+            
+            Agent agent = _agentBuilders[modelAgent.Agency.Id]
+                .WithName(modelAgent.Name)
+                .WithPlugins(_plugins)
+                .WithServices(_services)
+                .Build();
 
-            Agent agent = new(_authority, _broker, modelAgent.Agency)
-            {
-                Id = modelAgent.Id,
-                Name = modelAgent.Name,
-            };
-
-            agent.Agency.SetTemplateDefaults(templateDefaults);
-
-            agent.AddTemplates(_catalog.GetTemplatesForAgent(agent));
+            //agent.Agency.SetTemplateDefaults(templateDefaults);            
 
             await agent.Connect();
 
@@ -168,6 +174,7 @@ namespace Agience.Client
             }
         }
 
+        /*
         public void AddTemplate<T>(OutputCallback? callback = null) where T : Template, new()
         {
             // TODO: Add constructor parameters
@@ -183,7 +190,7 @@ namespace Agience.Client
                     agent.AddTemplate(template.Value);
                 }
             }
-        }
+        }*/
 
         internal Model.Host ToAgienceModel()
         {
@@ -192,6 +199,18 @@ namespace Agience.Client
                 Id = Id,
                 Name = Name
             };
+        }
+
+        public void ImportPluginFromType<T>(string? pluginName = null, IServiceProvider? serviceProvider = null)
+        {
+            _plugins.AddFromType<T>(pluginName, serviceProvider);
+        }
+
+        public void AddAgentBuilder(string name, AgentBuilder agentBuilder)
+        {
+            agentBuilder.WithName(name);
+
+            _agentBuilders.Add(name, agentBuilder);
         }
 
         internal class TokenResponse

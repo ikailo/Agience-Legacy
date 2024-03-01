@@ -13,10 +13,9 @@ namespace Agience.Client
         public virtual string[]? InputKeys { get; protected set; } // TODO: Use a Format string instead?
         public virtual string[]? OutputKeys { get; protected set; } // TODO: Use a Format string instead?
 
-
         internal Agent? Agent;
 
-        private Template() 
+        public Template()
         {
             Id = GetType().FullName ?? throw new ArgumentNullException("Type.FullName");
         }

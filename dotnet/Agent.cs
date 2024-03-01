@@ -1,12 +1,16 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.SemanticKernel;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
 
 namespace Agience.Client
 {
-    public class Agent
+    public class Agent 
     {
+
+        // TODO: Agents should operate in a defined layer.
+
         private const int JOIN_WAIT = 5000;
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
@@ -22,7 +26,16 @@ namespace Agience.Client
         private readonly Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
         private readonly Authority _authority;
         private readonly Agency _agency;
-        private readonly Broker _broker;        
+        private readonly Broker _broker;
+
+        public static AgentBuilder CreateBuilder(string? name = null) => new AgentBuilder(name);
+
+        public Kernel Kernel { get; internal set; }
+
+        public async Task<History> NewThreadAsync()
+        {
+
+        }
 
         // Returns the top-level runner. Entry point for new information (without parent) processing. 
         // TODO: Need to figure out how to handle multilevel threaded messaging.
@@ -35,6 +48,7 @@ namespace Agience.Client
                 return _runner == null ? new Runner(this) : _runner;
             }
         }
+
 
         internal Agent(Authority authority, Broker broker, Model.Agency modelAgency)
         {
