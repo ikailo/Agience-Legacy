@@ -2,7 +2,6 @@ using Agience.Agents.Primary.Templates.OpenAI;
 using Agience.Agents.Primary.Templates.Process;
 using Agience.Client;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Experimental;
 
 namespace Agience.Agents.Primary
 {
@@ -28,26 +27,16 @@ namespace Agience.Agents.Primary
                 ClientSecret = _appConfig.ClientSecret
             });
 
-            KernelPluginCollection plugins = new();
-            plugins.AddFromType<Input>();
-            plugins.AddFromType<Plan>();
-            plugins.AddFromType<Select>();
-            plugins.AddFromType<Execute>();
-            plugins.AddFromType<Prompt>();            
+            _host.ImportPluginFromType<Input>();
+            _host.ImportPluginFromType<Plan>();
+            _host.ImportPluginFromType<Select>();
+            _host.ImportPluginFromType<Execute>();
+            _host.ImportPluginFromType<Prompt>();
 
-            ServiceCollection services = new();
-            services.AddOpenAIChatCompletion("", "");
-
+            _host.AddService();
+            _host.AddAgentBuilder
 
 
-
-            /*
-            _host.AddTemplate<Input>();
-            _host.AddTemplate<Plan>();
-            _host.AddTemplate<Select>();
-            _host.AddTemplate<Execute>();
-            _host.AddTemplate<Prompt>();
-            */
 
             _host.AgentReady += _host_AgentReady;
             _host.AgentConnected += _host_AgentConnected;
