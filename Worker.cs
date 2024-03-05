@@ -33,8 +33,8 @@ namespace Agience.Agents.Primary
             _host.ImportPluginFromType<Execute>();
             _host.ImportPluginFromType<Prompt>();
 
-            _host.AddService();
-            _host.AddAgentBuilder
+            //_host.AddService();
+            //_host.AddAgentBuilder
 
 
 
