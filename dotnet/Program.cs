@@ -3,12 +3,16 @@ using Agience.Agents._Console.Plugins;
 using Microsoft.SemanticKernel;
 //using Microsoft.SemanticKernel.Plugins.Grpc;
 using System;
+using Agience.Client.Templates.Default;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Agience.Agents._Console
 {
     internal class Program
     {
         private static readonly AppConfig _config = new();
+
         private static Host? _host;
 
         internal static async Task Main(string[] args)
@@ -71,22 +75,64 @@ namespace Agience.Agents._Console
 
         private static async Task _host_AgentReady(Agent agent)
         {
-            // Agent instantiation is initiated from Authority-Manage.The Host does not have control.
-            // Returns an agent that has access to all the psuedo local functions
-            // Agent has an Agency with experts in their domain.            
-            // The Agency functions are only loaded when other Agents send them.
-
             Console.WriteLine($"{agent.Name} Ready");
+
+            // Agent instantiation is initiated from Authority-Manage.The Host does not have control.
+            // Returns an agent that has access to all the local & psuedo-local functions
+            // Agent has an Agency which connects them directly to other agents who are experts in their domain.
 
             // Here we want to communicate with our local agent.
 
-            Data? message = "Ready For Input";
+            // ====== Option 1 ======
 
-            while (_host.IsConnected)
+            /// Create chat history
+            var history = new ChatHistory();
+
+            // Get chat completion service
+            var chatCompletionService = agent.Kernel.GetRequiredService<IChatCompletionService>();
+            
+            Console.Write("User > ");                    
+            
+            string? userInput;
+            
+            while ((userInput = Console.ReadLine()) != null)
             {
-                var response = await agent.Runner.DispatchAsync<InteractWithUser>(message);
-                message = response.Output;
+                // Add user input
+                history.AddUserMessage(userInput);
+
+                // Enable auto function calling
+                OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+                {
+                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+                };
+
+                // Get the response from the AI
+                var result = await chatCompletionService.GetChatMessageContentAsync(
+                    history,
+                    executionSettings: openAIPromptExecutionSettings,
+                    kernel: agent.Kernel);
+
+                // Print the results
+                Console.WriteLine("Assistant > " + result);
+
+                // Add the message from the agent to the chat history
+                history.AddMessage(result.Role, result.Content ?? string.Empty);
+
+                // Get user input again
+                Console.Write("User > ");
             }
+
+
+            // ====== Option 2 ======
+
+            Data? message = "User > ";
+
+            while (_host!.IsConnected)
+            {                
+                var response = await agent.Kernel.InvokePromptAsync((string?)message ?? string.Empty);
+
+                message = response.GetValue<Data?>();
+            }           
 
             Console.WriteLine($"Host Stopped");
         }
