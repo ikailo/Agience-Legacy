@@ -208,8 +208,6 @@ namespace Agience.Client
 
         public void AddAgentBuilder(string name, AgentBuilder agentBuilder)
         {
-            agentBuilder.WithName(name);
-
             _agentBuilders.Add(name, agentBuilder);
         }
 

@@ -5,6 +5,7 @@ namespace Agience.Client
 {
     // TODO: Implement layer processing. Check link for more info.
     // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
+    // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
 
     public abstract class Template
     {
