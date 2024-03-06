@@ -25,7 +25,7 @@ namespace Agience.Client
        
         protected internal abstract Task<Data?> Process(Runner runner, Data? input = null);
         protected internal virtual Task<string?> Context(Runner runner, Data? input = null, Data? output = null) => Task.FromResult<string?>(null);
-
+/*
         internal Model.Template ToAgienceModel()
         {
             return new Model.Template()
@@ -36,6 +36,6 @@ namespace Agience.Client
                 OutputKeys = OutputKeys,
                 AgentId = Agent?.Id
             };
-        }       
+        }       */
     }
 }

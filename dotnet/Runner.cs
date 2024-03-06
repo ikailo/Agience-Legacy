@@ -1,9 +1,6 @@
-﻿using Agience.Model;
-using System.Text;
-using System.Text.Json;
-
-namespace Agience.Client
+﻿namespace Agience.Client
 {
+    /*
     public class DispatchResponse
     {
         public Runner Runner { get; set; }
@@ -14,10 +11,11 @@ namespace Agience.Client
             Runner = runner;
             Output = output;
         }
-    }
+    }*/
 
     public class Runner
     {
+       /*
         public string? AgentId => _agent.Id;
         public string? AgencyId => _agent.Agency.Id;
 
@@ -37,6 +35,7 @@ namespace Agience.Client
             return _agent.Agency.GetAgentName(agentId);
         }
 
+        
         public List<Model.Template> GetAvailableTemplates()
         {
             return _agent.Agency.Templates.Values.ToList();
@@ -250,6 +249,6 @@ namespace Agience.Client
                     throw task.Exception;
                 }
             }, TaskScheduler.Current);
-        }
+        }*/
     }
 }

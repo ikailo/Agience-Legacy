@@ -38,7 +38,9 @@ namespace Agience.Client
         {
             //this.ThrowIfDeleted();
                         
-            return ChatThread.CreateAsync(this._restContext, cancellationToken);
+            //return ChatThread.CreateAsync(this._restContext, cancellationToken);
+
+            throw new NotImplementedException();
         }
 
         /*
@@ -141,6 +143,7 @@ namespace Agience.Client
             });
         }
 
+        /*
         private void SendTemplateToAgency(Model.Template template)
         {
             _logger.LogDebug($"SendTemplateToAgency {template.Id}");
@@ -174,7 +177,7 @@ namespace Agience.Client
                     { "template_id", templateId }
                 }
             });
-        }
+        }*/
 
         internal void SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
@@ -230,22 +233,22 @@ namespace Agience.Client
                 message.Data?["agency"] != null &&
                 message.Data?["representative_id"] != null &&
                 message.Data?["timestamp"] != null &&
-                message.Data?["agents"] != null &&
-                message.Data?["templates"] != null)
+                message.Data?["agents"] != null)// &&
+                //message.Data?["templates"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agency = JsonSerializer.Deserialize<Model.Agency>(message.Data?["agency"]!);
                 var representativeId = message.Data?["representative_id"]!;
                 var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
-                var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Data?["templates"]!);
-                var templateDefaults = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Data?["template_defaults"]!);
+                //var templates = JsonSerializer.Deserialize<List<Model.Template>>(message.Data?["templates"]!);
+                //var templateDefaults = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Data?["template_defaults"]!);
 
 
-                if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null &&
-                    agentTimestamps != null && templates != null && timestamp != null && templateDefaults != null)
+                if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)
+                     //&& templates != null && timestamp != null && templateDefaults != null)
                 {
-                    _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, templates, templateDefaults, (DateTime)timestamp);
+                    _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, (DateTime)timestamp);
                 }
             }
 
@@ -259,7 +262,7 @@ namespace Agience.Client
 
         private async Task ReceiveInformation(Information information)
         {
-            // Runner.Log($"ReceiveInformation {information.Id}"); // Stack Overflow
+            _logger.LogInformation($"ReceiveInformation {information.Id}");
 
             if (information.InputAgentId == Id)
             {
@@ -267,14 +270,16 @@ namespace Agience.Client
                 // This is returned information
                 if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
                 {
-                    runner.ReceiveOutput(information);
+                    //runner.ReceiveOutput(information);
+                    throw new NotImplementedException();
                 }
             }
 
             if (information.OutputAgentId == null)
             {
                 // This is information that needs to be processed. Presumably Local. Dispatch it.
-                await new Runner(this, information).DispatchAsync();
+                //await new Runner(this, information).DispatchAsync();
+                throw new NotImplementedException();
 
                 // Return the output to the input agent
                 SendInformationToAgent(information, information?.InputAgentId!);
