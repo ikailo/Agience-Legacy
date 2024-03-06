@@ -1,5 +1,5 @@
+using Agience.Agents.Primary.Plugins;
 using Agience.Agents.Primary.Templates.OpenAI;
-using Agience.Agents.Primary.Templates.Process;
 using Agience.Client;
 using Microsoft.SemanticKernel;
 
@@ -27,11 +27,11 @@ namespace Agience.Agents.Primary
                 ClientSecret = _appConfig.ClientSecret
             });
 
-            _host.ImportPluginFromType<Input>();
-            _host.ImportPluginFromType<Plan>();
-            _host.ImportPluginFromType<Select>();
-            _host.ImportPluginFromType<Execute>();
-            _host.ImportPluginFromType<Prompt>();
+            _host.ImportPluginFromType<ProcessPlugin>();
+            //_host.ImportPluginFromType<Plan>();
+            //_host.ImportPluginFromType<Select>();
+            //_host.ImportPluginFromType<Execute>();
+            //_host.ImportPluginFromType<Prompt>();
 
             //_host.AddService();
             //_host.AddAgentBuilder
@@ -53,7 +53,7 @@ namespace Agience.Agents.Primary
             _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
 
             // Register template defaults
-            agent.Agency.SetTemplateDefault<Input>("prompt");
+            //agent.Agency.SetTemplateDefault<Input>("prompt");
 
             return Task.CompletedTask;
 
