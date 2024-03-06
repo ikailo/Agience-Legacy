@@ -17,6 +17,11 @@ namespace Agience.Agents._Console
 
         internal static async Task Main(string[] args)
         {
+
+            // TODO: Host Builder
+
+            // HERE
+
             _host = new Host(_config);
 
             // ===PLUGINS===
@@ -141,19 +146,19 @@ namespace Agience.Agents._Console
         {
             if (((string?)output)?.StartsWith("echo:") ?? false)
             {
-                var response = await runner.Echo(((string?)output)?.Substring(5));
+                //var response = await runner.Echo(((string?)output)?.Substring(5));
 
-                Console.WriteLine(response.Output);
+                //Console.WriteLine(response.Output);
             }
 
             if (((string?)output)?.StartsWith("log:") ?? false)
             {
-                runner.Log(((string?)output)?.Substring(4) ?? string.Empty);
+                //runner.Log(((string?)output)?.Substring(4) ?? string.Empty);
             }
 
             if (((string?)output)?.StartsWith("web:") ?? false)
             {
-                await runner.DispatchAsync("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
+                //await runner.DispatchAsync("Agience.Agents.Web.Templates.IncomingWebChatMessage", ((string?)output)?.Substring(4));
             }
 
             if (output == "quit")
