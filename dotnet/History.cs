@@ -6,11 +6,11 @@ namespace Agience.Client
     public class InformationVertex
     {
         public string? Id { get; internal set; }
-        public Data? Input { get; internal set; }
+        public object? Input { get; internal set; }
         public DateTime? InputTimestamp { get; internal set; }
-        public Data? Output { get; internal set; }
+        public object? Output { get; internal set; } // Type?
         public DateTime? OutputTimestamp { get; internal set; }
-        public Data? Transformation { get; internal set; }
+        public object? Transformation { get; internal set; } // KernelFunction?
         public string? TemplateId { get; internal set; } // TODO: This should be implict to the Transformation.
     }
 

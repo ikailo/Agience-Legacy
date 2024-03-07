@@ -1,11 +1,14 @@
-﻿namespace Agience.Client.Templates.Default
-{
-    public class Debug : Template
-    {
-        public override Data? Description => "Debug a template with input data.";
-        public override string[] InputKeys => new string[] { "template_id", "input_string" };
+﻿using Microsoft.SemanticKernel;
+using System.ComponentModel;
 
-        protected internal override Task<Data?> Process(Runner runner, Data? input = null)
+namespace Agience.Client.Templates.Default
+{
+    public class Debug 
+    {   
+        //public override string[] InputKeys => new string[] { "template_id", "input_string" };
+
+        [KernelFunction, Description("Debug a template with input data.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             Console.WriteLine("Default Debug template has been called. //TODO: Implement.");
 

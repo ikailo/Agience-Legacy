@@ -1,5 +1,8 @@
 ﻿namespace Agience.Client
 {
+
+    public delegate Task OutputCallback(Runner runner, Data? output);
+
     /*
     public class DispatchResponse
     {

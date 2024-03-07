@@ -131,5 +131,11 @@ namespace Agience.Client
 
             return this;
         }
+
+        public HostBuilder ConfigureServices(Action<IServiceCollection> configureServices)
+        {
+            configureServices(_services);
+            return this; // Return the builder to allow for method chaining
+        }
     }
 }

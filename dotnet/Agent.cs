@@ -1,13 +1,17 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
 
 namespace Agience.Client
 {
-    public class Agent     {
+    public class Agent
+    {
+
+        // TODO: Implement layer processing. Check link for more info.
+        // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
+        // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
 
         // TODO: Agents should operate in a defined layer.
 
@@ -30,17 +34,34 @@ namespace Agience.Client
 
         private ILogger _logger => Kernel.LoggerFactory.CreateLogger<Agent>();
 
-        public static AgentBuilder CreateBuilder(string? name = null) => new AgentBuilder(name);
+        //public static AgentBuilder CreateBuilder(string? name = null) => new AgentBuilder(name);
 
         public Kernel Kernel { get; internal set; }
 
         public Task<History> NewThreadAsync(CancellationToken cancellationToken = default)
         {
             //this.ThrowIfDeleted();
-                        
+
             //return ChatThread.CreateAsync(this._restContext, cancellationToken);
 
             throw new NotImplementedException();
+        }
+
+        public async Task<string> InvokeAsync(string input, CancellationToken cancellationToken = default)
+        {
+            return await InvokeAsync(input, null, cancellationToken);
+        }
+
+        public async Task<string> InvokeAsync(string input, KernelArguments? arguments, CancellationToken cancellationToken = default)
+        {
+            arguments ??= new KernelArguments();
+
+            arguments["input"] = input;
+
+            var result = await this.Kernel.Plugins.First().InvokeAsync(this.Kernel, arguments, cancellationToken).ConfigureAwait(false);
+            var response = result.GetValue<AgentResponse>()!;
+
+            return response.Message;
         }
 
         /*
@@ -181,7 +202,7 @@ namespace Agience.Client
 
         internal void SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
-            _logger.LogDebug("SendInformationToAgent"); 
+            _logger.LogDebug("SendInformationToAgent");
 
             if (runner != null)
             {
@@ -234,7 +255,7 @@ namespace Agience.Client
                 message.Data?["representative_id"] != null &&
                 message.Data?["timestamp"] != null &&
                 message.Data?["agents"] != null)// &&
-                //message.Data?["templates"] != null)
+                                                //message.Data?["templates"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agency = JsonSerializer.Deserialize<Model.Agency>(message.Data?["agency"]!);
@@ -246,7 +267,7 @@ namespace Agience.Client
 
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)
-                     //&& templates != null && timestamp != null && templateDefaults != null)
+                //&& templates != null && timestamp != null && templateDefaults != null)
                 {
                     _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, (DateTime)timestamp);
                 }

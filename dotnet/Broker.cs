@@ -171,7 +171,7 @@ namespace Agience.Client
                 switch (message.Type)
                 {
                     case MessageType.EVENT:
-                        payload = message.Data?.Raw ?? string.Empty;
+                        payload = message.Data?.ToString() ?? string.Empty;
                         break;
                     case MessageType.INFORMATION:
                         payload = JsonSerializer.Serialize(message.Information);

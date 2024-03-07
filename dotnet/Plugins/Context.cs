@@ -1,10 +1,12 @@
-﻿namespace Agience.Client.Templates.Default
-{
-    public class Context : Template
-    {
-        public override Data? Description => "Interact with the current context.";
+﻿using Microsoft.SemanticKernel;
+using System.ComponentModel;
 
-        protected internal override Task<Data?> Process(Runner runner, Data? input = null)
+namespace Agience.Client.Templates.Default
+{
+    public class Context //: Template
+    {
+        [KernelFunction, Description("Show a message to the user via the console.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             Console.WriteLine("Default Context template has been called. //TODO: Implement.");
 

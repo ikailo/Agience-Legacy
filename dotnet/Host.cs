@@ -221,6 +221,11 @@ namespace Agience.Client
             _agentBuilders.Add(name, agentBuilder);
         }
 
+        public Agent GetAgent(string? agentId)
+        {
+            throw new NotImplementedException();
+        }
+
         internal class TokenResponse
         {
             public string? access_token { get; set; }

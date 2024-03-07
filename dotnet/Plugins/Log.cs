@@ -1,12 +1,14 @@
-﻿namespace Agience.Client.Templates.Default
+﻿using Microsoft.SemanticKernel;
+using System.ComponentModel;
+
+namespace Agience.Client.Templates.Default
 {
-    public class Log : Template
-    {
-        public override Data? Description => "Write entries to the Agency log.";
+    public class Log 
+    {   
+        //public override string[] InputKeys => new[] { "timestamp", "agent_id", "agent_name", "level", "message" };
 
-        public override string[] InputKeys => new[] { "timestamp", "agent_id", "agent_name", "level", "message" };
-
-        protected internal override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Write entries to the Agency log.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             var agentId = input?["agent_id"];
             var agentName = input?["agent_name"];
