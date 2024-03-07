@@ -9,8 +9,9 @@ namespace Agience.Agents._Console.Plugins
         [KernelFunction, Description("Show a message to the user via the console.")]
         public void ShowMessageToUser(
             [FromKernelServices] IConsoleService console,
+            //[FromKernelServices] ICallbackService callback,
             [Description("The message to show to the user")] string message)
-        {
+        {            
             console.Write(message);
         }
 
@@ -28,6 +29,7 @@ namespace Agience.Agents._Console.Plugins
             [FromKernelServices] IConsoleService console,
             [Description("The message to show to the user")] string message)
         {   
+            // TODO: Here we can invoke directly, or invoke through the kernel. Going directly is faster, but going through the kernel could have benefits.
             ShowMessageToUser(console, message);
             return await GetInputFromUser(console);
         }
