@@ -20,7 +20,7 @@ namespace Agience.Agents.Primary
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _host = new Client.Host(new Config
+            _host = new Client.Host(new HostConfig
             {
                 AuthorityUri = _appConfig.AuthorityUri,
                 ClientId = _appConfig.ClientId,
