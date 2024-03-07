@@ -1,7 +1,6 @@
 using Agience.Agents.Primary.Plugins;
-using Agience.Agents.Primary.Templates.OpenAI;
 using Agience.Client;
-using Microsoft.SemanticKernel;
+using HostBuilder = Agience.Client.HostBuilder;
 
 namespace Agience.Agents.Primary
 {
@@ -20,23 +19,19 @@ namespace Agience.Agents.Primary
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _host = new Client.Host(new HostConfig
-            {
-                AuthorityUri = _appConfig.AuthorityUri,
-                ClientId = _appConfig.ClientId,
-                ClientSecret = _appConfig.ClientSecret
-            });
+            if (string.IsNullOrEmpty(_appConfig.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
+            if (string.IsNullOrEmpty(_appConfig.ClientId)) { throw new ArgumentNullException("ClientId"); }
+            if (string.IsNullOrEmpty(_appConfig.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
 
-            _host.ImportPluginFromType<ProcessPlugin>();
-            //_host.ImportPluginFromType<Plan>();
-            //_host.ImportPluginFromType<Select>();
-            //_host.ImportPluginFromType<Execute>();
-            //_host.ImportPluginFromType<Prompt>();
+            var builder = new HostBuilder()
+                .WithAuthorityUri(_appConfig.AuthorityUri)
+                .WithCredentials(_appConfig.ClientId, _appConfig.ClientSecret)
+                .AddPluginFromType<ProcessPlugin>();
+
+            _host = builder.Build();
 
             //_host.AddService();
             //_host.AddAgentBuilder
-
-
 
             _host.AgentReady += _host_AgentReady;
             _host.AgentConnected += _host_AgentConnected;
