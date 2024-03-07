@@ -6,6 +6,9 @@ using System;
 using Agience.Client.Templates.Default;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using MQTTnet.Server;
+using Microsoft.Extensions.DependencyInjection;
+using Agience.Agents_Console.Plugins;
 
 namespace Agience.Agents._Console
 {
@@ -17,63 +20,40 @@ namespace Agience.Agents._Console
 
         internal static async Task Main(string[] args)
         {
+            if (string.IsNullOrEmpty(_config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
+            if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
+            if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
 
-            // TODO: Host Builder
+            var builder = new HostBuilder()
+            .WithAuthorityUri(_config.AuthorityUri)
+            .WithCredentials(_config.ClientId, _config.ClientSecret)
+            .WithBrokerUriOverride(_config.BrokerUriOverride)
+            .AddPluginFromType<ConsolePlugin>()
+            .AddService(ServiceDescriptor.Singleton<IConsoleService, ConsoleService>());
 
-            // HERE
-
-            _host = new Host(_config);
-
-            // ===PLUGINS===
-
-            // Add local plugins/functions to the host. Local plugins contain functions that can be invoked by local or remote agents.
-            _host.ImportPluginFromType<ConsolePlugin>();
-
-            // TODO: Add remote plugins/functions to host (MQTT, GRPC, HTTP) that we want the local Kernels to consider local.
-            // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
-
-            // TODO: How to handle callbacks?  PluginFactory? FunctionFactory?
-            // _host.AddTemplate<GetInputFromUser>(GetInputFromUser_callback);
-
-            // ===SERVICES===
-
-            // TODO: Add local services to the host. Local services can be invoked by local or remote agents. 
-            // _host.AddSingleton("<OpenAIConnection>");
-
-            // TODO: Add remote services to the host.
-
-            // TODO: Expose local plugins to remote via MQTT, GRPC, HTTP.
-
-            // ===AGENTS===
-
-            // Next, we create AgentPlugins definitions..
-            // Agents have a defined set of functions and services. All functions and services must be local or psuedo local.
-            // What is an agent?
-            // An Agent is an expert in its specific information domain.
-            // Agent accepts a single input prompt.
-            // Agents have a specific configuration. Configurable from the Authority?
-
-           _host.AddAgentBuilder(
-               "Agience.Agents.Console",
-               Agent.CreateBuilder()
-               // .WithAnything() // Add some other configuration to the agent.
-               //.WithService() // Add local services to the agent.
-               );
-
+            _host = builder.Build();
 
             _host.AgentConnected += _host_AgentConnected;
             _host.AgentReady += _host_AgentReady;
 
             await _host.Run();
+
+            // The host will call back to the service to invoke methods I provide.
+
+            // TODO: Add remote plugins/functions to the host (MQTT, GRPC, HTTP) that we want the local Kernels to consider local.
+            // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.
+            // TODO: Initiate plugin imports from Authority.           
+            // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
+
+            // TODO: Add local services to the host. Local services can be invoked by local or remote agents. 
+            // _host.AddSingleton("<OpenAIConnection>");
+            // TODO: Add remote services to the host.
+            // TODO: Expose local plugins to remote via MQTT, GRPC, HTTP.
         }
 
-        private static Task _host_AgentConnected(Agent agent)
-        {
-            Console.WriteLine($"{agent.Agency.Name} / {agent.Name} Connected");
+        private static Task _host_AgentConnected(Agent agent) { 
 
-            // Do we set default plugins here?
-            // Do we still need default plugins?            
-            // xx Update default templates here. TODO: only if allowed
+            Console.WriteLine($"{agent.Name} Connected");
 
             return Task.CompletedTask;
         }
@@ -94,12 +74,12 @@ namespace Agience.Agents._Console
             var history = new ChatHistory();
 
             // Get chat completion service
-            var chatCompletionService = agent.Kernel.GetRequiredService<IChatCompletionService>();
-            
-            Console.Write("User > ");                    
-            
+            var chatCompletionService = agent.Kernel.GetRequiredService<IChatCompletionService>();            
+
+            Console.Write("User > ");
+
             string? userInput;
-            
+
             while ((userInput = Console.ReadLine()) != null)
             {
                 // Add user input
@@ -133,17 +113,19 @@ namespace Agience.Agents._Console
             Data? message = "User > ";
 
             while (_host!.IsConnected)
-            {                
+            {
                 var response = await agent.Kernel.InvokePromptAsync((string?)message ?? string.Empty);
 
                 message = response.GetValue<Data?>();
-            }           
+            }
 
             Console.WriteLine($"Host Stopped");
         }
 
-        private static async Task GetInputFromUser_callback(Runner runner, Data? output)
+        private static async Task GetInputFromUser_callback(Agent agent, Data? output)
         {
+
+            agent.Kernel.FunctionInvoking += Kernel_FunctionInvoking;
             if (((string?)output)?.StartsWith("echo:") ?? false)
             {
                 //var response = await runner.Echo(((string?)output)?.Substring(5));
@@ -166,6 +148,12 @@ namespace Agience.Agents._Console
                 Console.WriteLine("Stopping Host");
                 await _host.Stop();
             }
+        }
+
+        private static void Kernel_FunctionInvoking(object? sender, FunctionInvokingEventArgs e)
+        {
+            e.
+            throw new NotImplementedException();
         }
     }
 }

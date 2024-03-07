@@ -2,7 +2,7 @@
 
 namespace Agience.Agents._Console
 {
-    internal class AppConfig : Client.Config
+    internal class AppConfig : Client.HostConfig
     {
         public string? AgentId { get; set; }
 
