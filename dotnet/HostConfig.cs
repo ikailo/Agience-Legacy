@@ -2,7 +2,7 @@
 
 namespace Agience.Client
 {
-    public class Config
+    public class HostConfig
     { 
         public string? AuthorityUri { get; set; }
         public string? ClientId { get; set; }
@@ -11,7 +11,7 @@ namespace Agience.Client
 
         // TODO: Get the config in a more standard way.
 
-        public Config()
+        public HostConfig()
         {
             var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 

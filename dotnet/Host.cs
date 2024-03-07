@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -10,29 +8,31 @@ namespace Agience.Client
 {
     public class Host
     {
+        public event Func<AgentBuilder, Task>? AgentBuilding;
         public event Func<Agent, Task>? AgentConnected;
         public event Func<Agent, Task>? AgentReady;
+
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
         public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
 
-        private readonly Config _config;
         private readonly Authority _authority;
         private readonly Broker _broker = new();
-
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
-
         private readonly KernelPluginCollection _plugins = new();
-        private readonly ServiceCollection _services = new();
 
+        private readonly string _clientSecret;
+        private readonly string? _brokerUriOverride;
 
-        public Host(Config config)
+        public Host(string name, string authorityUri, string clientId, string clientSecret, string? brokerUriOverride = null)
         {
-            _config = config;
-            _authority = new Authority(_config.AuthorityUri ?? throw new ArgumentNullException("AuthorityUri"));
-            Id = _config.ClientId ?? throw new ArgumentNullException("ClientId");
+            this.Id = clientId ?? throw new ArgumentNullException("clientId");
+            this.Name = name ?? throw new ArgumentNullException("name");
+            _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
+            _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
+            _brokerUriOverride = brokerUriOverride;
         }
 
         public async Task Run()
@@ -53,7 +53,7 @@ namespace Agience.Client
 
             await _authority.Initialize();
 
-            var brokerUri = _config.BrokerUriOverride ?? _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri");
+            var brokerUri = (string.IsNullOrEmpty(_brokerUriOverride) ? _authority.BrokerUri : _brokerUriOverride) ?? throw new ArgumentNullException("BrokerUri");
 
             var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
 
@@ -121,12 +121,17 @@ namespace Agience.Client
             {
                 return; // Invalid Agent
             }
-            
-            Agent agent = _agentBuilders[modelAgent.Agency.Id]
+
+            var builder = _agentBuilders[modelAgent.Agency.Id]
                 .WithName(modelAgent.Name)
-                .WithPlugins(_plugins)
-                .WithServices(_services)
-                .Build();
+                .WithPlugins(_plugins);
+
+            if (AgentBuilding != null)
+            {
+                await AgentBuilding.Invoke(builder);
+            }
+
+            var agent = builder.Build();
 
             //agent.Agency.SetTemplateDefaults(templateDefaults);            
 
@@ -151,8 +156,8 @@ namespace Agience.Client
 
         private async Task<string?> GetAccessToken()
         {
-            var clientSecret = _config.ClientSecret ?? throw new ArgumentNullException("ClientSecret");
-            var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("TokenEndpoint");
+            var clientSecret = _clientSecret;
+            var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("tokenEndpoint");
 
             // TODO: Use a shared HttpClient host
             using (var httpClient = new HttpClient())
@@ -204,6 +209,11 @@ namespace Agience.Client
         public void ImportPluginFromType<T>(string? pluginName = null, IServiceProvider? serviceProvider = null)
         {
             _plugins.AddFromType<T>(pluginName, serviceProvider);
+        }
+
+        public void AddPlugins(IEnumerable<KernelPlugin> plugins)
+        {
+            _plugins.AddRange(plugins);
         }
 
         public void AddAgentBuilder(string name, AgentBuilder agentBuilder)

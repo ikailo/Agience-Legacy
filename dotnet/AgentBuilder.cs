@@ -7,7 +7,7 @@ namespace Agience.Client
     public class AgentBuilder
     {
         private readonly KernelPluginCollection _plugins = new();
-        private readonly ServiceCollection _services = new();
+        
         private Func<HttpClient>? _httpClientProvider;
 
         private string? _description;
@@ -129,6 +129,17 @@ namespace Agience.Client
             return this;
         }
 
+        public AgentBuilder AddFunctionCallbackForType<T>(string functionName, OutputCallback callback)
+        {
+            //_plugins.AddFunctionCallback<T>(functionName, callback);
+            
+            
+            throw new NotImplementedException();
+
+            return this;
+        }
+
+        /*
         public AgentBuilder WithService(ServiceDescriptor service)
         {
             if (service != null)
@@ -147,6 +158,6 @@ namespace Agience.Client
             }
 
             return this;
-        }
+        }*/
     }
 }
