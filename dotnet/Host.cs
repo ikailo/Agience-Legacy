@@ -15,7 +15,8 @@ namespace Agience.Client
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
-        public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
+
+        //public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
 
         private readonly Authority _authority;
         private readonly Broker _broker = new();
@@ -49,8 +50,6 @@ namespace Agience.Client
 
         private async Task Connect()
         {
-            //await Task.Delay(1000); // Wait for the authority to start. TODO: Skip in production.
-
             await _authority.Initialize();
 
             var brokerUri = (string.IsNullOrEmpty(_brokerUriOverride) ? _authority.BrokerUri : _brokerUriOverride) ?? throw new ArgumentNullException("BrokerUri");
@@ -107,15 +106,15 @@ namespace Agience.Client
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
-                var defaultTemplates = JsonSerializer.Deserialize<Dictionary<string, string>>(message.Data?["default_templates"]!);
+                // TODO: Collection of Plugins to Activate
 
                 if (agent == null) { return; } // Invalid Agent
 
-                await ReceiveAgentConnect(agent, defaultTemplates, timestamp);
+                await ReceiveAgentConnect(agent, timestamp);
             }
         }
 
-        private async Task ReceiveAgentConnect(Model.Agent modelAgent, Dictionary<string, string>? templateDefaults, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Model.Agent modelAgent, DateTime? timestamp)
         {
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
             {
@@ -124,28 +123,26 @@ namespace Agience.Client
 
             var builder = _agentBuilders[modelAgent.Agency.Id]
                 .WithName(modelAgent.Name)
-                .WithPlugins(_plugins);
+                .WithPlugins(_plugins); // TODO: Select plugins based on message from Authority.
+                                        // For now, we're just adding all plugins to all agents.
 
             if (AgentBuilding != null)
-            {
+            {   
                 await AgentBuilding.Invoke(builder);
             }
 
             var agent = builder.Build();
 
-            //agent.Agency.SetTemplateDefaults(templateDefaults);            
-
             await agent.Connect();
 
-            _agents.Add(agent.Id, agent);
+            _agents.Add(agent.Id!, agent);
 
             if (AgentConnected != null)
             {
                 await AgentConnected.Invoke(agent);
             }
-
             // Adding a short delay to accept incoming Templates, set defaults, etc.
-            // TODO: Improve this.Ideally we would wait just until each Agent in the agency has sent templates.
+            // TODO: Improve this. Maybe not needed now that we're using SK.
             await Task.Delay(5000);
 
             if (AgentReady != null)
@@ -179,24 +176,6 @@ namespace Agience.Client
             }
         }
 
-        /*
-        public void AddTemplate<T>(OutputCallback? callback = null) where T : Template, new()
-        {
-            // TODO: Add constructor parameters
-
-            _catalog.Add<T>(callback);
-
-            foreach (var agent in _agents.Values)
-            {
-                var template = _catalog.GetTemplateForAgent(typeof(T).FullName!, agent);
-
-                if (template.HasValue)
-                {
-                    agent.AddTemplate(template.Value);
-                }
-            }
-        }*/
-
         internal Model.Host ToAgienceModel()
         {
             return new Model.Host
@@ -221,9 +200,9 @@ namespace Agience.Client
             _agentBuilders.Add(name, agentBuilder);
         }
 
-        public Agent GetAgent(string? agentId)
+        public Agent? GetAgent(string? agentId)
         {
-            throw new NotImplementedException();
+            return !string.IsNullOrEmpty(agentId) && _agents.ContainsKey(agentId) ? _agents[agentId!] : null;
         }
 
         internal class TokenResponse

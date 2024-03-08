@@ -7,11 +7,12 @@ namespace Agience.Client
     public class AgentBuilder
     {
         private readonly KernelPluginCollection _plugins = new();
-        
+
         private Func<HttpClient>? _httpClientProvider;
 
         private string? _description;
         private string? _name;
+        private string? _persona;
 
         private Authority? _authority;
         private Broker? _broker;
@@ -41,7 +42,7 @@ namespace Agience.Client
 
             // _httpClientProvider ??= () => new HttpClient();
 
-            return new Agent(_authority, _broker, _agency);
+            return new Agent(_authority, _broker, _agency, _persona);
         }
 
         /*    
@@ -132,9 +133,16 @@ namespace Agience.Client
         public AgentBuilder AddFunctionCallbackForType<T>(string functionName, OutputCallback callback)
         {
             //_plugins.AddFunctionCallback<T>(functionName, callback);
-            
-            
+
+
             throw new NotImplementedException();
+
+            return this;
+        }
+
+        public AgentBuilder WithPersona(string persona)
+        {
+            this._persona = persona;
 
             return this;
         }
