@@ -1,16 +1,18 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 using System.Net.Http.Headers;
 using System.Text;
 
 namespace Agience.Agents.Primary.Templates.Jira
 { 
-    public class GetComments : Template
+    public class GetComments 
     {   
-        public override Data? Description => "Get Jira Comments";
-        public override string[] InputKeys => [ "domain", "issueID" ];
-        public override string[] OutputKeys => [ "content" ];
+        //public override string[] InputKeys => [ "domain", "issueID" ];
+        //public override string[] OutputKeys => [ "content" ];
 
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Get comments from a Jira ticket.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
 

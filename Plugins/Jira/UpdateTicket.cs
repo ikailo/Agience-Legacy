@@ -1,15 +1,18 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 using System.Text;
 
 namespace Agience.Agents.Primary.Templates.Jira
 {
-    public class UpdateTicket : Template
+    public class UpdateTicket
     {
-        public override Data? Description => "Update Jira Ticket By Id";
-        public override string[] InputKeys => [ "domain", "issueID", "editObject" ];
-        public override string[] OutputKeys => [ "content" ];
+        
+        //public override string[] InputKeys => [ "domain", "issueID", "editObject" ];
+        //public override string[] OutputKeys => [ "content" ];
 
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Update Jira Ticket By Id")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
 

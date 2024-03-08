@@ -1,19 +1,21 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 using System.Net.Http.Headers;
 using System.Text;
 
 namespace Agience.Agents.Primary.Templates.Jira
 {
-    public class GetTickets : Template
+    public class GetTickets 
     {
         private const string USERNAME = "";
         private const string PASSWORD = "";
 
-        public override Data? Description => "Get all Jira tickets.";
-        public override string[] InputKeys => ["domain"];
-        public override string[] OutputKeys => ["domain"];
+        //public override string[] InputKeys => ["domain"];
+        //public override string[] OutputKeys => ["domain"];
 
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Get all Jira tickets.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
 

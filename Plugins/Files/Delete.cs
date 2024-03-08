@@ -1,13 +1,16 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 
 namespace Agience.Agents.Primary.Templates.Files
 {
-    internal class Delete : Template
+    internal class Delete 
     {
-        public override Data? Description => "Delete a file on the local filesystem";
-        public override string[] InputKeys => ["file_path"];
+        
+        //public override string[] InputKeys => ["file_path"];
 
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Delete a file on the local filesystem.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             var fileName = input?["file_name"] ?? throw new ArgumentNullException("file_name");
 

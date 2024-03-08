@@ -1,18 +1,19 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 using System.Text.Json;
 
 namespace Agience.Agents.Primary.Templates.Text
 {
-    internal class Chunk : Template
+    internal class Chunk 
     {
         private const int DEFAULT_SIZE = 4000;
 
-        public override Data? Description => "Split text into chunks.";
+        //public override string[] InputKeys => ["text", "size:int"];
+        //public override string[] OutputKeys => ["chunks:string[]"];
 
-        public override string[] InputKeys => ["text", "size:int"];
-        public override string[] OutputKeys => ["chunks:string[]"];
-
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Split text into chunks.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             string? text = string.Empty;
             int size = DEFAULT_SIZE;

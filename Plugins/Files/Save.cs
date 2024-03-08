@@ -1,12 +1,13 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 
 namespace Agience.Agents.Primary.Templates.Files
 {
-    internal class Save : Template
+    internal class Save
     {
-        public override Data? Description => throw new NotImplementedException();
-
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Save data to a file in the local filesystem.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
         }

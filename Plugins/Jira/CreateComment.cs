@@ -1,19 +1,22 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 
 namespace Agience.Agents.Primary.Templates.Jira
 {
-    public class CreateComment : Template
+    public class CreateComment
     {
         private const string USERNAME = "";
         private const string PASSWORD = "";
 
-        public override Data? Description => "Post Jira Comments";
-        public override string[] InputKeys => [ "domain", "issueID", "comment" ];
-        public override string[] OutputKeys => [ "content" ];
+        //public override Data? Description => "Post Jira Comments";
+        //public override string[] InputKeys => [ "domain", "issueID", "comment" ];
+        //public override string[] OutputKeys => [ "content" ];
 
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Post a comment to a Jira issue.")]
+        public Task<Data?> NewComment(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
 

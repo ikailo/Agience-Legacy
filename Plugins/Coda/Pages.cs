@@ -1,12 +1,13 @@
 ﻿using Agience.Client;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
 
 namespace Agience.Agents.Primary.Templates.Coda
 {
-    internal class Pages : Template
+    internal class Pages //: Template
     {
-        public override Data? Description => throw new NotImplementedException();
-
-        protected override Task<Data?> Process(Runner runner, Data? input = null)
+        [KernelFunction, Description("Get a page by its ID.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
         }
