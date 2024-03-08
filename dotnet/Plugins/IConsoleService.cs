@@ -2,7 +2,8 @@
 {
     public interface IConsoleService
     {
-        public Task<string?> ReadLineAsync();
-        public void Write(string message);
+        Task<string?> ReadLineAsync();
+        void Write(string message);
+        void WriteLine(string message);
     }
 }

@@ -6,6 +6,9 @@ namespace Agience.Agents._Console
     {
         public string? AgentId { get; set; }
 
+        public string? OpenAiApiKey { get; set; }
+
+
         internal AppConfig()
             : base()
         {
