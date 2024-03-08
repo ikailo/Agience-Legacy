@@ -42,10 +42,9 @@ namespace Agience.Client
                 throw new ArgumentNullException("_clientSecret");
             }
 
-            var brokerUri = _brokerUriOverride;
-
             Host host = new(_name, _authorityUri, _clientId, _clientSecret, _brokerUriOverride);
 
+            host.AddServices(_services);
             host.AddPlugins(_plugins);
 
             return host;
@@ -87,12 +86,6 @@ namespace Agience.Client
             return this;
         }
 
-        public HostBuilder AddFunctionCallbackForType<T>(string functionName, OutputCallback callback)
-        {
-            this._callbacks.Add($"{typeof(T).FullName}.{functionName}", callback);
-
-            return this;
-        }
 
         public HostBuilder AddPlugin(KernelPlugin? plugin)
         {
@@ -131,11 +124,11 @@ namespace Agience.Client
 
             return this;
         }
-
+        /*
         public HostBuilder ConfigureServices(Action<IServiceCollection> configureServices)
         {
             configureServices(_services);
             return this; // Return the builder to allow for method chaining
-        }
+        }*/
     }
 }

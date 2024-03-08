@@ -1,4 +1,6 @@
-﻿using Microsoft.SemanticKernel;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -22,6 +24,8 @@ namespace Agience.Client
         private readonly Broker _broker = new();
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
+
+        private readonly ServiceCollection _services = new();
         private readonly KernelPluginCollection _plugins = new();
 
         private readonly string _clientSecret;
@@ -121,10 +125,18 @@ namespace Agience.Client
                 return; // Invalid Agent
             }
 
-            var builder = _agentBuilders[modelAgent.Agency.Id]
+            var builder = new AgentBuilder()
+                .WithId(modelAgent.Id)
+                .WithAuthority(_authority)
+                .WithBroker(_broker)
+                .WithAgency(modelAgent.Agency) // TODO: Agency should be in a local collection. Singleton instances.
                 .WithName(modelAgent.Name)
-                .WithPlugins(_plugins); // TODO: Select plugins based on message from Authority.
-                                        // For now, we're just adding all plugins to all agents.
+                .WithPlugins(_plugins) // TODO: Select plugins based on message from Authority. For now, we're just adding all plugins to all agents.                
+                .WithServices(_services); // TODO: Select services based on plugin dependency? Or Just add all. 
+
+                //.WithDescription(modelAgent.Description)
+                //.WithPersona(modelAgent.Persona)                
+
 
             if (AgentBuilding != null)
             {   
@@ -141,9 +153,11 @@ namespace Agience.Client
             {
                 await AgentConnected.Invoke(agent);
             }
-            // Adding a short delay to accept incoming Templates, set defaults, etc.
+
+            // ***** Adding a short delay to accept incoming Templates, set defaults, etc.
             // TODO: Improve this. Maybe not needed now that we're using SK.
             await Task.Delay(5000);
+            // *****
 
             if (AgentReady != null)
             {
@@ -193,6 +207,14 @@ namespace Agience.Client
         public void AddPlugins(IEnumerable<KernelPlugin> plugins)
         {
             _plugins.AddRange(plugins);
+        }
+
+        public void AddServices(ServiceCollection services)
+        {
+            foreach(var service in services)
+            {
+                _services.Add(service);
+            }
         }
 
         public void AddAgentBuilder(string name, AgentBuilder agentBuilder)

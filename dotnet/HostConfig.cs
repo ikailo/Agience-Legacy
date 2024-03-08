@@ -3,7 +3,8 @@
 namespace Agience.Client
 {
     public class HostConfig
-    { 
+    {
+        public string? HostName { get; set; }
         public string? AuthorityUri { get; set; }
         public string? ClientId { get; set; }
         public string? ClientSecret { get; set; }

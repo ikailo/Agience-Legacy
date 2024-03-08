@@ -7,12 +7,14 @@ namespace Agience.Client
     public class AgentBuilder
     {
         private readonly KernelPluginCollection _plugins = new();
+        private readonly ServiceCollection _services = new();        
 
         private Func<HttpClient>? _httpClientProvider;
 
         private string? _description;
         private string? _name;
         private string? _persona;
+        private string? _id;
 
         private Authority? _authority;
         private Broker? _broker;
@@ -42,7 +44,7 @@ namespace Agience.Client
 
             // _httpClientProvider ??= () => new HttpClient();
 
-            return new Agent(_authority, _broker, _agency, _persona);
+            return new Agent(_id, _authority, _broker, _agency, _persona, _services, _plugins);
         }
 
         /*    
@@ -73,9 +75,30 @@ namespace Agience.Client
         }
         */
 
+        public AgentBuilder WithAuthority(Authority authority)
+        {
+            _authority = authority;
+
+            return this;
+        }
+
+        public AgentBuilder WithBroker(Broker broker)
+        {
+            _broker = broker;
+
+            return this;
+        }
+
+        public AgentBuilder WithAgency(Model.Agency agency)
+        {
+            _agency = agency;
+
+            return this;
+        }
+
         public AgentBuilder WithHttpClient(HttpClient httpClient)
         {
-            _httpClientProvider ??= () => httpClient;
+            _httpClientProvider = () => httpClient;
 
             return this;
         }
@@ -130,16 +153,6 @@ namespace Agience.Client
             return this;
         }
 
-        public AgentBuilder AddFunctionCallbackForType<T>(string functionName, OutputCallback callback)
-        {
-            //_plugins.AddFunctionCallback<T>(functionName, callback);
-
-
-            throw new NotImplementedException();
-
-            return this;
-        }
-
         public AgentBuilder WithPersona(string persona)
         {
             this._persona = persona;
@@ -147,7 +160,7 @@ namespace Agience.Client
             return this;
         }
 
-        /*
+        
         public AgentBuilder WithService(ServiceDescriptor service)
         {
             if (service != null)
@@ -166,6 +179,13 @@ namespace Agience.Client
             }
 
             return this;
-        }*/
+        }
+
+        internal AgentBuilder WithId(string id)
+        {
+            _id = id;
+
+            return this;
+        }
     }
 }

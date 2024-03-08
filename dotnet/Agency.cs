@@ -24,12 +24,12 @@ namespace Agience.Client
         //private Dictionary<string, string> _templateDefaults = new();
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly Agent _agent;
+        private readonly Agent _agent; // TODO: Will need to be a list of Agents
 
         //private StringBuilder _context = new();
         //private readonly object _contextLock = new();
 
-        private ILogger<Agency> _logger;
+        private ILogger<Agency>? _logger;
 
         /*
         public string Context
@@ -48,6 +48,8 @@ namespace Agience.Client
             _authority = authority;
             _agent = agent;
             _broker = broker;
+
+            //_logger = _agent.Kernel.LoggerFactory.CreateLogger<Agency>(); // TODO: Use Kernel from context Agent
         }
 
         internal async Task Connect()
@@ -70,7 +72,7 @@ namespace Agience.Client
 
         private void SendWelcome(Model.Agent agent)
         {
-            _logger.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
+            _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
 
             _broker.Publish(new Message()
             {
@@ -180,7 +182,7 @@ namespace Agience.Client
 
         private void ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
         {
-            _logger.LogInformation($"ReceiveJoin {modelAgent.Name}");
+            _logger?.LogInformation($"ReceiveJoin {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
             if (_agents.TryGetValue(modelAgent.Id!, out (Model.Agent, DateTime) agent))
@@ -209,12 +211,12 @@ namespace Agience.Client
                                             //Dictionary<string, string> templateDefaults,
                                             DateTime timestamp)
         {
-            _logger.LogInformation($"ReceiveWelcome from {agency.Name} {GetAgentName(representativeId)}");
+            _logger?.LogInformation($"ReceiveWelcome from {agency.Name} {GetAgentName(representativeId)}");
 
             if (RepresentativeId != representativeId)
             {
                 RepresentativeId = representativeId;
-                _logger.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
+                _logger?.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
             }
 
             foreach (var agent in agents)
@@ -241,12 +243,12 @@ namespace Agience.Client
         // Network Latency, Simultaneous Joins, etc.
         private void ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
         {
-            _logger.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
+            _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
 
             if (RepresentativeId != modelAgent.Id)
             {
                 RepresentativeId = modelAgent.Id;
-                _logger.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
+                _logger?.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
             }
 
             if (_agent.Id == RepresentativeId)

@@ -13,6 +13,7 @@ using static QuikGraph.Algorithms.Assignment.HungarianAlgorithm;
 using System.Threading.Tasks;
 using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Agience.Client
@@ -27,7 +28,7 @@ namespace Agience.Client
         // TODO: Agents should operate in a defined layer.
 
         private const int JOIN_WAIT = 5000;
-        public string? Id { get; internal set; }
+        public string? Id { get; internal set;  }        
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         public Agency Agency => _agency;
@@ -45,7 +46,7 @@ namespace Agience.Client
 
         private ILogger _logger => Kernel.LoggerFactory.CreateLogger<Agent>();
 
-        public Kernel Kernel { get; internal set; }
+        public Kernel Kernel { get; internal set; } 
 
         public async Task<IReadOnlyList<ChatMessageContent>> InvokeAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
         {   
@@ -63,22 +64,34 @@ namespace Agience.Client
             return chatMessageContent;
         }
 
-
-        internal Agent(Authority authority, Broker broker, Model.Agency modelAgency, string? persona)
+        internal Agent(
+            string? id,
+            Authority authority, 
+            Broker broker, 
+            Model.Agency modelAgency, 
+            string? persona, 
+            ServiceCollection services, 
+            KernelPluginCollection plugins)
         {
+            Id = id;
+
             _authority = authority;
             _broker = broker;
+
             _agency = new Agency(authority, this, broker)
             {
                 Id = modelAgency.Id,
                 Name = modelAgency.Name
             };
+
             _chatHistory = new ChatHistory(persona ?? string.Empty);
 
             _promptExecutionSettings = new OpenAIPromptExecutionSettings
             {
                 ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
             };
+
+            this.Kernel = new Kernel(services.BuildServiceProvider(), plugins);            
 
             _representativeClaimTimer.AutoReset = false;
             _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
