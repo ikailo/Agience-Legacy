@@ -89,16 +89,8 @@ namespace Agience.Agents._Console
 
             // Here we want to communicate with the context agent.
 
-
-            await _contextAgent.InvokeAsync("prompt");
-
-            // BELOW FOR REFERENCE
-
             /// Create chat history
             var history = new ChatHistory();
-
-            // Get chat completion service
-            var chatCompletionService = _contextAgent.Kernel.GetRequiredService<IChatCompletionService>();
 
             Console.Write("User > ");
 
@@ -110,39 +102,21 @@ namespace Agience.Agents._Console
                 history.AddUserMessage(userInput);
 
                 // Enable auto function calling
-                OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
-                {
-                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-                };
 
-                // Get the response from the AI
-                var result = await chatCompletionService.GetChatMessageContentAsync(
-                    history,
-                    executionSettings: openAIPromptExecutionSettings,
-                    kernel: _contextAgent.Kernel);
+                var result = await _contextAgent.InvokeAsync(history);
 
                 // Print the results
                 Console.WriteLine("Assistant > " + result);
 
-                // Add the message from the agent to the chat history
-                history.AddMessage(result.Role, result.Content ?? string.Empty);
+                foreach (var message in result)
+                {
+                    Console.WriteLine($"{message.Role} > {message.Content}");
+                    history.AddMessage(message.Role, message.Content ?? string.Empty);
+                }
 
                 // Get user input again
                 Console.Write($"User > ");
             }
-
-            /*
-            // ====== Option 2 ======
-
-            Data? message = "User > ";
-
-            while (_host!.IsConnected)
-            {
-                var response = await _contextAgent.Kernel.InvokePromptAsync((string?)message ?? string.Empty);
-
-                message = response.GetValue<Data?>();
-            }*/
-
         }
     }
 }
