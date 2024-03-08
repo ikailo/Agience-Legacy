@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Agience.Agents.Primary.Plugins
 {
-    public sealed class EmbeddingsPlugin
+    public sealed class Embeddings
     {
         [KernelFunction, Description("Get embeddings for the given input data.")]
         [return: Description("The embeddings as a result of processing the input data.")]

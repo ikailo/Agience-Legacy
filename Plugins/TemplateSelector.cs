@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Agience.Agents.Primary.Plugins
 {
-    public sealed class TemplateSelectorPlugin
+    public sealed class TemplateSelector
     {
         [KernelFunction, Description("Select the best template to process the input data.")]
         [return: Description("The selected template ID as a JSON document.")]

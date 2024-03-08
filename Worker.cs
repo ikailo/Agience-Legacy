@@ -26,7 +26,7 @@ namespace Agience.Agents.Primary
             var builder = new HostBuilder()
                 .WithAuthorityUri(_appConfig.AuthorityUri)
                 .WithCredentials(_appConfig.ClientId, _appConfig.ClientSecret)
-                .AddPluginFromType<ProcessPlugin>();
+                .AddPluginFromType<Process>();
 
             _host = builder.Build();
 

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Agience.Agents.Primary.Plugins
 {
-    public sealed class PlanningPlugin
+    public sealed class Planning
     {
         [KernelFunction, Description("Create a plan that includes a series of steps designed to correctly respond to and fulfill the user's input and request.")]
         [return: Description("A JSON document that describes the series of steps in the plan.")]

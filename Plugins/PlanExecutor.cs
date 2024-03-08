@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Agience.Agents.Primary.Templates.OpenAI
 {
-    public sealed class PlanExecutorPlugin
+    public sealed class PlanExecutor
     {
         [KernelFunction, Description("Execute a plan from a series of steps.")]
         public async Task<string> Execute(

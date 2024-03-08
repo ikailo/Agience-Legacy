@@ -4,7 +4,7 @@ using System.ComponentModel;
 
 namespace Agience.Agents.Primary.Plugins
 {
-    internal class ProcessPlugin
+    internal class Process
     {   
 
         [KernelFunction, Description("Handle the user's input.")]

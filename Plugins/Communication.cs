@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Agience.Agents.Primary.Plugins
 {
-    public sealed class CommunicationPlugin
+    public sealed class Communication
     {
         private readonly HttpClient _httpClient;
 
-        public CommunicationPlugin()
+        public Communication()
         {
             // Consider using IHttpClientFactory in real applications for better HttpClient management.
             _httpClient = new HttpClient();
