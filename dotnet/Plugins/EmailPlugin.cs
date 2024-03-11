@@ -17,7 +17,7 @@ namespace Agience.Agents_Console.Plugins
             // Add logic to send an email using the recipientEmails, subject, and body
             // For now, we'll just print out a success message to the console
 
-            kernel.GetRequiredService<IConsoleService>().WriteLine("Email sent!");
+            kernel.GetRequiredService<IConsoleService>().WriteLine($"* Sent Email *\r\nTo: {recipientEmails}\r\nSubject: {subject}\r\nBody: {body}\r\n* * *");
         }
     }
 }

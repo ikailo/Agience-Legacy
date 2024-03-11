@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Agience.Agents_Console.Plugins;
 using Microsoft.Extensions.Logging;
+using Humanizer;
 
 namespace Agience.Agents._Console
 {
@@ -38,7 +39,7 @@ namespace Agience.Agents._Console
             .AddPluginFromType<EmailPlugin>()
             .AddPluginFromType<AuthorEmailPlanner>()
 
-            // TODO: 
+            // TODO: Add Prompt Template Plugins
 
             // Add Chat Completion Service (OpenAI)
             .AddService(ServiceDescriptor.Singleton<IChatCompletionService>(
@@ -68,9 +69,9 @@ namespace Agience.Agents._Console
         private static Task _host_AgentBuilding(AgentBuilder builder)
         {
             builder.WithPersona(
-                "You are a friendly assistant who likes to follow the rules. You will complete required steps "+
-                "and request approval before taking any consequential actions. If the user doesn't provide "+
-                "enough information for you to complete a task, you will keep asking questions until you have "+
+                "You are a friendly assistant who likes to follow the rules. You will complete required steps " +
+                "and request approval before taking any consequential actions. If the user doesn't provide " +
+                "enough information for you to complete a task, you will keep asking questions until you have " +
                 "enough information to complete the task."
                 );
 
@@ -100,13 +101,12 @@ namespace Agience.Agents._Console
             }
         }
 
-        // TODO: Read the input and set the context agent. For now, we will just use the first agent.
-        // TODO: Callbacks from functions - Handled by Kernel's Service Provider
+        // TODO: Read the input and set the context agent. For now, we will just use the first agent.        
 
         private static void SetAgentContext(string? agentId)
         {
             _contextAgent = _host!.GetAgent(agentId);
-            Console.WriteLine($"Switched to {_contextAgent?.Name ?? "Unknown"} > ");
+            Console.WriteLine($"* Switched context to {_contextAgent?.Name ?? "Unknown"} *");
         }
 
         private static async Task RunConsole()
@@ -127,18 +127,14 @@ namespace Agience.Agents._Console
             {
                 // Add user input
                 history.AddUserMessage(userInput);
-
-                // Enable auto function calling
-
+                
                 var result = await _contextAgent.InvokeAsync(history);
 
                 // Print the results
-                Console.WriteLine("Assistant > " + result);
-
                 foreach (var message in result)
-                {
-                    Console.WriteLine($"{message.Role} > {message.Content}");
+                {   
                     history.AddMessage(message.Role, message.Content ?? string.Empty);
+                    Console.WriteLine($"{message.Role.ToString().Pascalize()} > {message.Content}");
                 }
 
                 // Get user input again
