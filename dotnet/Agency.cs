@@ -74,9 +74,9 @@ namespace Agience.Client
         {
             _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
 
-            _broker.Publish(new Message()
+            _broker.Publish(new BrokerMessage()
             {
-                Type = MessageType.EVENT,
+                Type = BrokerMessageType.EVENT,
                 Topic = _authority.AgentTopic(Id!, agent.Id!),
                 Data = new Data
                 {
@@ -92,12 +92,12 @@ namespace Agience.Client
             });
         }
 
-        private Task _broker_ReceiveMessage(Message message)
+        private Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null) { return Task.CompletedTask; }
 
             // Incoming Agent Join message
-            if (message.Type == MessageType.EVENT &&
+            if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "join" &&
                 message.Data?["agent"] != null &&
                 message.Data?["timestamp"] != null)
@@ -112,7 +112,7 @@ namespace Agience.Client
             }
 
             // Incoming Representative Claim message
-            if (message.Type == MessageType.EVENT &&
+            if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "representative_claim" &&
                 message.Data?["agent"] != null &&
                 message.Data?["timestamp"] != null)

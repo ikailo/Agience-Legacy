@@ -1,24 +1,17 @@
-﻿using Agience.Model;
-using Azure.Core;
-using Humanizer;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.VisualBasic;
-using System;
 using System.Collections.Concurrent;
-using System.Numerics;
 using System.Text.Json;
-using static QuikGraph.Algorithms.Assignment.HungarianAlgorithm;
-using System.Threading.Tasks;
 using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
-
+using System.ComponentModel;
+using Microsoft.SemanticKernel.Experimental.Agents;
 
 namespace Agience.Client
 {
-    public class Agent
+    public class Agent : IAgent
     {
 
         // TODO: Implement layer processing. Check link for more info.
@@ -28,7 +21,7 @@ namespace Agience.Client
         // TODO: Agents should operate in a defined layer.
 
         private const int JOIN_WAIT = 5000;
-        public string? Id { get; internal set;  }        
+        public string? Id { get; internal set; }
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
         public Agency Agency => _agency;
@@ -43,14 +36,29 @@ namespace Agience.Client
         private readonly Agency _agency;
         private readonly Broker _broker;
 
-
         private ILogger _logger => Kernel.LoggerFactory.CreateLogger<Agent>();
 
-        public Kernel Kernel { get; internal set; } 
+        public Kernel Kernel { get; internal set; }
+
+        public AgentCapability Capabilities => throw new NotImplementedException();
+
+        public long CreatedAt => throw new NotImplementedException();
+
+        public string? Description => throw new NotImplementedException();
+
+        public string Model => throw new NotImplementedException();
+
+        public string Instructions => throw new NotImplementedException();
+
+        public IEnumerable<string> FileIds => throw new NotImplementedException();
+
+        public KernelPluginCollection Plugins => throw new NotImplementedException();
+
+        IEnumerable<ToolModel> IAgent.Tools => throw new NotImplementedException();
 
         public async Task<IReadOnlyList<ChatMessageContent>> InvokeAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
-        {   
-            // TODO: Will need to summarize previous messages. This will get large.
+        {
+            // TODO: Will need to summarize previous messages. This could get large.
             _chatHistory.AddRange(messages);
 
             var chatCompletionService = this.Kernel.GetRequiredService<IChatCompletionService>();
@@ -64,16 +72,51 @@ namespace Agience.Client
             return chatMessageContent;
         }
 
+        public Task<IAgentThread> NewThreadAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+            //return ChatThread.CreateAsync(this._restContext, cancellationToken);
+        }
+
+        private async Task<AgentResponse> AskAsync(
+       [Description("The user message provided to the agent.")]
+            string input,
+            KernelArguments arguments,
+            CancellationToken cancellationToken = default)
+        {
+            var thread = await this.NewThreadAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await thread.AddUserMessageAsync(input, cancellationToken).ConfigureAwait(false);
+
+                var messages = await thread.InvokeAsync(this, input, arguments, cancellationToken).ToArrayAsync(cancellationToken).ConfigureAwait(false);
+                var response =
+                    new AgentResponse
+                    {
+                        ThreadId = thread.Id,
+                        Message = string.Join(Environment.NewLine, messages.Select(m => m.Content)),
+                    };
+
+                return response;
+            }
+            finally
+            {
+                await thread.DeleteAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         internal Agent(
             string? id,
-            Authority authority, 
-            Broker broker, 
-            Model.Agency modelAgency, 
-            string? persona, 
-            ServiceCollection services, 
+            string? name,
+            Authority authority,
+            Broker broker,
+            Model.Agency modelAgency,
+            string? persona,
+            ServiceCollection services,
             KernelPluginCollection plugins)
         {
             Id = id;
+            Name = name;
 
             _authority = authority;
             _broker = broker;
@@ -91,7 +134,7 @@ namespace Agience.Client
                 ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
             };
 
-            this.Kernel = new Kernel(services.BuildServiceProvider(), plugins);            
+            this.Kernel = new Kernel(services.BuildServiceProvider(), plugins);
 
             _representativeClaimTimer.AutoReset = false;
             _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
@@ -126,9 +169,9 @@ namespace Agience.Client
         {
             _logger.LogDebug("SendJoin");
 
-            _broker.Publish(new Message()
+            _broker.Publish(new BrokerMessage()
             {
-                Type = MessageType.EVENT,
+                Type = BrokerMessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
                 Data = new Data
                 {
@@ -146,9 +189,9 @@ namespace Agience.Client
 
             _logger.LogDebug("SendRepresentativeClaim");
 
-            _broker.Publish(new Message()
+            _broker.Publish(new BrokerMessage()
             {
-                Type = MessageType.EVENT,
+                Type = BrokerMessageType.EVENT,
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
                 Data = new Data
                 {
@@ -168,20 +211,20 @@ namespace Agience.Client
                 _informationCallbacks[information.Id!] = runner;
             }
 
-            _broker.Publish(new Message()
+            _broker.Publish(new BrokerMessage()
             {
-                Type = MessageType.INFORMATION,
+                Type = BrokerMessageType.INFORMATION,
                 Topic = _authority.AgentTopic(Id!, targetAgentId),
                 Information = information
             });
         }
 
-        private async Task _broker_ReceiveMessage(Message message)
+        private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null || (message.Data == null && message.Information == null)) { return; }
 
             // Incoming Agency Welcome message
-            if (message.Type == MessageType.EVENT &&
+            if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "welcome" &&
                 message.Data?["agency"] != null &&
                 message.Data?["representative_id"] != null &&
@@ -202,7 +245,7 @@ namespace Agience.Client
             }
 
             // Incoming Agent Information message
-            if (message.Type == MessageType.INFORMATION &&
+            if (message.Type == BrokerMessageType.INFORMATION &&
                 message.Information != null)
             {
                 await ReceiveInformation(message.Information);
@@ -243,5 +286,44 @@ namespace Agience.Client
                 Name = Name
             };
         }
+
+        AgentPlugin IAgent.AsPlugin()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IAgentThread> GetThreadAsync(string id, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteThreadAsync(string? id, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task AddFileAsync(string fileId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task RemoveFileAsync(string fileId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        IPromptTemplate IAgent.AsPromptTemplate()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    internal class ToolModel
+    {
     }
 }

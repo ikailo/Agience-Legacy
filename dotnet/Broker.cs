@@ -72,12 +72,12 @@ namespace Agience.Client
 
             if (_callbacks.TryGetValue(callbackTopic, out var callbackContainers))
             {
-                var messageType = Enum.TryParse<MessageType>(
+                var messageType = Enum.TryParse<BrokerMessageType>(
                     args.ApplicationMessage.UserProperties.FirstOrDefault(x => x.Name == MESSAGE_TYPE_KEY)?.Value.ToString(), out var parsedMessageType) ?
                     parsedMessageType :
-                    MessageType.UNKNOWN;
+                    BrokerMessageType.UNKNOWN;
 
-                var message = new Message()
+                var message = new BrokerMessage()
                 {
                     Type = messageType,
                     Topic = args.ApplicationMessage.Topic //,
@@ -86,10 +86,10 @@ namespace Agience.Client
 
                 switch (messageType)
                 {
-                    case MessageType.EVENT:
+                    case BrokerMessageType.EVENT:
                         message.Data = args.ApplicationMessage.ConvertPayloadToString();
                         break;
-                    case MessageType.INFORMATION:
+                    case BrokerMessageType.INFORMATION:
                         var payloadString = args.ApplicationMessage.ConvertPayloadToString();
                         message.Information = JsonSerializer.Deserialize<Information>(payloadString);
                         break;
@@ -114,7 +114,7 @@ namespace Agience.Client
             return Task.CompletedTask;
         }
 
-        internal async Task Subscribe(string topic, Func<Message, Task> callback)
+        internal async Task Subscribe(string topic, Func<BrokerMessage, Task> callback)
         {
             if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
 
@@ -151,7 +151,7 @@ namespace Agience.Client
             await _client.UnsubscribeAsync(callbackTopic);
         }
 
-        internal void Publish(Message message)
+        internal void Publish(BrokerMessage message)
         {
             PublishAsync(message).ContinueWith(task =>
             {
@@ -162,7 +162,7 @@ namespace Agience.Client
             }, TaskScheduler.Current);
         }
 
-        internal async Task PublishAsync(Message message)
+        internal async Task PublishAsync(BrokerMessage message)
         {
             if (_client.IsConnected)
             {
@@ -170,10 +170,10 @@ namespace Agience.Client
 
                 switch (message.Type)
                 {
-                    case MessageType.EVENT:
+                    case BrokerMessageType.EVENT:
                         payload = message.Data?.ToString() ?? string.Empty;
                         break;
-                    case MessageType.INFORMATION:
+                    case BrokerMessageType.INFORMATION:
                         payload = JsonSerializer.Serialize(message.Information);
                         break;
                 }
@@ -235,8 +235,8 @@ namespace Agience.Client
     internal class CallbackContainer
     {
         public Guid Id { get; } = Guid.NewGuid(); // Unique identifier for the callback
-        public Func<Message, Task> Callback { get; set; }
-        public CallbackContainer(Func<Message, Task> callback)
+        public Func<BrokerMessage, Task> Callback { get; set; }
+        public CallbackContainer(Func<BrokerMessage, Task> callback)
         {
             Callback = callback;
         }

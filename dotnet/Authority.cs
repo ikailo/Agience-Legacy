@@ -83,14 +83,14 @@ namespace Agience.Client
             }
         }
 
-        private async Task _broker_ReceiveMessage(Message message)
+        private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null || 
                 message.Data == null //|| 
                 //message.Payload.Format != DataFormat.STRUCTURED
                 ) { return; }
                         
-            if (message.Type == MessageType.EVENT && 
+            if (message.Type == BrokerMessageType.EVENT && 
                 message.Data?["type"] == "host_connect" && 
                 message.Data?["host"] != null)
             {
@@ -110,9 +110,9 @@ namespace Agience.Client
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
 
-            _broker.Publish(new Message()
+            _broker.Publish(new BrokerMessage()
             {
-                Type = MessageType.EVENT,
+                Type = BrokerMessageType.EVENT,
                 Topic = HostTopic(Id, agent.Host.Id),
                 Data = new Data
                 {
@@ -130,9 +130,9 @@ namespace Agience.Client
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
 
-            _broker!.Publish(new Message()
+            _broker!.Publish(new BrokerMessage()
             {
-                Type = MessageType.EVENT,
+                Type = BrokerMessageType.EVENT,
                 Topic = HostTopic(Id, agent.Host.Id),
                 Data = new Data
                 {

@@ -17,10 +17,10 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="6.35.0" />
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="6.10.0" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.5.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Experimental.Agents" Version="1.5.0-alpha" />
     <PackageReference Include="MQTTnet" Version="4.3.3.952" />
     <PackageReference Include="QuikGraph" Version="2.5.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.35.0" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Management" Version="7.0.1" />
   </ItemGroup>
 

@@ -11,7 +11,7 @@ namespace Agience.Client
 
         private Func<HttpClient>? _httpClientProvider;
 
-        private string? _description;
+        //private string? _description;
         private string? _name;
         private string? _persona;
         private string? _id;
@@ -29,6 +29,10 @@ namespace Agience.Client
 
         public Agent Build()
         {
+            if (_name == null)
+            {
+                throw new ArgumentNullException("_name");
+            }
             if (_authority == null)
             {
                 throw new ArgumentNullException("_authority");
@@ -44,7 +48,7 @@ namespace Agience.Client
 
             // _httpClientProvider ??= () => new HttpClient();
 
-            return new Agent(_id, _authority, _broker, _agency, _persona, _services, _plugins);
+            return new Agent(_id, _name, _authority, _broker, _agency, _persona, _services, _plugins);
         }
 
         /*    
@@ -103,14 +107,14 @@ namespace Agience.Client
             return this;
         }
 
+        /*
         public AgentBuilder WithDescription(string? description)
         {
             _description = description;
 
             return this;
         }
-
-        /*
+       
         public AgentBuilder WithMetadata(string key, object value)
         {
             this._model.Metadata[key] = value;

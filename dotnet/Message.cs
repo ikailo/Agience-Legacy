@@ -2,7 +2,7 @@
 
 namespace Agience.Client
 {
-    public enum MessageType
+    public enum BrokerMessageType
     {
         EVENT,
         INFORMATION,
@@ -10,9 +10,9 @@ namespace Agience.Client
         UNKNOWN
     }
 
-    public class Message
+    public class BrokerMessage
     {
-        public MessageType Type { get; set; } = MessageType.UNKNOWN;
+        public BrokerMessageType Type { get; set; } = BrokerMessageType.UNKNOWN;
         public string? Topic { get; set; } 
         public string? SenderId => Topic?.Split('/')[0];
         public string? Destination => Topic?.Substring(Topic.IndexOf('/') + 1);
@@ -22,10 +22,10 @@ namespace Agience.Client
 
         public Data? Data
         {
-            get => Type == MessageType.EVENT ? (Data?)_content : null;
+            get => Type == BrokerMessageType.EVENT ? (Data?)_content : null;
             set
             {
-                if (Type == MessageType.EVENT)
+                if (Type == BrokerMessageType.EVENT)
                 {
                     _content = value;
                     //Payload = value?.Raw;
@@ -35,10 +35,10 @@ namespace Agience.Client
 
         public Information? Information
         {
-            get => Type == MessageType.INFORMATION ? (Information?)_content : null;
+            get => Type == BrokerMessageType.INFORMATION ? (Information?)_content : null;
             set
             {
-                if (Type == MessageType.INFORMATION)
+                if (Type == BrokerMessageType.INFORMATION)
                 {
                     _content = value;
                     //Payload = value != null ? JsonSerializer.Serialize(value) : null;

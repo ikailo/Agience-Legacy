@@ -66,9 +66,9 @@ namespace Agience.Client
 
             await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
 
-            await _broker.PublishAsync(new Message()
+            await _broker.PublishAsync(new BrokerMessage()
             {
-                Type = MessageType.EVENT,
+                Type = BrokerMessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
                 Data = new Data
                 {
@@ -99,12 +99,12 @@ namespace Agience.Client
             }
         }
 
-        private async Task _broker_ReceiveMessage(Message message)
+        private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null || message.Data == null) { return; }
 
             // Incoming Agent Connect Message
-            if (message.Type == MessageType.EVENT &&
+            if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "agent_connect" &&
                 message.Data?["agent"] != null)
             {
