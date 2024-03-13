@@ -47,7 +47,7 @@ namespace Agience.Agents._Console
             )
 
             // Add local services to the host. Local services can be invoked by local agents only. 
-            .AddService(ServiceDescriptor.Singleton<IConsoleService, ConsoleService>());
+            .AddService(ServiceDescriptor.Singleton(new ConsoleService()));
 
             _host = builder.Build();
 
@@ -117,7 +117,7 @@ namespace Agience.Agents._Console
             // Here we want to communicate with the context agent.
 
             /// Create chat history
-            var history = new ChatHistory();
+            var chatHistory = new ChatHistory();
 
             Console.Write("User > ");
 
@@ -126,14 +126,14 @@ namespace Agience.Agents._Console
             while ((userInput = Console.ReadLine()) != null)
             {
                 // Add user input
-                history.AddUserMessage(userInput);
+                chatHistory.AddUserMessage(userInput);
                 
-                var result = await _contextAgent.InvokeAsync(history);
+                var result = await _contextAgent.Process(chatHistory);                 
 
                 // Print the results
                 foreach (var message in result)
-                {   
-                    history.AddMessage(message.Role, message.Content ?? string.Empty);
+                {
+                    chatHistory.AddMessage(message.Role, message.Content ?? string.Empty);
                     Console.WriteLine($"{message.Role.ToString().Pascalize()} > {message.Content}");
                 }
 
