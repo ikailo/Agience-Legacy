@@ -9,7 +9,7 @@ namespace Agience.Client
         private readonly KernelPluginCollection _plugins = new();
         private readonly ServiceCollection _services = new();        
 
-        private Func<HttpClient>? _httpClientProvider;
+        //private Func<HttpClient>? _httpClientProvider;
 
         //private string? _description;
         private string? _name;
@@ -19,6 +19,9 @@ namespace Agience.Client
         private Authority? _authority;
         private Broker? _broker;
         private Model.Agency? _agency;
+
+        public string AgencyId => _agency?.Id ?? throw new ArgumentNullException("_agency");
+        public string AgentId => _id ?? throw new ArgumentNullException("_id");
 
         public AgentBuilder() { }
 
@@ -99,13 +102,13 @@ namespace Agience.Client
 
             return this;
         }
-
+        /*
         public AgentBuilder WithHttpClient(HttpClient httpClient)
         {
             _httpClientProvider = () => httpClient;
 
             return this;
-        }
+        }*/
 
         /*
         public AgentBuilder WithDescription(string? description)

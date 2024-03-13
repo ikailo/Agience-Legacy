@@ -1,9 +1,5 @@
-﻿using Agience.Client.Templates.Default;
-using Agience.Model;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
-using System.Text;
 using System.Text.Json;
 
 namespace Agience.Client
@@ -15,41 +11,19 @@ namespace Agience.Client
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
-        //internal ReadOnlyDictionary<string, Model.Template> Templates => new(_templates);
-        //internal ReadOnlyDictionary<string, string> TemplateDefaults => new(_templateDefaults);
-
-        private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();
-        //private readonly ConcurrentDictionary<string, Model.Template> _templates = new();
-
-        //private Dictionary<string, string> _templateDefaults = new();
+        
+        private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent; // TODO: Will need to be a list of Agents
 
-        //private StringBuilder _context = new();
-        //private readonly object _contextLock = new();
-
-        private ILogger<Agency>? _logger;
-
-        /*
-        public string Context
-        {
-            get
-            {
-                lock (_contextLock)
-                {
-                    return _context.ToString();
-                }
-            }
-        }*/
+        private readonly ILogger<Agency>? _logger;
 
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
             _authority = authority;
             _agent = agent;
             _broker = broker;
-
-            //_logger = _agent.Kernel.LoggerFactory.CreateLogger<Agency>(); // TODO: Use Kernel from context Agent
         }
 
         internal async Task Connect()
@@ -68,28 +42,6 @@ namespace Agience.Client
                 await _broker.Unsubscribe(_authority.AgencyTopic("+", Id!));
                 IsConnected = false;
             }
-        }
-
-        private void SendWelcome(Model.Agent agent)
-        {
-            _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
-
-            _broker.Publish(new BrokerMessage()
-            {
-                Type = BrokerMessageType.EVENT,
-                Topic = _authority.AgentTopic(Id!, agent.Id!),
-                Data = new Data
-                {
-                    { "type", "welcome" },
-                    { "timestamp", _broker.Timestamp },
-                    { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
-                    { "representative_id", RepresentativeId },
-                    { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
-                    { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) },
-                    //{ "templates", JsonSerializer.Serialize(_templates.Values.ToList()) },
-                    //{ "template_defaults", JsonSerializer.Serialize(_templateDefaults) }
-                }
-            });
         }
 
         private Task _broker_ReceiveMessage(BrokerMessage message)
@@ -127,34 +79,6 @@ namespace Agience.Client
             }
 
             /*
-            // Incoming Template message
-            if (message.Type == MessageType.EVENT &&
-                message.Data?["type"] == "template" &&
-                message.Data?["template"] != null &&
-                message.Data?["timestamp"] != null)
-            {
-                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var template = JsonSerializer.Deserialize<Model.Template>(message.Data?["template"]!);
-
-                if (template?.AgentId == message.SenderId && timestamp != null)
-                {
-                    ReceiveTemplate(template);
-                }
-            }
-
-            // Incoming Template Default message
-            if (message.Type == MessageType.EVENT &&
-                message.Data?["type"] == "template_default" &&
-                message.Data?["default_name"] != null &&
-                message.Data?["template_id"] != null)
-            {
-                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var defaultName = message.Data?["default_name"]!;
-                var templateId = message.Data?["template_id"]!;
-
-                SetTemplateDefault(defaultName, templateId);
-            }
-
             // Incoming Context message // TODO: Should be History, not context
             if (message.Type == MessageType.EVENT &&
                 message.Data?["type"] == "context" &&
@@ -169,16 +93,6 @@ namespace Agience.Client
 
             return Task.CompletedTask;
         }
-
-        /*
-        private void ReceiveContext(string context, DateTime? timestamp)
-        {
-            lock (_contextLock)
-            {
-                _context.Append($"{context}\r\n\r\n");
-                //_context.Append($"{timestamp} - {context}\r\n\r\n");
-            }
-        }*/
 
         private void ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
         {
@@ -203,12 +117,30 @@ namespace Agience.Client
             }
         }
 
+        private void SendWelcome(Model.Agent agent)
+        {
+            _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
+
+            _broker.Publish(new BrokerMessage()
+            {
+                Type = BrokerMessageType.EVENT,
+                Topic = _authority.AgentTopic(Id!, agent.Id!),
+                Data = new Data
+                {
+                    { "type", "welcome" },
+                    { "timestamp", _broker.Timestamp },
+                    { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "representative_id", RepresentativeId },
+                    { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
+                    { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) }
+                }
+            });
+        }
+
         internal void ReceiveWelcome(Model.Agency agency,
                                             string representativeId,
                                             List<Model.Agent> agents,
-                                            Dictionary<string, DateTime> agentTimestamps,
-                                            //List<Model.Template> templates,
-                                            //Dictionary<string, string> templateDefaults,
+                                            Dictionary<string, DateTime> agentTimestamps,                                            
                                             DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveWelcome from {agency.Name} {GetAgentName(representativeId)}");
@@ -223,20 +155,6 @@ namespace Agience.Client
             {
                 _agents[agent.Id!] = (agent, agentTimestamps[agent.Id!]);
             }
-
-            /*
-            foreach (var template in templates)
-            {
-                if (template.AgentId != _agent.Id)
-                {
-                    ReceiveTemplate(template);
-                }
-            }
-
-            SetTemplateDefaults(templateDefaults);
-
-            _agent.SendTemplatesToAgency();
-            */
         }
 
         // TODO: Handle race conditions
@@ -260,23 +178,6 @@ namespace Agience.Client
                 }
             }
         }
-        /*
-        private void ReceiveTemplate(Model.Template modelTemplate)
-        {
-            if (modelTemplate?.Id != null)
-            {
-                _logger.LogInformation($"ReceiveTemplate {modelTemplate.Id} from {GetAgentName(modelTemplate.AgentId) ?? modelTemplate.AgentId ?? "null"}");
-
-                _templates[modelTemplate.Id] = modelTemplate;
-            }
-        }
-
-        private void SetTemplateDefault(string defaultName, string templateId)
-        {
-            _logger.LogInformation($"SetTemplateDefault {defaultName} {templateId}");
-
-            _templateDefaults[defaultName] = templateId;
-        }*/
 
         private Model.Agency ToAgienceModel()
         {
@@ -286,26 +187,6 @@ namespace Agience.Client
                 Name = Name
             };
         }
-        /*
-        internal void SetTemplateDefaults(Dictionary<string, string>? templateDefaults)
-        {
-            if (templateDefaults == null) { return; }
-
-            foreach (var item in templateDefaults)
-            {
-                SetTemplateDefault(item.Key, item.Value);
-            }
-        }
-
-        public void SetTemplateDefault<T>(string name) where T : Template, new()
-        {
-            // TODO: Add constructor parameters
-
-            _logger.LogInformation($"SetTemplateDefault<T> {name} {typeof(T).FullName!}");
-
-            _agent.SendTemplateDefaultToAgency(name, typeof(T).FullName!);
-        }
-        */
 
         internal string? GetAgentName(string? agentId)
         {
@@ -313,33 +194,5 @@ namespace Agience.Client
 
             return _agents.TryGetValue(agentId, out (Model.Agent, DateTime) agent) ? agent.Item1.Name : null;
         }
-
-        /*
-        internal void AddContext(string? context = null)
-        {
-            if (context == null) { return; }
-
-            _logger.LogInformation($"AddContext {context}");
-
-            _broker.Publish(new Message()
-            {
-                Type = MessageType.EVENT,
-                Topic = _authority.AgencyTopic(_agent.Id!, Id!),
-                Data = new Data
-                {
-                    { "type", "context" },
-                    { "timestamp", _broker.Timestamp },
-                    { "context", context }
-                }
-            });
-        }
-
-        internal string GetContext()
-        {
-            lock (_contextLock)
-            {
-                return _context.ToString();                
-            }
-        }*/
     }
 }
