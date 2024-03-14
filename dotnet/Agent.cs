@@ -23,20 +23,23 @@ namespace Agience.Client
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
         public bool IsConnected { get; private set; }
+        public Kernel Kernel => _kernel;
         public Agency Agency => _agency;
         public string Timestamp => _broker.Timestamp;
-        //public History History { get; } = new(); // TODO: Make History ReadOnly for external access
 
-        //private ChatHistory _chatHistory;
-        private PromptExecutionSettings? _promptExecutionSettings;
+        //private readonly History _history = new(); // TODO: Make History ReadOnly for external access        
+
+        private readonly ChatHistory _chatHistory;
         private readonly ConcurrentDictionary<string, Runner> _informationCallbacks = new();
         private readonly Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
         private readonly Authority _authority;
         private readonly Agency _agency;
         private readonly Broker _broker;
-        private ILogger _logger => Kernel.LoggerFactory.CreateLogger<Agent>();
+        private readonly ILogger? _logger;
+        private readonly Kernel _kernel;
 
-        public Kernel Kernel { get; internal set; }
+        private PromptExecutionSettings? _promptExecutionSettings;
+        private string _persona;
 
         internal Agent(
             string? id,
@@ -48,6 +51,10 @@ namespace Agience.Client
             ServiceCollection services,
             KernelPluginCollection plugins)
         {
+            _kernel = new Kernel(services.BuildServiceProvider(), plugins);
+            
+            _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
+
             Id = id;
             Name = name;
 
@@ -60,15 +67,15 @@ namespace Agience.Client
                 Name = modelAgency.Name
             };
 
-            //_chatHistory = new ChatHistory(persona ?? string.Empty);
+            _persona = persona ?? string.Empty;
+
+            _chatHistory = new();
 
             _promptExecutionSettings = new OpenAIPromptExecutionSettings
             {
                 ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
             };
 
-            this.Kernel = new Kernel(services.BuildServiceProvider(), plugins);
-            
             _representativeClaimTimer.AutoReset = false;
             _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
         }
@@ -100,7 +107,7 @@ namespace Agience.Client
 
         private void SendJoin()
         {
-            _logger.LogDebug("SendJoin");
+            _logger?.LogDebug("SendJoin");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -120,7 +127,7 @@ namespace Agience.Client
         {
             if (_agency.RepresentativeId != null) { return; } // Was set by another agent
 
-            _logger.LogDebug("SendRepresentativeClaim");
+            _logger?.LogDebug("SendRepresentativeClaim");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -137,7 +144,7 @@ namespace Agience.Client
 
         internal void SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
-            _logger.LogDebug("SendInformationToAgent");
+            _logger?.LogDebug("SendInformationToAgent");
 
             if (runner != null)
             {
@@ -187,7 +194,7 @@ namespace Agience.Client
 
         private async Task ReceiveInformation(Information information)
         {
-            _logger.LogInformation($"ReceiveInformation {information.Id}");
+            _logger?.LogInformation($"ReceiveInformation {information.Id}");
 
             if (information.InputAgentId == Id)
             {
@@ -211,68 +218,30 @@ namespace Agience.Client
             }
         }
 
-        public async Task<IReadOnlyList<ChatMessageContent>> Process(string message)
+        public async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(string message)
         {
-            var chatHistory = new ChatHistory(); // TODO: System Messages, Etc..  Maybe ChatHistory isn't the correct object type.
+            var chatHistory = new ChatHistory(); // TODO: System Messages, Etc..  Probably ChatHistory isn't the correct object type.
 
             chatHistory.AddUserMessage(message);
 
-            return await Process(chatHistory);
+            return await ProcessAsync(chatHistory);
         }
 
-        public async Task<IReadOnlyList<ChatMessageContent>> Process(ChatHistory chatHistory)
-        {
-            
-            // TODO: HERE
-            
-            // Call InvokeAsync or AskAsync
-
-            throw new NotImplementedException();
-        }
-
-        /*
-        public async Task<IReadOnlyList<ChatMessageContent>> InvokeAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
         {
             // TODO: Will need to summarize previous messages. This could get large.
             _chatHistory.AddRange(messages);
 
-            var chatCompletionService = this.Kernel.GetRequiredService<IChatCompletionService>();
+            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
             var chatMessageContent = await chatCompletionService.GetChatMessageContentsAsync(
                 _chatHistory,
                 _promptExecutionSettings,
-                this.Kernel,
+                _kernel,
                 cancellationToken).ConfigureAwait(false);
 
             return chatMessageContent;
         }
-
-        private async Task<AgentResponse> AskAsync(
-       [Description("The user message provided to the agent.")]
-            string input,
-            KernelArguments arguments,
-            CancellationToken cancellationToken = default)
-        {
-            var thread = await this.NewThreadAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                await thread.AddUserMessageAsync(input, cancellationToken).ConfigureAwait(false);
-
-                var messages = await thread.InvokeAsync(this, input, arguments, cancellationToken).ToArrayAsync(cancellationToken).ConfigureAwait(false);
-                var response =
-                    new AgentResponse
-                    {
-                        ThreadId = thread.Id,
-                        Message = string.Join(Environment.NewLine, messages.Select(m => m.Content)),
-                    };
-
-                return response;
-            }
-            finally
-            {
-                await thread.DeleteAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }*/
 
         internal Model.Agent ToAgienceModel()
         {
