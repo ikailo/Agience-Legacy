@@ -1,5 +1,4 @@
-﻿using Agience.Agents_Console.Plugins;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
 namespace Agience.Agents._Console.Plugins
@@ -9,10 +8,9 @@ namespace Agience.Agents._Console.Plugins
         [KernelFunction, Description("Show a message to the user via the console.")]
         public void ShowMessageToUser(
             [FromKernelServices] IConsoleService console,
-            //[FromKernelServices] ICallbackService callback,
             [Description("The message to show to the user")] string message)
         {            
-            console.Write(message);
+            console.WriteLine(message);
         }
 
         [KernelFunction, Description("Get input from the user via the console.")]

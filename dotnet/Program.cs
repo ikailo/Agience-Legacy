@@ -1,11 +1,8 @@
 ﻿using Agience.Client;
-using Agience.Agents._Console.Plugins;
-using Microsoft.SemanticKernel;
-//using Microsoft.SemanticKernel.Plugins.Grpc;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
-using Agience.Agents_Console.Plugins;
+using Agience.Agents._Console.Plugins;
 using Microsoft.Extensions.Logging;
 using Humanizer;
 
@@ -34,8 +31,12 @@ namespace Agience.Agents._Console
             .WithCredentials(_config.ClientId, _config.ClientSecret)
             .WithBrokerUriOverride(_config.BrokerUriOverride)
 
+            // TODO: I want to expose Functions and Agents to other Agents.
+            // For example, we can publish two agents/plugins here: ConsolePlugin and EmailPlugin.
+
             // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
-            //.AddPluginFromType<ConsolePlugin>()
+
+            .AddPluginFromType<ConsolePlugin>()
             .AddPluginFromType<EmailPlugin>()
             .AddPluginFromType<AuthorEmailPlanner>()
 
@@ -47,7 +48,7 @@ namespace Agience.Agents._Console
             )
 
             // Add local services to the host. Local services can be invoked by local agents only. 
-            .AddService(ServiceDescriptor.Singleton(new ConsoleService()));
+            .AddService(ServiceDescriptor.Singleton<IConsoleService>(new ConsoleService()));
 
             _host = builder.Build();
 
@@ -128,7 +129,7 @@ namespace Agience.Agents._Console
                 // Add user input
                 chatHistory.AddUserMessage(userInput);
                 
-                var result = await _contextAgent.Process(chatHistory);                 
+                var result = await _contextAgent.ProcessAsync(chatHistory);                 
 
                 // Print the results
                 foreach (var message in result)

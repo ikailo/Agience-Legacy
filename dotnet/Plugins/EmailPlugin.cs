@@ -1,14 +1,14 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents_Console.Plugins
+namespace Agience.Agents._Console.Plugins
 {
     public class EmailPlugin
     {
         [KernelFunction]
         [Description("Sends an email to a recipient.")]
-        public async Task SendEmailAsync(
-            Kernel kernel,
+        public Task SendEmailAsync(
+            [FromKernelServices] IConsoleService console,
             [Description("Semicolon delimitated list of emails of the recipients")] string recipientEmails,
             string subject,
             string body
@@ -17,7 +17,9 @@ namespace Agience.Agents_Console.Plugins
             // Add logic to send an email using the recipientEmails, subject, and body
             // For now, we'll just print out a success message to the console
 
-            kernel.GetRequiredService<IConsoleService>().WriteLine($"* Sent Email *\r\nTo: {recipientEmails}\r\nSubject: {subject}\r\nBody: {body}\r\n* * *");
+            console.WriteLine($"* Sent Email *\r\nTo: {recipientEmails}\r\nSubject: {subject}\r\nBody: {body}\r\n* * *");
+
+            return Task.CompletedTask;
         }
     }
 }
