@@ -8,9 +8,9 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
 
-namespace Agience.Client
+namespace Agience.Client.Agience
 {
-    public class Agent
+    public class Agent : IAgent
     {
 
         // TODO: Implement layer processing. Check link for more info.
@@ -22,10 +22,15 @@ namespace Agience.Client
         private const int JOIN_WAIT = 5000;
         public string? Id { get; internal set; }
         public string? Name { get; internal set; }
-        public bool IsConnected { get; private set; }
-        public Kernel Kernel => _kernel;
+        private bool IsConnected { get; set; }
         public Agency Agency => _agency;
         public string Timestamp => _broker.Timestamp;
+        public string? Description { get; set; }
+        public string? Persona { get; set; }
+
+        public string AgencyId => _agency.Id ?? throw new ArgumentNullException("_agency.Id");
+
+        public string HostId { get; internal set; }
 
         //private readonly History _history = new(); // TODO: Make History ReadOnly for external access        
 
@@ -46,14 +51,14 @@ namespace Agience.Client
             string? name,
             Authority authority,
             Broker broker,
-            Model.Agency modelAgency,
+            Agency agency,
             string? persona,
             ServiceCollection services,
             KernelPluginCollection plugins)
         {
             _kernel = new Kernel(services.BuildServiceProvider(), plugins);
-            
-            _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
+
+            _logger = _kernel.LoggerFactory.CreateLogger<Agent>();
 
             Id = id;
             Name = name;
@@ -61,11 +66,7 @@ namespace Agience.Client
             _authority = authority;
             _broker = broker;
 
-            _agency = new Agency(authority, this, broker)
-            {
-                Id = modelAgency.Id,
-                Name = modelAgency.Name
-            };
+            _agency = agency;
 
             _persona = persona ?? string.Empty;
 
@@ -117,7 +118,7 @@ namespace Agience.Client
                 {
                     { "type", "join" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "agent", JsonSerializer.Serialize(this) },
                     { "random", new Random().NextInt64().ToString() }
                 }
             });
@@ -137,7 +138,7 @@ namespace Agience.Client
                 {
                     { "type", "representative_claim" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "agent", JsonSerializer.Serialize(this) },
                 }
             });
         }
@@ -161,7 +162,7 @@ namespace Agience.Client
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
-            if (message.SenderId == null || (message.Data == null && message.Information == null)) { return; }
+            if (message.SenderId == null || message.Data == null && message.Information == null) { return; }
 
             // Incoming Agency Welcome message
             if (message.Type == BrokerMessageType.EVENT &&
@@ -173,9 +174,9 @@ namespace Agience.Client
                                                 //message.Data?["templates"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agency = JsonSerializer.Deserialize<Model.Agency>(message.Data?["agency"]!);
+                var agency = JsonSerializer.Deserialize<Agency>(message.Data?["agency"]!);
                 var representativeId = message.Data?["representative_id"]!;
-                var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Data?["agents"]!);
+                var agents = JsonSerializer.Deserialize<List<IAgent>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)
@@ -218,16 +219,16 @@ namespace Agience.Client
             }
         }
 
-        public async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(string message)
+        public async Task<IReadOnlyList<ChatMessageContent>> PromptAsync(string message)
         {
             var chatHistory = new ChatHistory(); // TODO: System Messages, Etc..  Probably ChatHistory isn't the correct object type.
 
             chatHistory.AddUserMessage(message);
 
-            return await ProcessAsync(chatHistory);
+            return await PromptAsync(chatHistory);
         }
 
-        public async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<ChatMessageContent>> PromptAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
         {
             // TODO: Will need to summarize previous messages. This could get large.
             _chatHistory.AddRange(messages);
@@ -242,16 +243,5 @@ namespace Agience.Client
 
             return chatMessageContent;
         }
-
-        internal Model.Agent ToAgienceModel()
-        {
-            return new Model.Agent()
-            {
-                Id = Id,
-                Name = Name
-            };
-        }
-
-
     }
 }

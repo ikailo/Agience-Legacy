@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Agience.Client.Agience;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
@@ -10,20 +11,19 @@ namespace Agience.Client
 {
     public class Host
     {
-        public event Func<AgentBuilder, Task>? AgentBuilding;
-        public event Func<Agent, Task>? AgentConnected;
-        public event Func<Agent, Task>? AgentReady;
+        public event Func<IAgentBuilder, Task>? AgentBuilding;
+        public event Func<IAgent, Task>? AgentConnected;
+        public event Func<IAgent, Task>? AgentReady;
 
         public string Id { get; private set; }
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
-
-        //public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
-
+        
         private readonly Authority _authority;
         private readonly Broker _broker = new();
-        private readonly Dictionary<string, Agent> _agents = new();
-        private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
+        private readonly Dictionary<string, Agency> _agencies = new();
+        private readonly Dictionary<string, IAgent> _agents = new();
+        private readonly Dictionary<string, IAgentBuilder> _agentBuilders = new();
 
         private readonly ServiceCollection _services = new();
         private readonly KernelPluginCollection _plugins = new();
@@ -74,7 +74,7 @@ namespace Agience.Client
                 {
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "host", JsonSerializer.Serialize(ToAgienceModel()) }
+                    { "host", JsonSerializer.Serialize(this) }
                 }
             });
 
@@ -109,7 +109,7 @@ namespace Agience.Client
                 message.Data?["agent"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<IAgent>(message.Data?["agent"]!);
                 // TODO: Collection of Plugins to Activate
 
                 if (agent == null) { return; } // Invalid Agent
@@ -118,32 +118,39 @@ namespace Agience.Client
             }
         }
 
-        private async Task ReceiveAgentConnect(Model.Agent modelAgent, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(IAgent modelAgent, DateTime? timestamp)
         {
-            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
+            if (modelAgent?.Id == null)
             {
                 return; // Invalid Agent
+            }
+            
+            if (!_agencies.ContainsKey(modelAgent.AgencyId))
+            {
+                _agencies.Add(modelAgent.AgencyId, new Agency(_authority, modelAgent, _broker));
             }
 
             var builder = new AgentBuilder()
                 .WithId(modelAgent.Id)
                 .WithAuthority(_authority)
                 .WithBroker(_broker)
-                .WithAgency(modelAgent.Agency) // TODO: Agency should be in a local collection. Singleton instances.
+                .WithAgency(_agencies[modelAgent.AgencyId]) // TODO: T
                 .WithName(modelAgent.Name)
                 .WithPlugins(_plugins) // TODO: Select plugins based on message from Authority. For now, we're just adding all plugins to all agents.                
                 .WithServices(_services); // TODO: Select services based on plugin dependency? Or Just add all. 
 
-                //.WithDescription(modelAgent.Description)
-                //.WithPersona(modelAgent.Persona)                
+            //.WithDescription(modelAgent.Description)
+            //.WithPersona(modelAgent.Persona)                
 
 
             if (AgentBuilding != null)
-            {   
+            {
                 await AgentBuilding.Invoke(builder);
             }
 
-            var agent = builder.Build();
+            var agent = builder.Build() as Agience.Agent;
+
+            if (agent == null) { return; } // Invalid Agent
 
             await agent.Connect();
 
@@ -190,15 +197,6 @@ namespace Agience.Client
             }
         }
 
-        internal Model.Host ToAgienceModel()
-        {
-            return new Model.Host
-            {
-                Id = Id,
-                Name = Name
-            };
-        }
-
         public void ImportPluginFromType<T>(string? pluginName = null, IServiceProvider? serviceProvider = null)
         {
             _plugins.AddFromType<T>(pluginName, serviceProvider);
@@ -211,18 +209,18 @@ namespace Agience.Client
 
         public void AddServices(ServiceCollection services)
         {
-            foreach(var service in services)
+            foreach (var service in services)
             {
                 _services.Add(service);
             }
         }
 
-        public void AddAgentBuilder(string name, AgentBuilder agentBuilder)
+        public void AddAgentBuilder(string name, IAgentBuilder agentBuilder)
         {
             _agentBuilders.Add(name, agentBuilder);
         }
 
-        public Agent? GetAgent(string? agentId)
+        public IAgent? GetAgent(string? agentId)
         {
             return !string.IsNullOrEmpty(agentId) && _agents.ContainsKey(agentId) ? _agents[agentId!] : null;
         }

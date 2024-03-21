@@ -2,12 +2,12 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.SemanticKernel;
 
-namespace Agience.Client
+namespace Agience.Client.Agience
 {
-    public class AgentBuilder
+    public class AgentBuilder : IAgentBuilder
     {
         private readonly KernelPluginCollection _plugins = new();
-        private readonly ServiceCollection _services = new();        
+        private readonly ServiceCollection _services = new();
 
         //private Func<HttpClient>? _httpClientProvider;
 
@@ -18,10 +18,12 @@ namespace Agience.Client
 
         private Authority? _authority;
         private Broker? _broker;
-        private Model.Agency? _agency;
+        private Agency? _agency;
+        private string _agencyId;
 
-        public string AgencyId => _agency?.Id ?? throw new ArgumentNullException("_agency");
+        public string AgencyId => _agencyId ?? throw new ArgumentNullException("_agencyId");
         public string AgentId => _id ?? throw new ArgumentNullException("_id");
+
 
         public AgentBuilder() { }
 
@@ -30,7 +32,7 @@ namespace Agience.Client
             _name = name;
         }
 
-        public Agent Build()
+        public IAgent Build()
         {
             if (_name == null)
             {
@@ -44,12 +46,14 @@ namespace Agience.Client
             {
                 throw new ArgumentNullException("_broker");
             }
-            if (_agency == null)
+            if (_agencyId == null)
             {
                 throw new ArgumentNullException("_agency");
             }
 
             // _httpClientProvider ??= () => new HttpClient();
+
+            
 
             return new Agent(_id, _name, _authority, _broker, _agency, _persona, _services, _plugins);
         }
@@ -95,13 +99,13 @@ namespace Agience.Client
 
             return this;
         }
-
-        public AgentBuilder WithAgency(Model.Agency agency)
+        /*
+        public AgentBuilder WithAgency(Agency agency)
         {
             _agency = agency;
 
             return this;
-        }
+        }*/
         /*
         public AgentBuilder WithHttpClient(HttpClient httpClient)
         {
@@ -155,19 +159,19 @@ namespace Agience.Client
 
         public AgentBuilder WithPlugins(IEnumerable<KernelPlugin> plugins)
         {
-            this._plugins.AddRange(plugins);
+            _plugins.AddRange(plugins);
 
             return this;
         }
 
         public AgentBuilder WithPersona(string persona)
         {
-            this._persona = persona;
+            _persona = persona;
 
             return this;
         }
 
-        
+
         public AgentBuilder WithService(ServiceDescriptor service)
         {
             if (service != null)
@@ -193,6 +197,18 @@ namespace Agience.Client
             _id = id;
 
             return this;
+        }
+
+        internal AgentBuilder WithAgency(Agency agency)
+        {
+            _agency = agency;
+
+            return this;
+        }
+
+        public AgentBuilder AddPlugin(PluginBuilder builder)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.SemanticKernel;
+﻿using Agience.Client.Agience;
+using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
 namespace Agience.Client.Templates.Default

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Agience.Client.Agience;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.SemanticKernel;
 
@@ -124,11 +125,16 @@ namespace Agience.Client
 
             return this;
         }
-        /*
-        public HostBuilder ConfigureServices(Action<IServiceCollection> configureServices)
+
+        public void AddAgent(AgentBuilder consoleAgent)
         {
-            configureServices(_services);
-            return this; // Return the builder to allow for method chaining
-        }*/
+            throw new NotImplementedException();
+        }
+        /*
+public HostBuilder ConfigureServices(Action<IServiceCollection> configureServices)
+{
+   configureServices(_services);
+   return this; // Return the builder to allow for method chaining
+}*/
     }
 }
