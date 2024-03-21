@@ -43,9 +43,9 @@ namespace Agience.Agents.Primary
             _logger.LogInformation("Host Stopped");
         }
 
-        private Task _host_AgentConnected(Agent agent)
+        private Task _host_AgentConnected(IAgent agent)
         {
-            _logger.LogInformation($"{agent.Agency.Name} / {agent.Name} Connected");
+            _logger.LogInformation($"{agent.?.Name} / {agent.Name} Connected");
 
             // Register template defaults
             //agent.Agency.SetTemplateDefault<Input>("prompt");
@@ -54,7 +54,7 @@ namespace Agience.Agents.Primary
 
         }
 
-        private Task _host_AgentReady(Agent agent)
+        private Task _host_AgentReady(IAgent agent)
         {
             _logger.LogInformation($"{agent.Name} Ready");
 

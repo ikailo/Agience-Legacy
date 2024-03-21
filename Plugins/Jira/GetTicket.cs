@@ -1,4 +1,5 @@
 ﻿using Agience.Client;
+using Agience.Client.Agience;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Net.Http.Headers;
