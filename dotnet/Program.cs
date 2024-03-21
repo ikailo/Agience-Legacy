@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Agience.Agents._Console.Plugins;
 using Microsoft.Extensions.Logging;
 using Humanizer;
+using Agience.Client.Agience;
 
 namespace Agience.Agents._Console
 {
@@ -14,7 +15,7 @@ namespace Agience.Agents._Console
 
         private static Host? _host;
 
-        private static Agent? _contextAgent;
+        private static IAgent? _contextAgent;
 
         private static ILogger<Program>? _logger; // TODO: Add logging
 
@@ -25,34 +26,40 @@ namespace Agience.Agents._Console
             if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
             if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
 
-            var builder = new HostBuilder()
+            var hostBuilder = new HostBuilder()
             .WithName(_config.HostName)
             .WithAuthorityUri(_config.AuthorityUri)
             .WithCredentials(_config.ClientId, _config.ClientSecret)
-            .WithBrokerUriOverride(_config.BrokerUriOverride)
+            .WithBrokerUriOverride(_config.BrokerUriOverride);
 
-            // TODO: I want to expose Functions and Agents to other Agents.
-            // For example, we can publish two agents/plugins here: ConsolePlugin and EmailPlugin.
+            // TODO: Expose Functions, Plugins, and Agents publicly.
 
-            // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
+            // Configure local singleton services
+            var consoleService = ServiceDescriptor.Singleton<IConsoleIOService>(new ConsoleIO());
 
-            .AddPluginFromType<ConsolePlugin>()
-            .AddPluginFromType<EmailPlugin>()
-            .AddPluginFromType<AuthorEmailPlanner>()
+            var chatCompletionServiceGpt35 = ServiceDescriptor.Singleton<IChatCompletionService>(
+                serviceProvider => new OpenAIChatCompletionService("gpt-3.5-turbo", _config.OpenAiApiKey ?? throw new ArgumentNullException("OpenAiApiKey"))
+            );
 
-            // TODO: Add Prompt Template Plugins
+            // Configure Console Plugin
+            var consoleIOPlugin = new PluginBuilder("Agience.Agents.Console.IO")
+               .AddPluginFromType<ConsoleIO>()
+               .AddService(consoleService);
 
-            // Add Chat Completion Service (OpenAI)
-            .AddService(ServiceDescriptor.Singleton<IChatCompletionService>(
-                serviceProvider => new OpenAIChatCompletionService("gpt-3.5-turbo", _config.OpenAiApiKey ?? throw new ArgumentNullException("OpenAiApiKey")))
-            )
+            // Configure EmailAuthor Plugin
+            var emailAuthorPlugin = new PluginBuilder("Agience.Agents.Console.EmailAuthor")
+              .AddPluginFromType<EmailAuthor>()              
+              .AddService(chatCompletionServiceGpt35);
 
-            // Add local services to the host. Local services can be invoked by local agents only. 
-            .AddService(ServiceDescriptor.Singleton<IConsoleService>(new ConsoleService()));
+            // Create an Agent that uses the ConsoleIO and EmailAuthor plugins
+            var consoleAgent = new AgentBuilder("Agience.Agents.Console")
+                .AddPlugin(consoleIOPlugin)
+                .AddPlugin(emailAuthorPlugin);
+           
+            hostBuilder.AddAgent(consoleAgent);            
 
-            _host = builder.Build();
+            _host = hostBuilder.Build();
 
-            _host.AgentBuilding += _host_AgentBuilding;
             _host.AgentConnected += _host_AgentConnected;
             _host.AgentReady += _host_AgentReady;
 
@@ -67,8 +74,10 @@ namespace Agience.Agents._Console
             // TODO: Expose local plugins to remote via MQTT, GRPC, HTTP.
         }
 
-        private static Task _host_AgentBuilding(AgentBuilder builder)
+        private static Task _host_AgentBuilding(AgentBuilder? builder)
         {
+            if (builder == null) { throw new ArgumentNullException("builder"); }
+
             builder.WithPersona(
                 "You are a friendly assistant who likes to follow the rules. You will complete required steps " +
                 "and request approval before taking any consequential actions. If the user doesn't provide " +
@@ -79,7 +88,7 @@ namespace Agience.Agents._Console
             return Task.CompletedTask;
         }
 
-        private static Task _host_AgentConnected(Agent agent)
+        private static Task _host_AgentConnected(IAgent agent)
         {
 
             // Agent instantiation is initiated from Authority-Manage.The Host does not have control.
@@ -91,7 +100,7 @@ namespace Agience.Agents._Console
             return Task.CompletedTask;
         }
 
-        private static async Task _host_AgentReady(Agent agent)
+        private static async Task _host_AgentReady(IAgent agent)
         {
             Console.WriteLine($"{agent.Name} Ready");
 
@@ -128,8 +137,8 @@ namespace Agience.Agents._Console
             {
                 // Add user input
                 chatHistory.AddUserMessage(userInput);
-                
-                var result = await _contextAgent.ProcessAsync(chatHistory);                 
+
+                var result = await _contextAgent.PromptAsync(chatHistory);
 
                 // Print the results
                 foreach (var message in result)
