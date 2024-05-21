@@ -7,10 +7,11 @@ using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
+using Agience.Authority.Identity.Models;
 
 namespace Agience.Client
 {
-    public class Agent
+    public class Agent : AgienceObject
     {
 
         // TODO: Implement layer processing. Check link for more info.
@@ -20,11 +21,12 @@ namespace Agience.Client
         // TODO: Agents should operate in a defined layer.
 
         private const int JOIN_WAIT = 5000;
-        public string? Id { get; internal set; }
-        public string? Name { get; internal set; }
+        public string? Id { get; set; }
+        public string? Name { get; set; }
         public bool IsConnected { get; private set; }
         public Kernel Kernel => _kernel;
-        public Agency Agency => _agency;
+        public Agency Agency { get; set; }
+        public Host? Host { get; set; }
         public string Timestamp => _broker.Timestamp;
 
         //private readonly History _history = new(); // TODO: Make History ReadOnly for external access        
@@ -41,12 +43,16 @@ namespace Agience.Client
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
+        public Agent()
+        {
+        }
+
         internal Agent(
             string? id,
             string? name,
             Authority authority,
             Broker broker,
-            Model.Agency modelAgency,
+            Agency modelAgency,
             string? persona,
             ServiceCollection services,
             KernelPluginCollection plugins)
@@ -173,9 +179,9 @@ namespace Agience.Client
                                                 //message.Data?["templates"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agency = JsonSerializer.Deserialize<Model.Agency>(message.Data?["agency"]!);
+                var agency = JsonSerializer.Deserialize<Agency>(message.Data?["agency"]!);
                 var representativeId = message.Data?["representative_id"]!;
-                var agents = JsonSerializer.Deserialize<List<Model.Agent>>(message.Data?["agents"]!);
+                var agents = JsonSerializer.Deserialize<List<Agent>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)
@@ -243,15 +249,14 @@ namespace Agience.Client
             return chatMessageContent;
         }
 
-        internal Model.Agent ToAgienceModel()
+        internal Agent ToAgienceModel()
         {
-            return new Model.Agent()
+            return new Agent()
             {
                 Id = Id,
                 Name = Name
             };
         }
-
 
     }
 }

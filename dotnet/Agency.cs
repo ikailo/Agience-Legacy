@@ -1,23 +1,25 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
 namespace Agience.Client
 {
     public class Agency
     {
-        public string? Id { get; internal set; }
-        public string? Name { get; internal set; }
+        public string? Id { get; set; }
+        public string? Name { get; set; }
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
         
-        private readonly ConcurrentDictionary<string, (Model.Agent, DateTime)> _agents = new();        
+        private readonly ConcurrentDictionary<string, (Agent, DateTime)> _agents = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent; // TODO: Will need to be a list of Agents
-
         private readonly ILogger<Agency>? _logger;
+
+        public Agency() { }
 
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
@@ -55,7 +57,7 @@ namespace Agience.Client
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -70,7 +72,7 @@ namespace Agience.Client
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -94,12 +96,12 @@ namespace Agience.Client
             return Task.CompletedTask;
         }
 
-        private void ReceiveJoin(Model.Agent modelAgent, DateTime timestamp)
+        private void ReceiveJoin(Agent modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveJoin {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
-            if (_agents.TryGetValue(modelAgent.Id!, out (Model.Agent, DateTime) agent))
+            if (_agents.TryGetValue(modelAgent.Id!, out (Agent, DateTime) agent))
             {
                 if (timestamp > agent.Item2)
                 {
@@ -117,7 +119,7 @@ namespace Agience.Client
             }
         }
 
-        private void SendWelcome(Model.Agent agent)
+        private void SendWelcome(Agent agent)
         {
             _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
 
@@ -137,11 +139,11 @@ namespace Agience.Client
             });
         }
 
-        internal void ReceiveWelcome(Model.Agency agency,
-                                            string representativeId,
-                                            List<Model.Agent> agents,
-                                            Dictionary<string, DateTime> agentTimestamps,                                            
-                                            DateTime timestamp)
+        internal void ReceiveWelcome(Agency agency,
+                                     string representativeId,
+                                     List<Agent> agents,
+                                     Dictionary<string, DateTime> agentTimestamps,                                            
+                                     DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveWelcome from {agency.Name} {GetAgentName(representativeId)}");
 
@@ -159,7 +161,7 @@ namespace Agience.Client
 
         // TODO: Handle race conditions
         // Network Latency, Simultaneous Joins, etc.
-        private void ReceiveRepresentativeClaim(Model.Agent modelAgent, DateTime timestamp)
+        private void ReceiveRepresentativeClaim(Agent modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
 
@@ -179,9 +181,9 @@ namespace Agience.Client
             }
         }
 
-        private Model.Agency ToAgienceModel()
+        private Agency ToAgienceModel()
         {
-            return new Model.Agency()
+            return new Agency()
             {
                 Id = Id,
                 Name = Name
@@ -192,7 +194,7 @@ namespace Agience.Client
         {
             if (agentId == null) { return null; }
 
-            return _agents.TryGetValue(agentId, out (Model.Agent, DateTime) agent) ? agent.Item1.Name : null;
+            return _agents.TryGetValue(agentId, out (Agent, DateTime) agent) ? agent.Item1.Name : null;
         }
     }
 }

@@ -31,6 +31,9 @@ namespace Agience.Client
         private readonly string _clientSecret;
         private readonly string? _brokerUriOverride;
 
+        public Host()
+        { }
+
         public Host(string name, string authorityUri, string clientId, string clientSecret, string? brokerUriOverride = null)
         {
             this.Id = clientId ?? throw new ArgumentNullException("clientId");
@@ -109,7 +112,7 @@ namespace Agience.Client
                 message.Data?["agent"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Model.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
                 // TODO: Collection of Plugins to Activate
 
                 if (agent == null) { return; } // Invalid Agent
@@ -118,7 +121,7 @@ namespace Agience.Client
             }
         }
 
-        private async Task ReceiveAgentConnect(Model.Agent modelAgent, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Agent modelAgent, DateTime? timestamp)
         {
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
             {
@@ -190,9 +193,9 @@ namespace Agience.Client
             }
         }
 
-        internal Model.Host ToAgienceModel()
+        internal Host ToAgienceModel()
         {
-            return new Model.Host
+            return new Host
             {
                 Id = Id,
                 Name = Name

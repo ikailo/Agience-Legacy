@@ -18,7 +18,7 @@ namespace Agience.Client
 
         private Authority? _authority;
         private Broker? _broker;
-        private Model.Agency? _agency;
+        private Agency? _agency;
 
         public string AgencyId => _agency?.Id ?? throw new ArgumentNullException("_agency");
         public string AgentId => _id ?? throw new ArgumentNullException("_id");
@@ -96,7 +96,7 @@ namespace Agience.Client
             return this;
         }
 
-        public AgentBuilder WithAgency(Model.Agency agency)
+        public AgentBuilder WithAgency(Agency agency)
         {
             _agency = agency;
 
