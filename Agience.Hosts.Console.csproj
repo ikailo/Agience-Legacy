@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Client\dotnet\Agience.Client.csproj" />
+    <ProjectReference Include="..\..\SDK\Agience.SDK.csproj" />
   </ItemGroup>
 
 </Project>
