@@ -1,7 +1,0 @@
-paho-mqtt>=1.6.1,<1.7
-python-dotenv>=1.0.0,<=1.1
-python-jose>=3.3.0,<3.4
-requests>=2.31.0,<2.32
-urllib3<2
-wheel>=0.41.2,<0.42
-./dist/Agience_agent-0.1-py3-none-any.whl
