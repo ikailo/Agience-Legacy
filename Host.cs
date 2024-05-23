@@ -78,6 +78,7 @@ namespace Agience.Client
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
                     { "host", JsonSerializer.Serialize(ToAgienceModel()) }
+                    // TODO: Include a list of local plugins and services.
                 }
             });
 
@@ -105,6 +106,9 @@ namespace Agience.Client
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null || message.Data == null) { return; }
+
+            // TODO: Incoming Host Welcome Message
+            // Will contain a list of plugins to load from external.
 
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
