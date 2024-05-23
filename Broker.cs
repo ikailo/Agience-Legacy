@@ -7,7 +7,7 @@ using GuerrillaNtp;
 using Timer = System.Timers.Timer;
 using System.Text.Json;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class Broker
     {

@@ -7,9 +7,8 @@ using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
-using Agience.Authority.Identity.Models;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class Agent : AgienceObject
     {

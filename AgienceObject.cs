@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Agience.Authority.Identity.Models;
+namespace Agience.SDK;
 public class AgienceObject
 {
     [JsonPropertyName("id")]

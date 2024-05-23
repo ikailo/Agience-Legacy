@@ -1,4 +1,4 @@
-﻿namespace Agience.Client
+﻿namespace Agience.SDK
 {
     public class TopicAclChecker
     {
