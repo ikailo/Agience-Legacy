@@ -35,6 +35,7 @@ namespace Agience.Agents._Console
             // For example, we can publish two agents/plugins here: ConsolePlugin and EmailPlugin.
 
             // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
+            // TODO: Add from a local assembly directory
 
             .AddPluginFromType<ConsolePlugin>()
             .AddPluginFromType<EmailPlugin>()
