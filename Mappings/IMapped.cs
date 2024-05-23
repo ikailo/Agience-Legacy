@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 
-namespace Agience.Client.Mappings;
+namespace Agience.SDK.Mappings;
 public interface IMapped
 {
     void Mapping(Profile profile);

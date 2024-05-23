@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.SemanticKernel;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class HostBuilder
     {

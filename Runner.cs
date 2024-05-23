@@ -1,4 +1,4 @@
-﻿namespace Agience.Client
+﻿namespace Agience.SDK
 {
 
     public delegate Task OutputCallback(Runner runner, Data? output);

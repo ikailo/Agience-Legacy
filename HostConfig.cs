@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class HostConfig
     {

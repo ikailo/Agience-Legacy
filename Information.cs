@@ -4,7 +4,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class Information
     {

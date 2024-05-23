@@ -6,7 +6,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class Host
     {

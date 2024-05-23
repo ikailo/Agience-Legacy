@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
-namespace Agience.Client
+namespace Agience.SDK
 {
     public class Agency
     {
