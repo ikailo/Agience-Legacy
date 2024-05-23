@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Agience.Agents._Console
+namespace Agience.Agents_Console
 {
-    internal class AppConfig : Client.HostConfig
+    internal class AppConfig : SDK.HostConfig
     {
         public string? AgentId { get; set; }
 

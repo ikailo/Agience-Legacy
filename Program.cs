@@ -1,12 +1,12 @@
-﻿using Agience.Client;
+﻿using Agience.SDK;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
-using Agience.Agents._Console.Plugins;
+using Agience.Agents_Console.Plugins;
 using Microsoft.Extensions.Logging;
 using Humanizer;
 
-namespace Agience.Agents._Console
+namespace Agience.Agents_Console
 {
     internal class Program
     {
