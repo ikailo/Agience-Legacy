@@ -1,6 +1,6 @@
 using Agience.Agents.Primary.Plugins;
-using Agience.Client;
-using HostBuilder = Agience.Client.HostBuilder;
+using Agience.SDK;
+using HostBuilder = Agience.SDK.HostBuilder;
 
 namespace Agience.Agents.Primary
 {
@@ -9,7 +9,7 @@ namespace Agience.Agents.Primary
         private readonly ILogger<Worker> _logger;
         private readonly AppConfig _appConfig;
 
-        private Client.Host? _host;
+        private SDK.Host? _host;
 
         public Worker(ILogger<Worker> logger, AppConfig appConfig)
         {
