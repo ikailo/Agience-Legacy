@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Agience.SDK
 {
-    public class Agency :IMapped
+    public class Agency : IMapped
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
@@ -28,6 +28,7 @@ namespace Agience.SDK
             _authority = authority;
             _agent = agent;
             _broker = broker;
+            _mapper = AutoMapperConfig.GetMapper();
         }
 
         internal async Task Connect()

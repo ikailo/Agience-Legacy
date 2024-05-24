@@ -46,7 +46,7 @@ namespace Agience.SDK
             _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
             _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
             _brokerUriOverride = brokerUriOverride;
-            _mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>()).CreateMapper();
+            _mapper = AutoMapperConfig.GetMapper();
         }
 
         public async Task Run()
