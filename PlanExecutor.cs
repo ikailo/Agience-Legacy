@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text.Json;
 
-namespace Agience.Agents.Primary.Templates.OpenAI
+namespace Agience.Plugins.Primary
 {
     public sealed class PlanExecutor
     {

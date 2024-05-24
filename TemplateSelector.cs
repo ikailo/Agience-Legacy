@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 
-namespace Agience.Agents.Primary.Plugins
+namespace Agience.Plugins.Primary
 {
     public sealed class TemplateSelector
     {

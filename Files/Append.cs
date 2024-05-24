@@ -2,7 +2,7 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Files
+namespace Agience.Plugins.Primary.Files
 {
     internal class Append 
     {

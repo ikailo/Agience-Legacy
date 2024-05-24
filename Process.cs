@@ -2,9 +2,9 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Plugins
+namespace Agience.Plugins.Primary
 {
-    internal class Process
+    public class Process
     {   
 
         [KernelFunction, Description("Handle the user's input.")]

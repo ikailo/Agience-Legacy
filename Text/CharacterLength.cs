@@ -2,7 +2,7 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Text
+namespace Agience.Plugins.Primary.Text
 {
     internal class CharacterLength 
     {

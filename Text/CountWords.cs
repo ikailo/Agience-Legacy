@@ -2,11 +2,12 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Coda
+namespace Agience.Plugins.Primary.Text
 {
-    internal class Pages //: Template
-    {
-        [KernelFunction, Description("Get a page by its ID.")]
+    internal class CountWords 
+    {   
+
+        [KernelFunction, Description("Count the number of words in the input.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();

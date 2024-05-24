@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text.Json;
 
-namespace Agience.Agents.Primary.Templates.Text
+namespace Agience.Plugins.Primary.Text
 {
     internal class Chunk 
     {

@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text;
 
-namespace Agience.Agents.Primary.Templates.Jira
+namespace Agience.Plugins.Primary.Jira
 {
     public class UpdateTicket
     {

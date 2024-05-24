@@ -2,11 +2,11 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Files
+namespace Agience.Plugins.Primary.Git
 {
-    internal class Save
+    internal class Clone
     {
-        [KernelFunction, Description("Save data to a file in the local filesystem.")]
+        [KernelFunction, Description("Clone a git repository.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();

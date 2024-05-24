@@ -2,12 +2,12 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Text
+namespace Agience.Plugins.Primary.Google
 {
-    internal class CountWords 
+    internal class Mail 
     {   
 
-        [KernelFunction, Description("Count the number of words in the input.")]
+        [KernelFunction, Description("Send an email.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();

@@ -2,11 +2,11 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Git
+namespace Agience.Plugins.Primary.Coda
 {
-    internal class Clone
+    internal class Pages //: Template
     {
-        [KernelFunction, Description("Clone a git repository.")]
+        [KernelFunction, Description("Get a page by its ID.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();

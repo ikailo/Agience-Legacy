@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Text;
 
-namespace Agience.Agents.Primary.Templates.Jira
+namespace Agience.Plugins.Primary.Jira
 {
     public class CreateComment
     {

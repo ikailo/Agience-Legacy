@@ -1,11 +1,9 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
-namespace Agience.Agents.Primary.Plugins
+namespace Agience.Plugins.Primary
 {
     public sealed class Communication
     {

@@ -2,7 +2,7 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents.Primary.Templates.Google
+namespace Agience.Plugins.Primary.Google
 {
     internal class Drive 
     {   
