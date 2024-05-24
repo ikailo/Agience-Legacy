@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Agience.Agents._Console
+namespace Agience.Hosts._Console
 {
     internal class AppConfig : SDK.HostConfig
     {
