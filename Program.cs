@@ -1,10 +1,10 @@
-﻿using Agience.Client;
-using Microsoft.SemanticKernel.ChatCompletion;
+﻿using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Agience.Agents._Console.Plugins;
 using Microsoft.Extensions.Logging;
 using Humanizer;
+using Agience.SDK;
 
 namespace Agience.Agents._Console
 {
@@ -12,9 +12,9 @@ namespace Agience.Agents._Console
     {
         private static readonly AppConfig _config = new();
 
-        private static Host? _host;
+        private static SDK.Host? _host;
 
-        private static Agent? _contextAgent;
+        private static SDK.Agent? _contextAgent;
 
         private static ILogger<Program>? _logger; // TODO: Add logging
 
