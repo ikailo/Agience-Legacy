@@ -10,15 +10,14 @@ public static class MappingExtensions
     public static void ApplyMappingsFromAssembly(this Profile profile, Assembly assembly)
     {
         var types = assembly.GetExportedTypes()
-            .Where(x => typeof(IMapped).IsAssignableFrom(x))
+            .Where(x => typeof(IMapped).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
             .ToList();
 
         foreach (var type in types)
         {
             var instance = Activator.CreateInstance(type);
-
             var methodInfo = type.GetMethod("Mapping")
-                ?? type.GetInterface("IMapped`1")!.GetMethod("Mapping");
+                ?? type.GetInterface("IMapped")!.GetMethod("Mapping");
 
             methodInfo?.Invoke(instance, new object[] { profile });
         }

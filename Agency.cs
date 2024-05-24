@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Agience.SDK.Mappings;
+using AutoMapper;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Agience.SDK
 {
-    public class Agency
+    public class Agency :IMapped
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
@@ -12,11 +14,12 @@ namespace Agience.SDK
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
         
-        private readonly ConcurrentDictionary<string, (Agent, DateTime)> _agents = new();        
+        private readonly ConcurrentDictionary<string, (Agent.Model, DateTime)> _agents = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent; // TODO: Will need to be a list of Agents
         private readonly ILogger<Agency>? _logger;
+        private readonly IMapper _mapper;
 
         public Agency() { }
 
@@ -56,7 +59,7 @@ namespace Agience.SDK
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Agent.Model>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -95,12 +98,12 @@ namespace Agience.SDK
             return Task.CompletedTask;
         }
 
-        private void ReceiveJoin(Agent modelAgent, DateTime timestamp)
+        private void ReceiveJoin(Agent.Model modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveJoin {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
-            if (_agents.TryGetValue(modelAgent.Id!, out (Agent, DateTime) agent))
+            if (_agents.TryGetValue(modelAgent.Id!, out (Agent.Model, DateTime) agent))
             {
                 if (timestamp > agent.Item2)
                 {
@@ -118,7 +121,7 @@ namespace Agience.SDK
             }
         }
 
-        private void SendWelcome(Agent agent)
+        private void SendWelcome(Agent.Model agent)
         {
             _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
 
@@ -130,7 +133,7 @@ namespace Agience.SDK
                 {
                     { "type", "welcome" },
                     { "timestamp", _broker.Timestamp },
-                    { "agency", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "agency", JsonSerializer.Serialize(_mapper.Map<Model>(this)) },
                     { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) }
@@ -138,9 +141,9 @@ namespace Agience.SDK
             });
         }
 
-        internal void ReceiveWelcome(Agency agency,
+        internal void ReceiveWelcome(Agency.Model agency,
                                      string representativeId,
-                                     List<Agent> agents,
+                                     List<Agent.Model> agents,
                                      Dictionary<string, DateTime> agentTimestamps,                                            
                                      DateTime timestamp)
         {
@@ -180,20 +183,24 @@ namespace Agience.SDK
             }
         }
 
-        private Agency ToAgienceModel()
-        {
-            return new Agency()
-            {
-                Id = Id,
-                Name = Name
-            };
-        }
 
         internal string? GetAgentName(string? agentId)
         {
             if (agentId == null) { return null; }
 
-            return _agents.TryGetValue(agentId, out (Agent, DateTime) agent) ? agent.Item1.Name : null;
+            return _agents.TryGetValue(agentId, out (Agent.Model, DateTime) agent) ? agent.Item1.Name : null;
+        }
+
+        public void Mapping(Profile profile)
+        {
+            profile.CreateMap<Agency, Model>();
+            profile.CreateMap<Model, Agency>();
+        }
+
+        public class Model
+        {
+            public string? Id { get; set; }
+            public string? Name { get; set; }
         }
     }
 }

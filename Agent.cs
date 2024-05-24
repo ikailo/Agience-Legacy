@@ -6,10 +6,12 @@ using System.Text.Json;
 using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
+using Agience.SDK.Mappings;
+using AutoMapper;
 
 namespace Agience.SDK
 {
-    public class Agent : AgienceObject
+    public class Agent : IMapped
     {
 
         // TODO: Implement layer processing. Check link for more info.
@@ -38,6 +40,8 @@ namespace Agience.SDK
         private readonly ILogger? _logger;
         private readonly Kernel _kernel;
 
+        private readonly IMapper _mapper;
+
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
@@ -58,6 +62,8 @@ namespace Agience.SDK
             _kernel = new Kernel(services.BuildServiceProvider(), plugins);
             
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
+
+            _mapper = AutoMapperConfig.GetMapper();
 
             Id = id;
             Name = name;
@@ -121,7 +127,7 @@ namespace Agience.SDK
                 {
                     { "type", "join" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Model>(this)) },
                     { "random", new Random().NextInt64().ToString() }
                 }
             });
@@ -141,7 +147,7 @@ namespace Agience.SDK
                 {
                     { "type", "representative_claim" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(this.ToAgienceModel()) },
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Model>(this)) },
                 }
             });
         }
@@ -177,9 +183,9 @@ namespace Agience.SDK
                                                 //message.Data?["templates"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agency = JsonSerializer.Deserialize<Agency>(message.Data?["agency"]!);
+                var agency = JsonSerializer.Deserialize<Agency.Model>(message.Data?["agency"]!);
                 var representativeId = message.Data?["representative_id"]!;
-                var agents = JsonSerializer.Deserialize<List<Agent>>(message.Data?["agents"]!);
+                var agents = JsonSerializer.Deserialize<List<Agent.Model>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)
@@ -247,14 +253,17 @@ namespace Agience.SDK
             return chatMessageContent;
         }
 
-        internal Agent ToAgienceModel()
+        public void Mapping(Profile profile)
         {
-            return new Agent()
-            {
-                Id = Id,
-                Name = Name
-            };
+            profile.CreateMap<Agent, Model>();
+            profile.CreateMap<Model, Agent>();
         }
 
+        public class Model
+        {
+            public string? Id;
+            public string? Name;
+            public Host.Model? Host;
+        }
     }
 }

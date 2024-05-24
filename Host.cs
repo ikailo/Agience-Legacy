@@ -1,14 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Agience.SDK.Mappings;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Agience.SDK
 {
-    public class Host
+    public class Host : IMapped
     {
         public event Func<AgentBuilder, Task>? AgentBuilding;
         public event Func<Agent, Task>? AgentConnected;
@@ -28,6 +31,8 @@ namespace Agience.SDK
         private readonly ServiceCollection _services = new();
         private readonly KernelPluginCollection _plugins = new();
 
+        private readonly IMapper _mapper;
+
         private readonly string _clientSecret;
         private readonly string? _brokerUriOverride;
 
@@ -41,6 +46,7 @@ namespace Agience.SDK
             _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
             _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
             _brokerUriOverride = brokerUriOverride;
+            _mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>()).CreateMapper();
         }
 
         public async Task Run()
@@ -77,7 +83,7 @@ namespace Agience.SDK
                 {
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "host", JsonSerializer.Serialize(ToAgienceModel()) }
+                    { "host", JsonSerializer.Serialize(_mapper.Map<Model>(this)) }
                     // TODO: Include a list of local plugins and services.
                 }
             });
@@ -197,15 +203,6 @@ namespace Agience.SDK
             }
         }
 
-        internal Host ToAgienceModel()
-        {
-            return new Host
-            {
-                Id = Id,
-                Name = Name
-            };
-        }
-
         public void ImportPluginFromType<T>(string? pluginName = null, IServiceProvider? serviceProvider = null)
         {
             _plugins.AddFromType<T>(pluginName, serviceProvider);
@@ -234,11 +231,23 @@ namespace Agience.SDK
             return !string.IsNullOrEmpty(agentId) && _agents.ContainsKey(agentId) ? _agents[agentId!] : null;
         }
 
+        public void Mapping(Profile profile)
+        {
+            profile.CreateMap<Host, Model>();
+            profile.CreateMap<Model, Host>();
+        }
+
         internal class TokenResponse
         {
             public string? access_token { get; set; }
             public string? token_type { get; set; }
             public int? expires_in { get; set; }
+        }
+
+        public class Model
+        {   
+            public string? Id { get; set; }
+            public string? Name { get; set; }
         }
     }
 }

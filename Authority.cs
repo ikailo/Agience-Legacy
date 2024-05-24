@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Protocols;
+﻿using AutoMapper;
+using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
 
@@ -9,7 +10,7 @@ namespace Agience.SDK
         private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
-        public event Func<Host, Task>? HostConnected;
+        public event Func<Host.Model, Task>? HostConnected;
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -20,6 +21,7 @@ namespace Agience.SDK
         private readonly Uri _authorityUri; // Expect without trailing slash
         private readonly Broker _broker = new();
 
+        private readonly IMapper _mapper;
 
         private static Dictionary<string, string> _defaultTemplates = new()
         {
@@ -36,6 +38,8 @@ namespace Agience.SDK
             if (authorityUri == null) { throw new ArgumentNullException(nameof(authorityUri)); }
 
             _authorityUri = new Uri(authorityUri);
+
+            _mapper = AutoMapperConfig.GetMapper();
         }
 
         internal async Task Initialize()
@@ -94,7 +98,7 @@ namespace Agience.SDK
                 message.Data?["type"] == "host_connect" && 
                 message.Data?["host"] != null)
             {
-                var host = JsonSerializer.Deserialize<Host>(message.Data?["host"]!);
+                var host = JsonSerializer.Deserialize<Host.Model>(message.Data?["host"]!);
 
                 // TODO: Move to seperate method
                 if (host?.Id == message.SenderId && HostConnected != null)
@@ -118,7 +122,7 @@ namespace Agience.SDK
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(agent) },
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Agent.Model>(agent)) },
                     { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
                 }
             });
@@ -138,7 +142,7 @@ namespace Agience.SDK
                 {
                     { "type", "agent_disconnect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(agent) }
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Agent.Model>(agent)) }
                 }
             });
         }
