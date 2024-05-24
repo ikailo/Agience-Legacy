@@ -1,4 +1,4 @@
-﻿namespace Agience.Agents_Console.Plugins
+﻿namespace Agience.Hosts._Console.Plugins
 {
     internal class ConsoleService : IConsoleService
     {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Agents_Console.Plugins
+namespace Agience.Hosts._Console.Plugins
 {
     public class EmailPlugin
     {
