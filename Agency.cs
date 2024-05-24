@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
 namespace Agience.SDK
