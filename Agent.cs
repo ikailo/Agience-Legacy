@@ -6,7 +6,6 @@ using System.Text.Json;
 using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
-using System.ComponentModel;
 
 namespace Agience.SDK
 {
