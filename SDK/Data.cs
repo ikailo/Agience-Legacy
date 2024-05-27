@@ -34,7 +34,7 @@ namespace Agience.SDK
             set
             {
                 _raw = value;
-                
+
                 _structured.Clear();
 
                 if (!string.IsNullOrEmpty(_raw) && _raw.StartsWith("{") && _raw.EndsWith("}"))

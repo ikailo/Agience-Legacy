@@ -5,7 +5,7 @@ namespace Agience.SDK.Plugins
 {
     public class History
     {
-        
+
         //public override string[]? InputKeys => new string[] {"startTimestamp","endTimestamp"};
         //public override string[]? OutputKeys => new string[] {"information_items"};
 

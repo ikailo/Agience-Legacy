@@ -141,12 +141,12 @@ namespace Agience.SDK
                 .WithPlugins(_plugins) // TODO: Select plugins based on message from Authority. For now, we're just adding all plugins to all agents.                
                 .WithServices(_services); // TODO: Select services based on plugin dependency? Or Just add all. 
 
-                //.WithDescription(modelAgent.Description)
-                //.WithPersona(modelAgent.Persona)                
+            //.WithDescription(modelAgent.Description)
+            //.WithPersona(modelAgent.Persona)                
 
 
             if (AgentBuilding != null)
-            {   
+            {
                 await AgentBuilding.Invoke(builder);
             }
 
@@ -218,7 +218,7 @@ namespace Agience.SDK
 
         public void AddServices(ServiceCollection services)
         {
-            foreach(var service in services)
+            foreach (var service in services)
             {
                 _services.Add(service);
             }

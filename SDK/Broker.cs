@@ -1,11 +1,11 @@
-﻿using MQTTnet;
+﻿using GuerrillaNtp;
+using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Protocol;
-using MQTTnet.Formatter;
 using MQTTnet.Diagnostics;
-using GuerrillaNtp;
-using Timer = System.Timers.Timer;
+using MQTTnet.Formatter;
+using MQTTnet.Protocol;
 using System.Text.Json;
+using Timer = System.Timers.Timer;
 
 namespace Agience.SDK
 {
@@ -157,7 +157,7 @@ namespace Agience.SDK
             {
                 if (task.IsFaulted && task.Exception != null)
                 {
-                    throw task.Exception;                    
+                    throw task.Exception;
                 }
             }, TaskScheduler.Current);
         }
@@ -186,7 +186,7 @@ namespace Agience.SDK
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                     .Build();
 
-                await _client.PublishAsync(mqMessage);                
+                await _client.PublishAsync(mqMessage);
             }
         }
 

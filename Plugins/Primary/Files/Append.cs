@@ -4,9 +4,9 @@ using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Files
 {
-    internal class Append 
+    internal class Append
     {
-        
+
         //public override string[] InputKeys => ["file_path", "content"];
 
         [KernelFunction, Description("Append text to file in the local filesystem.")]

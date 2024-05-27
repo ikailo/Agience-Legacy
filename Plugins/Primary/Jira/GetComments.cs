@@ -5,9 +5,9 @@ using System.Net.Http.Headers;
 using System.Text;
 
 namespace Agience.Plugins.Primary.Jira
-{ 
-    public class GetComments 
-    {   
+{
+    public class GetComments
+    {
         //public override string[] InputKeys => [ "domain", "issueID" ];
         //public override string[] OutputKeys => [ "content" ];
 

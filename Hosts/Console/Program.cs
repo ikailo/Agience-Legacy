@@ -1,10 +1,10 @@
-﻿using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.Extensions.DependencyInjection;
-using Agience.Hosts._Console.Plugins;
-using Microsoft.Extensions.Logging;
-using Humanizer;
+﻿using Agience.Hosts._Console.Plugins;
 using Agience.SDK;
+using Humanizer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Agience.Hosts._Console
 {
@@ -129,8 +129,8 @@ namespace Agience.Hosts._Console
             {
                 // Add user input
                 chatHistory.AddUserMessage(userInput);
-                
-                var result = await _contextAgent.ProcessAsync(chatHistory);                 
+
+                var result = await _contextAgent.ProcessAsync(chatHistory);
 
                 // Print the results
                 foreach (var message in result)

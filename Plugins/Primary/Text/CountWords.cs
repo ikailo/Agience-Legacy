@@ -4,8 +4,8 @@ using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Text
 {
-    internal class CountWords 
-    {   
+    internal class CountWords
+    {
 
         [KernelFunction, Description("Count the number of words in the input.")]
         public Task<Data?> Process(Runner runner, Data? input = null)

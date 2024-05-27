@@ -4,9 +4,9 @@ using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Files
 {
-    internal class Delete 
+    internal class Delete
     {
-        
+
         //public override string[] InputKeys => ["file_path"];
 
         [KernelFunction, Description("Delete a file on the local filesystem.")]

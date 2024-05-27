@@ -18,7 +18,7 @@ namespace Agience.SDK
 
             new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{environmentName}.json", optional: true)                
+                .AddJsonFile($"appsettings.{environmentName}.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build()
                 .Bind(this);

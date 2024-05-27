@@ -6,7 +6,7 @@ namespace Agience.SDK
 {
     public class HostBuilder
     {
-        private readonly KernelPluginCollection _plugins = new(); 
+        private readonly KernelPluginCollection _plugins = new();
         private readonly ServiceCollection _services = new();
         private readonly Dictionary<string, OutputCallback> _callbacks = new();
 

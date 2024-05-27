@@ -9,7 +9,7 @@ namespace Agience.Hosts._Console.Plugins
         public void ShowMessageToUser(
             [FromKernelServices] IConsoleService console,
             [Description("The message to show to the user")] string message)
-        {            
+        {
             console.WriteLine(message);
         }
 
@@ -26,7 +26,7 @@ namespace Agience.Hosts._Console.Plugins
         public async Task<string> InteractWithUser(
             [FromKernelServices] IConsoleService console,
             [Description("The message to show to the user")] string message)
-        {   
+        {
             // TODO: Here we can invoke directly, or invoke through the kernel. Going directly is faster, but going through the kernel could have benefits.
             ShowMessageToUser(console, message);
             return await GetInputFromUser(console);

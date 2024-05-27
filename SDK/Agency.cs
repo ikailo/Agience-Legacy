@@ -11,8 +11,8 @@ namespace Agience.SDK
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
-        
-        private readonly ConcurrentDictionary<string, (Agent, DateTime)> _agents = new();        
+
+        private readonly ConcurrentDictionary<string, (Agent, DateTime)> _agents = new();
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent; // TODO: Will need to be a list of Agents
@@ -141,7 +141,7 @@ namespace Agience.SDK
         internal void ReceiveWelcome(Agency agency,
                                      string representativeId,
                                      List<Agent> agents,
-                                     Dictionary<string, DateTime> agentTimestamps,                                            
+                                     Dictionary<string, DateTime> agentTimestamps,
                                      DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveWelcome from {agency.Name} {GetAgentName(representativeId)}");
@@ -162,7 +162,7 @@ namespace Agience.SDK
         // Network Latency, Simultaneous Joins, etc.
         private void ReceiveRepresentativeClaim(Agent modelAgent, DateTime timestamp)
         {
-            _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
+            _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");
 
             if (RepresentativeId != modelAgent.Id)
             {

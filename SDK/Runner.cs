@@ -18,240 +18,240 @@
 
     public class Runner
     {
-       /*
-        public string? AgentId => _agent.Id;
-        public string? AgencyId => _agent.Agency.Id;
+        /*
+         public string? AgentId => _agent.Id;
+         public string? AgencyId => _agent.Agency.Id;
 
-        private readonly Agent _agent;
-        private Information? _information;
+         private readonly Agent _agent;
+         private Information? _information;
 
-        private Runner() { throw new NotImplementedException(); }
+         private Runner() { throw new NotImplementedException(); }
 
-        public Runner(Agent agent, Information? information = null)
-        {
-            _agent = agent;
-            _information = information;
-        }
+         public Runner(Agent agent, Information? information = null)
+         {
+             _agent = agent;
+             _information = information;
+         }
 
-        public string? GetAgentName(string agentId)
-        {
-            return _agent.Agency.GetAgentName(agentId);
-        }
+         public string? GetAgentName(string agentId)
+         {
+             return _agent.Agency.GetAgentName(agentId);
+         }
 
-        
-        public List<Model.Template> GetAvailableTemplates()
-        {
-            return _agent.Agency.Templates.Values.ToList();
-        }
 
-        public async Task<DispatchResponse> DispatchAsync<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
-        {
-            // TODO: Allow registering a Type with a different templateIds, so we can have multiple templates with the same handler.
-            var templateId = typeof(T).FullName;
+         public List<Model.Template> GetAvailableTemplates()
+         {
+             return _agent.Agency.Templates.Values.ToList();
+         }
 
-            if (!string.IsNullOrEmpty(templateId))
-            {
-                return await DispatchAsync(templateId, input, localCallback);
-            }
+         public async Task<DispatchResponse> DispatchAsync<T>(Data? input = null, OutputCallback? localCallback = null) where T : Template, new()
+         {
+             // TODO: Allow registering a Type with a different templateIds, so we can have multiple templates with the same handler.
+             var templateId = typeof(T).FullName;
 
-            return new(this, null);
-        }
+             if (!string.IsNullOrEmpty(templateId))
+             {
+                 return await DispatchAsync(templateId, input, localCallback);
+             }
 
-        public async Task<DispatchResponse> DispatchAsync(string templateId, Data? input = null, OutputCallback? localCallback = null)
-        {
-            if (_information == null)
-            {
-                _information = new Information()
-                {
-                    Input = input,
-                    InputAgentId = _agent.Id,
-                    InputTimestamp = _agent.Timestamp,
-                    TemplateId = templateId
-                };
+             return new(this, null);
+         }
 
-                return await DispatchAsync(localCallback);
-            }
-            else
-            {
-                var information = new Information()
-                {
-                    Input = input,
-                    InputAgentId = _agent.Id,
-                    InputTimestamp = _agent.Timestamp,
-                    TemplateId = templateId,
-                    ParentInformationId = _information.Id
-                };
+         public async Task<DispatchResponse> DispatchAsync(string templateId, Data? input = null, OutputCallback? localCallback = null)
+         {
+             if (_information == null)
+             {
+                 _information = new Information()
+                 {
+                     Input = input,
+                     InputAgentId = _agent.Id,
+                     InputTimestamp = _agent.Timestamp,
+                     TemplateId = templateId
+                 };
 
-                return await new Runner(_agent, information).DispatchAsync(localCallback);
-            }
-        }
+                 return await DispatchAsync(localCallback);
+             }
+             else
+             {
+                 var information = new Information()
+                 {
+                     Input = input,
+                     InputAgentId = _agent.Id,
+                     InputTimestamp = _agent.Timestamp,
+                     TemplateId = templateId,
+                     ParentInformationId = _information.Id
+                 };
 
-        public async Task<DispatchResponse> DispatchAsync(OutputCallback? localCallback = null)
-        {
-            var result = new DispatchResponse(this, null);
+                 return await new Runner(_agent, information).DispatchAsync(localCallback);
+             }
+         }
 
-            if (_information?.TemplateId != null)
-            {
-                if (_agent.Templates.TryGetValue(_information.TemplateId, out (Template, OutputCallback?) templateAndGlobalCallback))
-                {
-                    var (agentTemplate, globalCallback) = templateAndGlobalCallback;
+         public async Task<DispatchResponse> DispatchAsync(OutputCallback? localCallback = null)
+         {
+             var result = new DispatchResponse(this, null);
 
-                    _information.Transformation = agentTemplate.Description;
+             if (_information?.TemplateId != null)
+             {
+                 if (_agent.Templates.TryGetValue(_information.TemplateId, out (Template, OutputCallback?) templateAndGlobalCallback))
+                 {
+                     var (agentTemplate, globalCallback) = templateAndGlobalCallback;
 
-                    result = await DispatchLocalAsync(agentTemplate, localCallback, globalCallback);
-                }
+                     _information.Transformation = agentTemplate.Description;
 
-                else if (_agent.Agency.Templates.TryGetValue(_information.TemplateId, out Model.Template? agencyTemplate) && agencyTemplate.AgentId != null)
-                {
-                    result = await DispatchRemoteAsync(agencyTemplate, localCallback);
-                }
+                     result = await DispatchLocalAsync(agentTemplate, localCallback, globalCallback);
+                 }
 
-                else
-                {
-                    // Log($"No template found for {_information.TemplateId}", "error"); // Stack Overflow
-                    var message = $"No template found for {_information.TemplateId}";
-                    Console.WriteLine($"{_agent.Timestamp} | error | {_agent.Name!} | {message}");
-                }
-            }
+                 else if (_agent.Agency.Templates.TryGetValue(_information.TemplateId, out Model.Template? agencyTemplate) && agencyTemplate.AgentId != null)
+                 {
+                     result = await DispatchRemoteAsync(agencyTemplate, localCallback);
+                 }
 
-            // TODO: Invoke Event Notificaiton
+                 else
+                 {
+                     // Log($"No template found for {_information.TemplateId}", "error"); // Stack Overflow
+                     var message = $"No template found for {_information.TemplateId}";
+                     Console.WriteLine($"{_agent.Timestamp} | error | {_agent.Name!} | {message}");
+                 }
+             }
 
-            return result;
-        }
+             // TODO: Invoke Event Notificaiton
 
-        private async Task<DispatchResponse> DispatchLocalAsync(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
-        {
-            // Process this locally
+             return result;
+         }
 
-            if (_information != null)
-            {
-                // TODO: Debounce Assessments
-                if (await template.Assess(this, _information.Input))
-                {
-                    var output = await template.Process(this, _information.Input);
+         private async Task<DispatchResponse> DispatchLocalAsync(Template template, OutputCallback? localCallback, OutputCallback? globalCallback)
+         {
+             // Process this locally
 
-                    _information.Output = output;
-                    _information.OutputAgentId = template.Agent?.Id;
-                    _information.OutputTimestamp = _agent.Timestamp;
+             if (_information != null)
+             {
+                 // TODO: Debounce Assessments
+                 if (await template.Assess(this, _information.Input))
+                 {
+                     var output = await template.Process(this, _information.Input);
 
-                    _agent.History.Add(_information);
+                     _information.Output = output;
+                     _information.OutputAgentId = template.Agent?.Id;
+                     _information.OutputTimestamp = _agent.Timestamp;
 
-                    //AddContext(await template.Context(this, _information.Input, _information.Output));
+                     _agent.History.Add(_information);
 
-                    await Task.WhenAll(
-                        localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,
-                        globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
-                    ).ConfigureAwait(false);
+                     //AddContext(await template.Context(this, _information.Input, _information.Output));
 
-                    return new(this, _information.Output);
-                }
-            }
+                     await Task.WhenAll(
+                         localCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask,
+                         globalCallback?.Invoke(this, _information.Output) ?? Task.CompletedTask
+                     ).ConfigureAwait(false);
 
-            return new(this, null);
-        }
+                     return new(this, _information.Output);
+                 }
+             }
 
-        internal void ReceiveOutput(Information information)
-        {
-            if (_information == null)
-            {
-                throw new InvalidOperationException("No Information to receive output.");
-            }
+             return new(this, null);
+         }
 
-            if (string.IsNullOrEmpty(information?.OutputTimestamp) || string.IsNullOrEmpty(information?.OutputAgentId))
-            {
-                throw new InvalidOperationException("Incoming Information is incomplete.");
-            }
+         internal void ReceiveOutput(Information information)
+         {
+             if (_information == null)
+             {
+                 throw new InvalidOperationException("No Information to receive output.");
+             }
 
-            _information.Output = information.Output;
-            _information.OutputAgentId = information.OutputAgentId;
-            _information.OutputTimestamp = information.OutputTimestamp;
-        }
+             if (string.IsNullOrEmpty(information?.OutputTimestamp) || string.IsNullOrEmpty(information?.OutputAgentId))
+             {
+                 throw new InvalidOperationException("Incoming Information is incomplete.");
+             }
 
-        private async Task<DispatchResponse> DispatchRemoteAsync(Model.Template template, OutputCallback? localCallback)
-        {
-            // Process this remotely
+             _information.Output = information.Output;
+             _information.OutputAgentId = information.OutputAgentId;
+             _information.OutputTimestamp = information.OutputTimestamp;
+         }
 
-            if (_information != null && template?.AgentId != null)
-            {
-                _agent.SendInformationToAgent(_information, template.AgentId, this);
+         private async Task<DispatchResponse> DispatchRemoteAsync(Model.Template template, OutputCallback? localCallback)
+         {
+             // Process this remotely
 
-                // Wait for the response
-                
-                // TODO: Implement a timeout-decay. This could potentially wait forever if the remote agent is disconnected.
-                
-                while (string.IsNullOrEmpty(_information.OutputTimestamp))
-                {
-                    Task.Delay(10).Wait();
-                }
+             if (_information != null && template?.AgentId != null)
+             {
+                 _agent.SendInformationToAgent(_information, template.AgentId, this);
 
-                if (localCallback != null)
-                {
-                    await localCallback.Invoke(this, _information.Output);
-                }
+                 // Wait for the response
 
-                return new(this, _information.Output);
-            }
+                 // TODO: Implement a timeout-decay. This could potentially wait forever if the remote agent is disconnected.
 
-            return new(this, null);
-        }
+                 while (string.IsNullOrEmpty(_information.OutputTimestamp))
+                 {
+                     Task.Delay(10).Wait();
+                 }
 
-        public async Task<DispatchResponse> Prompt(Data? input = null)
-        {
-            return await DispatchAsync(_agent.Agency.TemplateDefaults["prompt"], input);
-        }
+                 if (localCallback != null)
+                 {
+                     await localCallback.Invoke(this, _information.Output);
+                 }
 
-        public void AddContext(string? context)
-        {
-            if (context != null)
-            {   
-                _agent.Agency.AddContext($"{context} ({_information?.TemplateId})");
-            }
-        }   
+                 return new(this, _information.Output);
+             }
 
-        public string GetContext()
-        {
-            return _agent.Agency.GetContext();
-        }
+             return new(this, null);
+         }
 
-        public async Task<DispatchResponse> Echo(Data? input = null)
-        {
-            return await DispatchAsync(_agent.Agency.TemplateDefaults["echo"], input);
-        }
+         public async Task<DispatchResponse> Prompt(Data? input = null)
+         {
+             return await DispatchAsync(_agent.Agency.TemplateDefaults["prompt"], input);
+         }
 
-        public async Task<DispatchResponse> Debug(Data? input = null)
-        {
-            return await DispatchAsync(_agent.Agency.TemplateDefaults["debug"], input);
-        }
+         public void AddContext(string? context)
+         {
+             if (context != null)
+             {   
+                 _agent.Agency.AddContext($"{context} ({_information?.TemplateId})");
+             }
+         }   
 
-        public async Task<DispatchResponse> History(Data? input = null)
-        {
-            return await DispatchAsync(_agent.Agency.TemplateDefaults["history"], input);
-        }
+         public string GetContext()
+         {
+             return _agent.Agency.GetContext();
+         }
 
-        public void Log(string message, string level = "info")
-        {
-            if (!_agent.Agency.TemplateDefaults.ContainsKey("log"))
-            {
-                Console.WriteLine($"{_agent.Timestamp} | local-{level} | {_agent.Name!} | {message}");
-                return;
-            }
+         public async Task<DispatchResponse> Echo(Data? input = null)
+         {
+             return await DispatchAsync(_agent.Agency.TemplateDefaults["echo"], input);
+         }
 
-            Data data = new Data
-            {
-                { "timestamp", _agent.Timestamp},
-                { "agent_id", _agent.Id! },
-                { "agent_name", _agent.Name! },
-                { "level", level },
-                { "message", message }
-            };
+         public async Task<DispatchResponse> Debug(Data? input = null)
+         {
+             return await DispatchAsync(_agent.Agency.TemplateDefaults["debug"], input);
+         }
 
-            DispatchAsync(_agent.Agency.TemplateDefaults["log"], data).ContinueWith(task =>
-            {
-                if (task.IsFaulted && task.Exception != null)
-                {
-                    throw task.Exception;
-                }
-            }, TaskScheduler.Current);
-        }*/
+         public async Task<DispatchResponse> History(Data? input = null)
+         {
+             return await DispatchAsync(_agent.Agency.TemplateDefaults["history"], input);
+         }
+
+         public void Log(string message, string level = "info")
+         {
+             if (!_agent.Agency.TemplateDefaults.ContainsKey("log"))
+             {
+                 Console.WriteLine($"{_agent.Timestamp} | local-{level} | {_agent.Name!} | {message}");
+                 return;
+             }
+
+             Data data = new Data
+             {
+                 { "timestamp", _agent.Timestamp},
+                 { "agent_id", _agent.Id! },
+                 { "agent_name", _agent.Name! },
+                 { "level", level },
+                 { "message", message }
+             };
+
+             DispatchAsync(_agent.Agency.TemplateDefaults["log"], data).ContinueWith(task =>
+             {
+                 if (task.IsFaulted && task.Exception != null)
+                 {
+                     throw task.Exception;
+                 }
+             }, TaskScheduler.Current);
+         }*/
     }
 }

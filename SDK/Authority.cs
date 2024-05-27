@@ -26,8 +26,8 @@ namespace Agience.SDK
             { "log", "Agience.Client.Templates.Default.Log" },
             { "context", "Agience.Client.Templates.Default.Context" },
             { "debug", "Agience.Client.Templates.Default.Debug" },
-            { "echo", "Agience.Client.Templates.Default.Echo" },            
-            { "history", "Agience.Client.Templates.Default.History" },                        
+            { "echo", "Agience.Client.Templates.Default.Echo" },
+            { "history", "Agience.Client.Templates.Default.History" },
             { "prompt", "Agience.Client.Templates.Default.Prompt" },
         };
 
@@ -85,13 +85,13 @@ namespace Agience.SDK
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
-            if (message.SenderId == null || 
+            if (message.SenderId == null ||
                 message.Data == null //|| 
-                //message.Payload.Format != DataFormat.STRUCTURED
+                                     //message.Payload.Format != DataFormat.STRUCTURED
                 ) { return; }
-                        
-            if (message.Type == BrokerMessageType.EVENT && 
-                message.Data?["type"] == "host_connect" && 
+
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "host_connect" &&
                 message.Data?["host"] != null)
             {
                 var host = JsonSerializer.Deserialize<Host>(message.Data?["host"]!);

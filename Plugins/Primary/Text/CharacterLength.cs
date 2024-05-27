@@ -4,7 +4,7 @@ using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Text
 {
-    internal class CharacterLength 
+    internal class CharacterLength
     {
         [KernelFunction, Description("Count the number of characters in the input.")]
         public Task<Data?> Process(Runner runner, Data? input = null)

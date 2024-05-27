@@ -7,7 +7,7 @@ namespace Agience.Plugins.Primary.Jira
 {
     public class UpdateTicket
     {
-        
+
         //public override string[] InputKeys => [ "domain", "issueID", "editObject" ];
         //public override string[] OutputKeys => [ "content" ];
 

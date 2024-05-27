@@ -4,8 +4,8 @@ using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Google
 {
-    internal class Mail 
-    {   
+    internal class Mail
+    {
 
         [KernelFunction, Description("Send an email.")]
         public Task<Data?> Process(Runner runner, Data? input = null)

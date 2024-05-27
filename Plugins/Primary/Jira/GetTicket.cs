@@ -10,7 +10,7 @@ namespace Agience.Plugins.Primary.Jira
     {
         private const string USERNAME = "";
         private const string PASSWORD = "";
-                
+
         //public override string[] InputKeys => ["domain", "issueID"];
         //public override string[] OutputKeys => ["deserializedData:JiraResModel"];
 

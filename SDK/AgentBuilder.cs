@@ -7,7 +7,7 @@ namespace Agience.SDK
     public class AgentBuilder
     {
         private readonly KernelPluginCollection _plugins = new();
-        private readonly ServiceCollection _services = new();        
+        private readonly ServiceCollection _services = new();
 
         //private Func<HttpClient>? _httpClientProvider;
 
@@ -167,7 +167,7 @@ namespace Agience.SDK
             return this;
         }
 
-        
+
         public AgentBuilder WithService(ServiceDescriptor service)
         {
             if (service != null)

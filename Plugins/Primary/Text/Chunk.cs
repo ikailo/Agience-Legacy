@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Agience.Plugins.Primary.Text
 {
-    internal class Chunk 
+    internal class Chunk
     {
         private const int DEFAULT_SIZE = 4000;
 

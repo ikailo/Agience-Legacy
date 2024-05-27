@@ -3,8 +3,8 @@ using System.ComponentModel;
 
 namespace Agience.SDK.Plugins
 {
-    public class Log 
-    {   
+    public class Log
+    {
         //public override string[] InputKeys => new[] { "timestamp", "agent_id", "agent_name", "level", "message" };
 
         [KernelFunction, Description("Write entries to the Agency log.")]
@@ -17,7 +17,7 @@ namespace Agience.SDK.Plugins
             var message = input?["message"];
 
             Console.WriteLine($"{timestamp} | default-{level} | {agentName} | {message}");
-            
+
             return Task.FromResult<Data?>(null);
         }
     }

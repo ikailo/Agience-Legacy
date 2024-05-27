@@ -1,11 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Agience.SDK
 {
@@ -56,7 +56,7 @@ namespace Agience.SDK
             KernelPluginCollection plugins)
         {
             _kernel = new Kernel(services.BuildServiceProvider(), plugins);
-            
+
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
 
             Id = id;

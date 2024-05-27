@@ -1,5 +1,5 @@
-﻿using System.Collections.Concurrent;
-using QuikGraph;
+﻿using QuikGraph;
+using System.Collections.Concurrent;
 
 namespace Agience.SDK
 {

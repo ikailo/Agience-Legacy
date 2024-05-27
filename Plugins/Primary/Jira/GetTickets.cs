@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Agience.Plugins.Primary.Jira
 {
-    public class GetTickets 
+    public class GetTickets
     {
         private const string USERNAME = "";
         private const string PASSWORD = "";
