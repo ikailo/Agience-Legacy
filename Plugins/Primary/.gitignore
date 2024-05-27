@@ -396,7 +396,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+<<<<<<<< HEAD:Plugins/Primary/.gitignore
 
 # Agience
 certs/
 .env.*
+========
+>>>>>>>> main:.gitignore
