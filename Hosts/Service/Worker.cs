@@ -1,27 +1,14 @@
-<<<<<<<< HEAD:Hosts/Service/Worker.cs
 using Agience.Plugins.Primary;
 using Agience.SDK;
 using HostBuilder = Agience.SDK.HostBuilder;
 
 namespace Agience.Hosts.Service
-========
-using Agience.Agents.Primary.Plugins;
-using Agience.Client;
-using HostBuilder = Agience.Client.HostBuilder;
-
-namespace Agience.Agents.Primary
->>>>>>>> staging:Plugins/Primary/Worker.cs
 {
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
         private readonly AppConfig _appConfig;
-
-<<<<<<<< HEAD:Hosts/Service/Worker.cs
-        private SDK.Host? _host;
-========
-        private Client.Host? _host;
->>>>>>>> staging:Plugins/Primary/Worker.cs
+        private SDK.Host? _host;        
 
         public Worker(ILogger<Worker> logger, AppConfig appConfig)
         {
