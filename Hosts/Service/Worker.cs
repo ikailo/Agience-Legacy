@@ -8,8 +8,7 @@ namespace Agience.Hosts.Service
     {
         private readonly ILogger<Worker> _logger;
         private readonly AppConfig _appConfig;
-
-        private SDK.Host? _host;
+        private SDK.Host? _host;        
 
         public Worker(ILogger<Worker> logger, AppConfig appConfig)
         {
