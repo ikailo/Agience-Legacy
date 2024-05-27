@@ -1,0 +1,17 @@
+﻿using Agience.Client;
+using Agience.Client.Agience;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
+
+namespace Agience.Agents.Primary.Templates.Google
+{
+    internal class Mail 
+    {   
+
+        [KernelFunction, Description("Send an email.")]
+        public Task<Data?> Process(Runner runner, Data? input = null)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
