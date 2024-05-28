@@ -32,7 +32,7 @@ internal class Program
         //Implement Logging here...
 
         //Temp
-        Console.WriteLine("\n\n Unhandled Exception: " + e.ExceptionObject.ToString());
+        Console.WriteLine("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
     }
 }
 

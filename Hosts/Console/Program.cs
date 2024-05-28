@@ -76,7 +76,7 @@ namespace Agience.Hosts._Console
             //Implement Logging here...
 
             //Temp
-            Console.WriteLine("\n\n Unhandled Exception: " + e.ExceptionObject.ToString());
+            Console.WriteLine("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
         }
 
         private static Task _host_AgentBuilding(AgentBuilder builder)
