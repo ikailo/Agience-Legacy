@@ -17,9 +17,20 @@ namespace Agience.SDK
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
 
-        public string Timestamp => (_ntpClient.Last ?? throw new InvalidOperationException()).Now.UtcDateTime.ToString(TIME_FORMAT);
+        NtpClient _ntpClient;
 
-        private NtpClient _ntpClient = NtpClient.Default; // TODO: Allow custom NTP server
+        //https://www.ntppool.org/zone/@
+        List<string> ntpHosts = new() {
+            "pool.ntp.org", 
+            "north-america.pool.ntp.org",
+            "europe.pool.ntp.org",
+            "asia.pool.ntp.org",
+            "south-america.pool.ntp.org",
+            "africa.pool.ntp.org",
+            "oceania.pool.ntp.org"};
+
+        public string Timestamp => (_ntpClient?.Last ?? throw new InvalidOperationException()).Now.UtcDateTime.ToString(TIME_FORMAT);
+                
         private Timer _ntpTimer = new Timer(TimeSpan.FromDays(1).TotalMilliseconds); // Synchronize daily
 
         public bool IsConnected => _client.IsConnected;
@@ -213,11 +224,13 @@ namespace Agience.SDK
         private async Task QueryNtpWithBackoff(double maxDelaySeconds = 32)
         {
             var delay = TimeSpan.FromSeconds(1);
+            var currentNtpHostIndex = 1;
             while (true)
             {
                 try
                 {
-                    await _ntpClient.QueryAsync();
+                    _ntpClient = new(ntpHosts[currentNtpHostIndex -1]);
+                    _ntpClient.Query();
                     Console.WriteLine($"NTP Time: {Timestamp}");
                     break;
                 }
@@ -226,6 +239,7 @@ namespace Agience.SDK
                     Console.WriteLine($"NTP Query Failed. Trying again in {delay.TotalSeconds} seconds.\r\n{ex.Message}");
                     await Task.Delay(delay);
                     delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
+                    currentNtpHostIndex = currentNtpHostIndex == ntpHosts.Count() ? 1 : currentNtpHostIndex + 1;
                 }
             }
         }
