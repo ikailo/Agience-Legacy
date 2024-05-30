@@ -20,6 +20,8 @@ namespace Agience.Hosts._Console
 
         internal static async Task Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
+
             if (string.IsNullOrEmpty(_config.HostName)) { throw new ArgumentNullException("HostName"); }
             if (string.IsNullOrEmpty(_config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
             if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
@@ -66,6 +68,15 @@ namespace Agience.Hosts._Console
             // TODO: Initiate plugin imports from Authority.
 
             // TODO: Expose local plugins to remote via MQTT, GRPC, HTTP.
+        }
+
+        static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
+        {
+            //Any action here...
+            //Implement Logging here...
+
+            //Temp
+            Console.WriteLine("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
         }
 
         private static Task _host_AgentBuilding(AgentBuilder builder)
