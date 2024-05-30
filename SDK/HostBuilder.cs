@@ -15,6 +15,7 @@ namespace Agience.SDK
         private string? _clientId;
         private string? _clientSecret;
         private string? _brokerUriOverride;
+        private string? _customNtpHost;
 
         public HostBuilder() { }
 
@@ -43,6 +44,10 @@ namespace Agience.SDK
             }
 
             Host host = new(_name, _authorityUri, _clientId, _clientSecret, _brokerUriOverride);
+
+            //Review: The builder should be responsible to build up and initialize object and not the host
+            //Workaround:
+            host.Broker.CustomNtpHost = _customNtpHost; 
 
             host.AddServices(_services);
             host.AddPlugins(_plugins);
@@ -75,6 +80,13 @@ namespace Agience.SDK
         public HostBuilder WithBrokerUriOverride(string? brokerUriOverride)
         {
             this._brokerUriOverride = brokerUriOverride;
+
+            return this;
+        }
+
+        public HostBuilder WithCustomNtpHost(string? customNtpHost)
+        {
+            _customNtpHost = customNtpHost;
 
             return this;
         }

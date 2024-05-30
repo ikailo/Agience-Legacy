@@ -26,12 +26,16 @@ namespace Agience.Hosts._Console
             if (string.IsNullOrEmpty(_config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
             if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
             if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
+            
+            if (!string.IsNullOrEmpty(_config.CustomNtpHost) && !_config.CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
+                throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`."); 
 
             var builder = new HostBuilder()
             .WithName(_config.HostName)
             .WithAuthorityUri(_config.AuthorityUri)
             .WithCredentials(_config.ClientId, _config.ClientSecret)
-            .WithBrokerUriOverride(_config.BrokerUriOverride)
+            .WithBrokerUriOverride(_config.BrokerUriOverride)       
+            .WithCustomNtpHost(_config.CustomNtpHost)   
 
             // TODO: I want to expose Functions and Agents to other Agents.
             // For example, we can publish two agents/plugins here: ConsolePlugin and EmailPlugin.
@@ -57,7 +61,7 @@ namespace Agience.Hosts._Console
 
             _host.AgentBuilding += _host_AgentBuilding;
             _host.AgentConnected += _host_AgentConnected;
-            _host.AgentReady += _host_AgentReady;
+            _host.AgentReady += _host_AgentReady;            
 
             await _host.Run();
 
