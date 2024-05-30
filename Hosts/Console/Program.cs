@@ -12,9 +12,9 @@ namespace Agience.Hosts._Console
     {
         private static readonly AppConfig _config = new();
 
-        private static SDK.Host? _host;
+        private static Host? _host;
 
-        private static SDK.Agent? _contextAgent;
+        private static Agent? _contextAgent;
 
         private static ILogger<Program>? _logger; // TODO: Add logging
 
@@ -27,6 +27,7 @@ namespace Agience.Hosts._Console
             if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
             if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
             
+            // TODO: Move this check into the SDK because it is a common requirement for all hosts.
             if (!string.IsNullOrEmpty(_config.CustomNtpHost) && !_config.CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
                 throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`."); 
 
@@ -36,10 +37,7 @@ namespace Agience.Hosts._Console
             .WithCredentials(_config.ClientId, _config.ClientSecret)
             .WithBrokerUriOverride(_config.BrokerUriOverride)       
             .WithCustomNtpHost(_config.CustomNtpHost)   
-
-            // TODO: I want to expose Functions and Agents to other Agents.
-            // For example, we can publish two agents/plugins here: ConsolePlugin and EmailPlugin.
-
+            
             // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
             // TODO: Add from a local assembly directory
 
