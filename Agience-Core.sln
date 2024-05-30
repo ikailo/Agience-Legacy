@@ -17,6 +17,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Agience.Hosts.Console", "Ho
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Agience.Hosts.Service", "Hosts\Service\Agience.Hosts.Service.csproj", "{1534C0EE-87C0-4628-B50A-49E668CACF3C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1D3A9F81-251D-4EE2-A59E-50A22EC980D7}"
+	ProjectSection(SolutionItems) = preProject
+		.git = .git
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
