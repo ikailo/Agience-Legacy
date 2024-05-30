@@ -10,7 +10,7 @@ namespace Agience.SDK
         private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
-        public event Func<Host.Model, Task>? HostConnected;
+        public event Func<Models.Host, Task>? HostConnected;
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -98,7 +98,7 @@ namespace Agience.SDK
                 message.Data?["type"] == "host_connect" && 
                 message.Data?["host"] != null)
             {
-                var host = JsonSerializer.Deserialize<Host.Model>(message.Data?["host"]!);
+                var host = JsonSerializer.Deserialize<Models.Host>(message.Data?["host"]!);
 
                 // TODO: Move to seperate method
                 if (host?.Id == message.SenderId && HostConnected != null)
@@ -108,7 +108,7 @@ namespace Agience.SDK
             }
         }
 
-        public void PublishAgentConnectEvent(Agent agent)
+        public void PublishAgentConnectEvent(Models.Agent agent)
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
@@ -122,13 +122,13 @@ namespace Agience.SDK
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Agent.Model>(agent)) },
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) },
                     { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
                 }
             });
         }
 
-        public void PublishAgentDisconnectEvent(Agent agent)
+        public void PublishAgentDisconnectEvent(Models.Agent agent)
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
@@ -142,7 +142,7 @@ namespace Agience.SDK
                 {
                     { "type", "agent_disconnect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Agent.Model>(agent)) }
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }
                 }
             });
         }

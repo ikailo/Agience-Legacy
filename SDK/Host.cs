@@ -7,7 +7,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Agience.SDK
 {
@@ -29,12 +28,12 @@ namespace Agience.SDK
         private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
 
         private readonly ServiceCollection _services = new();
-        private readonly KernelPluginCollection _plugins = new();
-
-        private readonly IMapper _mapper;
+        private readonly KernelPluginCollection _plugins = new();        
 
         private readonly string _clientSecret;
         private readonly string? _brokerUriOverride;
+
+        private readonly IMapper _mapper;
 
         public Host()
         { }
@@ -83,7 +82,7 @@ namespace Agience.SDK
                 {
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "host", JsonSerializer.Serialize(_mapper.Map<Model>(this)) }
+                    { "host", JsonSerializer.Serialize(_mapper.Map<Models.Host>(this)) }
                     // TODO: Include a list of local plugins and services.
                 }
             });
@@ -122,7 +121,7 @@ namespace Agience.SDK
                 message.Data?["agent"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Models.Agent>(message.Data?["agent"]!);
                 // TODO: Collection of Plugins to Activate
 
                 if (agent == null) { return; } // Invalid Agent
@@ -131,7 +130,7 @@ namespace Agience.SDK
             }
         }
 
-        private async Task ReceiveAgentConnect(Agent modelAgent, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Models.Agent modelAgent, DateTime? timestamp)
         {
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
             {
@@ -167,7 +166,7 @@ namespace Agience.SDK
                 await AgentConnected.Invoke(agent);
             }
 
-            // ***** Adding a short delay to accept incoming Templates, set defaults, etc.
+            // ***** Adding a short delay to accept incoming messages, set defaults, etc.
             // TODO: Improve this. Maybe not needed now that we're using SK.
             await Task.Delay(5000);
             // *****
@@ -233,8 +232,8 @@ namespace Agience.SDK
 
         public void Mapping(Profile profile)
         {
-            profile.CreateMap<Host, Model>();
-            profile.CreateMap<Model, Host>();
+            profile.CreateMap<Host, Models.Host>();
+            profile.CreateMap<Models.Host, Host>();
         }
 
         internal class TokenResponse
@@ -242,12 +241,6 @@ namespace Agience.SDK
             public string? access_token { get; set; }
             public string? token_type { get; set; }
             public int? expires_in { get; set; }
-        }
-
-        public class Model
-        {   
-            public string? Id { get; set; }
-            public string? Name { get; set; }
         }
     }
 }

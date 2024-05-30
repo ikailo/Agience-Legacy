@@ -18,7 +18,7 @@ namespace Agience.SDK
 
         private Authority? _authority;
         private Broker? _broker;
-        private Agency? _agency;
+        private Models.Agency? _agency;
 
         public string AgencyId => _agency?.Id ?? throw new ArgumentNullException("_agency");
         public string AgentId => _id ?? throw new ArgumentNullException("_id");
@@ -96,7 +96,7 @@ namespace Agience.SDK
             return this;
         }
 
-        public AgentBuilder WithAgency(Agency agency)
+        public AgentBuilder WithAgency(Models.Agency agency)
         {
             _agency = agency;
 
