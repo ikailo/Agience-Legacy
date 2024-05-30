@@ -18,7 +18,7 @@ namespace Agience.SDK
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
 
-        //TODO: Revise how the broker is initialized without breaking the Dependency Inversion Principle and involving the host 
+        //TODO: Revise how the broker is initialized without breaking the Dependency Inversion Principle and without involving the host 
         NtpClient _ntpClient;
        
         public string? CustomNtpHost = null;
