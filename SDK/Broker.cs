@@ -1,4 +1,5 @@
 ﻿using GuerrillaNtp;
+using Microsoft.IdentityModel.Tokens;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Diagnostics;
@@ -17,7 +18,10 @@ namespace Agience.SDK
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
 
+        //TODO: Revise how the broker is initialized without breaking the Dependency Inversion Principle and involving the host 
         NtpClient _ntpClient;
+       
+        public string? CustomNtpHost = null;
 
         //https://www.ntppool.org/zone/@
         List<string> ntpHosts = new() {
@@ -222,24 +226,41 @@ namespace Agience.SDK
         }
 
         private async Task QueryNtpWithBackoff(double maxDelaySeconds = 32)
-        {
-            var delay = TimeSpan.FromSeconds(1);
+        {          
+            //Using a custom host from the settings, instead of the pre-defined list.
+            if(!CustomNtpHost.IsNullOrEmpty())
+            {
+                ntpHosts.Clear();
+                ntpHosts.Add(CustomNtpHost);
+            }
+
+            var delay = TimeSpan.FromSeconds(1);           
             var currentNtpHostIndex = 1;
             while (true)
             {
+                var ntpHpst = ntpHosts[currentNtpHostIndex - 1];
                 try
-                {
-                    _ntpClient = new(ntpHosts[currentNtpHostIndex -1]);
+                {                    
+                    _ntpClient = new(ntpHpst);
+                    Console.WriteLine($"NTP Querying host {ntpHpst}");
                     _ntpClient.Query();
-                    Console.WriteLine($"NTP Time: {Timestamp}");
+                    Console.WriteLine($"Connected to {ntpHpst}. NTP Time: {Timestamp}");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"NTP Query Failed. Trying again in {delay.TotalSeconds} seconds.\r\n{ex.Message}");
-                    await Task.Delay(delay);
-                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
-                    currentNtpHostIndex = currentNtpHostIndex == ntpHosts.Count() ? 1 : currentNtpHostIndex + 1;
+                    Console.WriteLine($"NTP Query to host {ntpHpst} failed");
+                  
+                    var startNewCycle = currentNtpHostIndex == ntpHosts.Count();
+                 
+                    currentNtpHostIndex = startNewCycle ? 1 : currentNtpHostIndex + 1;
+
+                    if(startNewCycle)
+                    {
+                        Console.WriteLine($"Trying again a NTP connection in {delay.TotalSeconds} seconds.\r\n{ex.Message}");
+                        await Task.Delay(delay);
+                        delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
+                    }
                 }
             }
         }

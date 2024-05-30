@@ -21,7 +21,11 @@ namespace Agience.SDK
         //public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
 
         private readonly Authority _authority;
-        private readonly Broker _broker = new();
+
+        //Review: The builder should be responsible to build up and initialize object and not the host
+        //Workaround as a public property
+        public readonly Broker Broker = new();
+        
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
 
@@ -34,7 +38,12 @@ namespace Agience.SDK
         public Host()
         { }
 
-        public Host(string name, string authorityUri, string clientId, string clientSecret, string? brokerUriOverride = null)
+        public Host(
+            string name, 
+            string authorityUri, 
+            string clientId, 
+            string clientSecret, 
+            string? brokerUriOverride = null)
         {
             this.Id = clientId ?? throw new ArgumentNullException("clientId");
             this.Name = name ?? throw new ArgumentNullException("name");
@@ -63,20 +72,20 @@ namespace Agience.SDK
 
             var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
 
-            await _broker.Connect(accessToken, brokerUri);
+            await Broker.Connect(accessToken, brokerUri);
 
-            await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // All Hosts
+            await Broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // All Hosts
 
-            await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
+            await Broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
 
-            await _broker.PublishAsync(new BrokerMessage()
+            await Broker.PublishAsync(new BrokerMessage()
             {
                 Type = BrokerMessageType.EVENT,
                 Topic = _authority.AuthorityTopic(Id!),
                 Data = new Data
                 {
                     { "type", "host_connect" },
-                    { "timestamp", _broker.Timestamp},
+                    { "timestamp", Broker.Timestamp},
                     { "host", JsonSerializer.Serialize(ToAgienceModel()) }
                     // TODO: Include a list of local plugins and services.
                 }
@@ -94,10 +103,10 @@ namespace Agience.SDK
                     await agent.Disconnect();
                 }
 
-                await _broker.Unsubscribe(_authority.HostTopic("+", "0"));
-                await _broker.Unsubscribe(_authority.HostTopic("+", Id));
+                await Broker.Unsubscribe(_authority.HostTopic("+", "0"));
+                await Broker.Unsubscribe(_authority.HostTopic("+", Id));
 
-                await _broker.Disconnect();
+                await Broker.Disconnect();
 
                 IsConnected = false;
             }
@@ -135,7 +144,7 @@ namespace Agience.SDK
             var builder = new AgentBuilder()
                 .WithId(modelAgent.Id)
                 .WithAuthority(_authority)
-                .WithBroker(_broker)
+                .WithBroker(Broker)
                 .WithAgency(modelAgent.Agency) // TODO: Agency should be in a local collection. Singleton instances.
                 .WithName(modelAgent.Name)
                 .WithPlugins(_plugins) // TODO: Select plugins based on message from Authority. For now, we're just adding all plugins to all agents.                

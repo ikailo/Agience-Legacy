@@ -7,6 +7,7 @@ namespace Agience.Hosts._Console
         public string? AgentId { get; set; }
 
         public string? OpenAiApiKey { get; set; }
+        public string? CustomNtpHost { get; set; }
 
 
         internal AppConfig()
