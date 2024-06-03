@@ -5,6 +5,7 @@ using Agience.Hosts._Console.Plugins;
 using Microsoft.Extensions.Logging;
 using Humanizer;
 using Agience.SDK;
+using Microsoft.Extensions.Hosting;
 
 namespace Agience.Hosts._Console
 {
@@ -12,7 +13,7 @@ namespace Agience.Hosts._Console
     {
         private static readonly AppConfig _config = new();
 
-        private static Host? _host;
+        private static SDK.Host? _host;
 
         private static Agent? _contextAgent;
 
@@ -20,24 +21,30 @@ namespace Agience.Hosts._Console
 
         internal static async Task Main(string[] args)
         {
+            //TODO review architecture and console initialization
+            HostApplicationBuilder genericBuilder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
+
+            genericBuilder.Logging.ClearProviders();
+            genericBuilder.Logging.AddConsole(); 
+
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
 
             if (string.IsNullOrEmpty(_config.HostName)) { throw new ArgumentNullException("HostName"); }
             if (string.IsNullOrEmpty(_config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
             if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
             if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
-            
+
             // TODO: Move this check into the SDK because it is a common requirement for all hosts.
             if (!string.IsNullOrEmpty(_config.CustomNtpHost) && !_config.CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
-                throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`."); 
+                throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`.");
 
-            var builder = new HostBuilder()
+            var hostBuilder = new SDK.HostBuilder()
             .WithName(_config.HostName)
             .WithAuthorityUri(_config.AuthorityUri)
             .WithCredentials(_config.ClientId, _config.ClientSecret)
-            .WithBrokerUriOverride(_config.BrokerUriOverride)       
-            .WithCustomNtpHost(_config.CustomNtpHost)   
-            
+            .WithBrokerUriOverride(_config.BrokerUriOverride)
+            .WithCustomNtpHost(_config.CustomNtpHost)
+
             // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
             // TODO: Add from a local assembly directory
 
@@ -55,13 +62,17 @@ namespace Agience.Hosts._Console
             // Add local services to the host. Local services can be invoked by local agents only. 
             .AddService(ServiceDescriptor.Singleton<IConsoleService>(new ConsoleService()));
 
-            _host = builder.Build();
+            _host = hostBuilder.Build();
 
             _host.AgentBuilding += _host_AgentBuilding;
             _host.AgentConnected += _host_AgentConnected;
-            _host.AgentReady += _host_AgentReady;            
+            _host.AgentReady += _host_AgentReady;
 
             await _host.Run();
+
+            //TODO Review how the .Net generic host will integrate with the SDK Host and DI
+            IHost genericHost = genericBuilder.Build();
+            genericHost.Run();
 
             // TODO: Add remote plugins/functions to the host (MQTT, GRPC, HTTP) that we want the local Kernels to consider local.
             // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.            
@@ -74,11 +85,7 @@ namespace Agience.Hosts._Console
 
         static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
         {
-            //Any action here...
-            //Implement Logging here...
-
-            //Temp
-            Console.WriteLine("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
+            _logger.LogError("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
         }
 
         private static Task _host_AgentBuilding(AgentBuilder builder)
@@ -142,8 +149,8 @@ namespace Agience.Hosts._Console
             {
                 // Add user input
                 chatHistory.AddUserMessage(userInput);
-                
-                var result = await _contextAgent.ProcessAsync(chatHistory);                 
+
+                var result = await _contextAgent.ProcessAsync(chatHistory);
 
                 // Print the results
                 foreach (var message in result)
