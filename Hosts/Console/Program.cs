@@ -27,10 +27,6 @@ namespace Agience.Hosts._Console
             if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
             if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
             
-            // TODO: Move this check into the SDK because it is a common requirement for all hosts.
-            if (!string.IsNullOrEmpty(_config.CustomNtpHost) && !_config.CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
-                throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`."); 
-
             var builder = new HostBuilder()
             .WithName(_config.HostName)
             .WithAuthorityUri(_config.AuthorityUri)
