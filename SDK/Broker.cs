@@ -5,7 +5,6 @@ using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
 using MQTTnet.Diagnostics;
-using GuerrillaNtp;
 using Timer = System.Timers.Timer;
 using System.Text.Json;
 

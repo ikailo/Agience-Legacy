@@ -43,7 +43,8 @@ namespace Agience.SDK
         }
 
         internal async Task Initialize()
-        {
+        {           
+            // TODO: Wait, but only if I'm not the Authority
             try
             {
                 var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
