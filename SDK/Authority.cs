@@ -23,16 +23,6 @@ namespace Agience.SDK
 
         private readonly IMapper _mapper;
 
-        private static Dictionary<string, string> _defaultTemplates = new()
-        {
-            { "log", "Agience.Client.Templates.Default.Log" },
-            { "context", "Agience.Client.Templates.Default.Context" },
-            { "debug", "Agience.Client.Templates.Default.Debug" },
-            { "echo", "Agience.Client.Templates.Default.Echo" },            
-            { "history", "Agience.Client.Templates.Default.History" },                        
-            { "prompt", "Agience.Client.Templates.Default.Prompt" },
-        };
-
         public Authority(string authorityUri)
         {
             if (authorityUri == null) { throw new ArgumentNullException(nameof(authorityUri)); }
@@ -42,32 +32,46 @@ namespace Agience.SDK
             _mapper = AutoMapperConfig.GetMapper();
         }
 
-        internal async Task Initialize()
-        {           
-            // TODO: Wait, but only if I'm not the Authority
-            try
+        internal async Task InitializeWithBackoff(double maxDelaySeconds = 16)
+        {
+            var delay = TimeSpan.FromSeconds(1);
+
+            while (true)
             {
-                var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                try
+                {
+                    Console.WriteLine($"Initializing Authority: {_authorityUri.OriginalString}");
+
+                    var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
                     $"{_authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
                     new OpenIdConnectConfigurationRetriever());
 
-                var configuration = await configurationManager.GetConfigurationAsync();
+                    var configuration = await configurationManager.GetConfigurationAsync();
 
-                BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
-                TokenEndpoint = configuration?.TokenEndpoint;
+                    BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
+                    TokenEndpoint = configuration?.TokenEndpoint;
+
+                    Console.WriteLine($"Authority initialized.");
+
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                    Console.WriteLine($"Authority initialization failed. Trying again in {delay.TotalSeconds} seconds.");                    
+
+                    await Task.Delay(delay);
+
+                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
+                }
             }
-            catch (Exception ex)
-            {
-                // TODO: This fails way too often. Need to figure out why.
-                throw new Exception($"Failed to initialize authority {_authorityUri.OriginalString}", ex);
-            }
-        }
+        }       
 
         public async Task Connect(string accessToken, string brokerUri)
         {
             if (BrokerUri == null)
             {
-                await Initialize();
+                await InitializeWithBackoff();
             }
 
             if (!IsConnected)
@@ -90,13 +94,13 @@ namespace Agience.SDK
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
-            if (message.SenderId == null || 
+            if (message.SenderId == null ||
                 message.Data == null //|| 
-                //message.Payload.Format != DataFormat.STRUCTURED
+                                     //message.Payload.Format != DataFormat.STRUCTURED
                 ) { return; }
-                        
-            if (message.Type == BrokerMessageType.EVENT && 
-                message.Data?["type"] == "host_connect" && 
+
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "host_connect" &&
                 message.Data?["host"] != null)
             {
                 var host = JsonSerializer.Deserialize<Models.Host>(message.Data?["host"]!);
@@ -123,8 +127,7 @@ namespace Agience.SDK
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) },
-                    { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }                    
                 }
             });
         }

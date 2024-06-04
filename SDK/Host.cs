@@ -72,7 +72,7 @@ namespace Agience.SDK
 
         private async Task Connect()
         {
-            await _authority.Initialize();
+            await _authority.InitializeWithBackoff();
 
             var brokerUri = (string.IsNullOrEmpty(_brokerUriOverride) ? _authority.BrokerUri : _brokerUriOverride) ?? throw new ArgumentNullException("BrokerUri");
 
