@@ -23,7 +23,7 @@ namespace Agience.Hosts._Console
             HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args); 
                         
             builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();         
+            builder.Logging.AddConsole();  
 
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
 
