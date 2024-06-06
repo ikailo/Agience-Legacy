@@ -8,6 +8,9 @@ internal class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+
         if (builder.Environment.EnvironmentName == "Development")
         {
             builder.Configuration.AddUserSecrets<Program>();

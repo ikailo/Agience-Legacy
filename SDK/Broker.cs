@@ -5,9 +5,9 @@ using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
 using MQTTnet.Diagnostics;
-using GuerrillaNtp;
 using Timer = System.Timers.Timer;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Agience.SDK
 {
@@ -18,11 +18,10 @@ namespace Agience.SDK
             add => _client.DisconnectedAsync += async (args) => await value();
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
-
-        //TODO: Revise how the broker is initialized without breaking the Dependency Inversion Principle and without involving the host 
+               
         NtpClient _ntpClient;
        
-        public string? CustomNtpHost = null;
+        string? _customNtpHost = null;
 
         //https://www.ntppool.org/zone/@
         List<string> ntpHosts = new() {
@@ -46,8 +45,14 @@ namespace Agience.SDK
         private readonly IMqttClient _client;
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
-        internal Broker()
-        {
+        private readonly ILogger<Broker> _logger;
+
+        internal Broker() { }
+
+        internal Broker(ILogger<Broker> logger, string? customNtpHost = null)
+        {          
+            _logger = logger;
+            _customNtpHost = customNtpHost;
             _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
             _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
         }
@@ -61,7 +66,7 @@ namespace Agience.SDK
 
             if (!_client.IsConnected)
             {
-                Console.WriteLine($"Connecting to {brokerUri}");
+                _logger.LogInformation($"Connecting to {brokerUri}");
 
                 var options = new MqttClientOptionsBuilder()
                     .WithWebSocketServer(configure => { configure.WithUri(brokerUri); })
@@ -77,7 +82,7 @@ namespace Agience.SDK
 
                 await _client.ConnectAsync(options);
 
-                Console.WriteLine($"Broker Connected");
+                _logger.LogInformation($"Broker Connected");
             }
         }
 
@@ -229,14 +234,14 @@ namespace Agience.SDK
         private async Task QueryNtpWithBackoff(double maxDelaySeconds = 32)
         {          
             //Using a custom host from the settings, instead of the pre-defined list.
-            if(!CustomNtpHost.IsNullOrEmpty())
+            if(!_customNtpHost.IsNullOrEmpty())
             {
 
                 if (!string.IsNullOrEmpty(CustomNtpHost) && !CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
                     throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`.");
 
                 ntpHosts.Clear();
-                ntpHosts.Add(CustomNtpHost);
+                ntpHosts.Add(_customNtpHost);
             }
 
             var delay = TimeSpan.FromSeconds(1);           
@@ -247,14 +252,14 @@ namespace Agience.SDK
                 try
                 {                    
                     _ntpClient = new(ntpHpst);
-                    Console.WriteLine($"NTP Querying host {ntpHpst}");
+                    _logger.LogInformation($"NTP Querying host {ntpHpst}");
                     _ntpClient.Query();
-                    Console.WriteLine($"Connected to {ntpHpst}. NTP Time: {Timestamp}");
+                    _logger.LogInformation($"Connected to {ntpHpst}. NTP Time: {Timestamp}");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"NTP Query to host {ntpHpst} failed");
+                    _logger.LogError($"NTP Query to host {ntpHpst} failed");
                   
                     var startNewCycle = currentNtpHostIndex == ntpHosts.Count();
                  
@@ -262,7 +267,7 @@ namespace Agience.SDK
 
                     if(startNewCycle)
                     {
-                        Console.WriteLine($"Trying again a NTP connection in {delay.TotalSeconds} seconds.\r\n{ex.Message}");
+                        _logger.LogInformation($"Trying again a NTP connection in {delay.TotalSeconds} seconds.\r\n{ex.Message}");
                         await Task.Delay(delay);
                         delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
                     }
