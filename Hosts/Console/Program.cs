@@ -5,63 +5,63 @@ using Agience.Hosts._Console.Plugins;
 using Microsoft.Extensions.Logging;
 using Humanizer;
 using Agience.SDK;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace Agience.Hosts._Console
 {
     internal class Program
     {
-        private static readonly AppConfig _config = new();
-
-        private static Host? _host;
+        private static SDK.Host? _host;
 
         private static Agent? _contextAgent;
 
-        private static ILogger<Program>? _logger; // TODO: Add logging
+        private static ILogger<Program>? _logger;
 
         internal static async Task Main(string[] args)
-        {
+        {           
+            HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args); 
+                        
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();  
+
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
 
-            if (string.IsNullOrEmpty(_config.HostName)) { throw new ArgumentNullException("HostName"); }
-            if (string.IsNullOrEmpty(_config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
-            if (string.IsNullOrEmpty(_config.ClientId)) { throw new ArgumentNullException("ClientId"); }
-            if (string.IsNullOrEmpty(_config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
-            
-            // TODO: Move this check into the SDK because it is a common requirement for all hosts.
-            if (!string.IsNullOrEmpty(_config.CustomNtpHost) && !_config.CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
-                throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`."); 
+            builder.Configuration.AddUserSecrets<AppConfig>();
 
-            var builder = new HostBuilder()
-            .WithName(_config.HostName)
-            .WithAuthorityUri(_config.AuthorityUri)
-            .WithCredentials(_config.ClientId, _config.ClientSecret)
-            .WithBrokerUriOverride(_config.BrokerUriOverride)       
-            .WithCustomNtpHost(_config.CustomNtpHost)   
-            
+            var config = builder.Configuration.Get<AppConfig>();
+
+            if (string.IsNullOrEmpty(config.HostName)) { throw new ArgumentNullException("HostName"); }
+            if (string.IsNullOrEmpty(config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
+            if (string.IsNullOrEmpty(config.ClientId)) { throw new ArgumentNullException("ClientId"); }
+            if (string.IsNullOrEmpty(config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
+
+            builder
+            .AddAgienceHost(config.HostName, config.AuthorityUri, config.ClientId, config.ClientSecret, config.BrokerUriOverride, config.CustomNtpHost)
+            .AddAgiencePlugin<ConsolePlugin>()
+            .AddAgiencePlugin<EmailPlugin>()
+            .AddAgiencePlugin<AuthorEmailPlanner>()
+
+            .Services
+            // Add Chat Completion Service (OpenAI)
+            .AddSingleton(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey ?? throw new ArgumentNullException("OpenAiApiKey")))
+            // Add local services to the host. Local services can be invoked by local agents only. 
+            .AddSingleton(new ConsoleService());
+
+            var app = builder.Build();
+            var agienceHost = app.GetAgieceHost();
+
+            agienceHost.AgentBuilding += _host_AgentBuilding;
+            agienceHost.AgentConnected += _host_AgentConnected;
+            agienceHost.AgentReady += _host_AgentReady;
+
+            await agienceHost.Run();
+
+
             // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
             // TODO: Add from a local assembly directory
 
-            .AddPluginFromType<ConsolePlugin>()
-            .AddPluginFromType<EmailPlugin>()
-            .AddPluginFromType<AuthorEmailPlanner>()
-
             // TODO: Add Prompt Template Plugins
-
-            // Add Chat Completion Service (OpenAI)
-            .AddService(ServiceDescriptor.Singleton<IChatCompletionService>(
-                serviceProvider => new OpenAIChatCompletionService("gpt-3.5-turbo", _config.OpenAiApiKey ?? throw new ArgumentNullException("OpenAiApiKey")))
-            )
-
-            // Add local services to the host. Local services can be invoked by local agents only. 
-            .AddService(ServiceDescriptor.Singleton<IConsoleService>(new ConsoleService()));
-
-            _host = builder.Build();
-
-            _host.AgentBuilding += _host_AgentBuilding;
-            _host.AgentConnected += _host_AgentConnected;
-            _host.AgentReady += _host_AgentReady;            
-
-            await _host.Run();
 
             // TODO: Add remote plugins/functions to the host (MQTT, GRPC, HTTP) that we want the local Kernels to consider local.
             // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.            
@@ -74,11 +74,7 @@ namespace Agience.Hosts._Console
 
         static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
         {
-            //Any action here...
-            //Implement Logging here...
-
-            //Temp
-            Console.WriteLine("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
+            _logger.LogError("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
         }
 
         private static Task _host_AgentBuilding(AgentBuilder builder)
@@ -142,8 +138,8 @@ namespace Agience.Hosts._Console
             {
                 // Add user input
                 chatHistory.AddUserMessage(userInput);
-                
-                var result = await _contextAgent.ProcessAsync(chatHistory);                 
+
+                var result = await _contextAgent.ProcessAsync(chatHistory);
 
                 // Print the results
                 foreach (var message in result)

@@ -4,6 +4,7 @@ using Microsoft.SemanticKernel;
 
 namespace Agience.SDK
 {
+    [Obsolete("Replaced by HostBuilderExtensions")]
     public class HostBuilder
     {
         private readonly KernelPluginCollection _plugins = new(); 
@@ -43,11 +44,11 @@ namespace Agience.SDK
                 throw new ArgumentNullException("_clientSecret");
             }
 
-            Host host = new(_name, _authorityUri, _clientId, _clientSecret, _brokerUriOverride);
+            Host host = new(_name, _authorityUri, _clientId, _clientSecret, new Broker(), brokerUriOverride: _brokerUriOverride);
 
             //Review: The builder should be responsible to build up and initialize object and not the host
             //Workaround:
-            host.Broker.CustomNtpHost = _customNtpHost; 
+            //host.Broker.CustomNtpHost = _customNtpHost; 
 
             host.AddServices(_services);
             host.AddPlugins(_plugins);
