@@ -237,7 +237,7 @@ namespace Agience.SDK
             if(!_customNtpHost.IsNullOrEmpty())
             {
 
-                if (!string.IsNullOrEmpty(CustomNtpHost) && !CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
+                if (!string.IsNullOrEmpty(_customNtpHost) && !_customNtpHost.ToLower().EndsWith("pool.ntp.org"))
                     throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`.");
 
                 ntpHosts.Clear();
