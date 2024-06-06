@@ -25,9 +25,6 @@ namespace Agience.SDK
 
         private readonly Authority _authority;
 
-        //Review: The builder should be responsible to build up and initialize object and not the host
-        //Workaround as a public property
-        public Broker Broker => _broker;
         private readonly Broker _broker = new();
         
         private readonly Dictionary<string, Agent> _agents = new();
@@ -43,25 +40,21 @@ namespace Agience.SDK
 
         private readonly ILogger<Host> _logger;
 
-        public Host()
-        { }
+        public Host() { }
 
         public Host(
             string name,
             string authorityUri,
             string clientId,
             string clientSecret,
-            ILogger<Host> logger = null,
+            Broker broker,           
             string? brokerUriOverride = null)
         {
-            this.Id = clientId ?? throw new ArgumentNullException("clientId");
-            this.Name = name ?? throw new ArgumentNullException("name");
+            Id = clientId ?? throw new ArgumentNullException("clientId");
+            Name = name ?? throw new ArgumentNullException("name");
             _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
             _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
-            
-            //TODO to be refactored with the Host Builder DI - Generic Host work item.
-            _logger = logger;
-            
+            _broker = broker;         
             _brokerUriOverride = brokerUriOverride;
             _mapper = AutoMapperConfig.GetMapper();
         }
