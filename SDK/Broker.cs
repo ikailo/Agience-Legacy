@@ -236,6 +236,10 @@ namespace Agience.SDK
             //Using a custom host from the settings, instead of the pre-defined list.
             if(!_customNtpHost.IsNullOrEmpty())
             {
+
+                if (!string.IsNullOrEmpty(CustomNtpHost) && !CustomNtpHost.ToLower().EndsWith("pool.ntp.org"))
+                    throw new ArgumentException("The CustomNtpHost must end with `pool.ntp.org`.");
+
                 ntpHosts.Clear();
                 ntpHosts.Add(_customNtpHost);
             }
