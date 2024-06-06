@@ -43,7 +43,7 @@ namespace Agience.SDK
                 throw new ArgumentNullException("_clientSecret");
             }
 
-            Host host = new(_name, _authorityUri, _clientId, _clientSecret, _brokerUriOverride);
+            Host host = new(_name, _authorityUri, _clientId, _clientSecret, brokerUriOverride: _brokerUriOverride);
 
             //Review: The builder should be responsible to build up and initialize object and not the host
             //Workaround:

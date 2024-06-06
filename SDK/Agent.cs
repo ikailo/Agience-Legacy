@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Agience.SDK.Mappings;
 using AutoMapper;
+using QuikGraph;
 
 namespace Agience.SDK
 {
@@ -62,6 +63,9 @@ namespace Agience.SDK
             _kernel = new Kernel(services.BuildServiceProvider(), plugins);
             
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
+
+            //TODO Part of the Architecture Review about the SDK and DI            
+            //Kernel.LoggerFactory.AddProvider()
 
             _mapper = AutoMapperConfig.GetMapper();
 

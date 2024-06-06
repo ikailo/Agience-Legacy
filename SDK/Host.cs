@@ -2,6 +2,7 @@
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -40,20 +41,27 @@ namespace Agience.SDK
 
         private readonly IMapper _mapper;
 
+        private readonly ILogger<Host> _logger;
+
         public Host()
         { }
 
         public Host(
-            string name, 
-            string authorityUri, 
-            string clientId, 
-            string clientSecret, 
+            string name,
+            string authorityUri,
+            string clientId,
+            string clientSecret,
+            ILogger<Host> logger = null,
             string? brokerUriOverride = null)
         {
             this.Id = clientId ?? throw new ArgumentNullException("clientId");
             this.Name = name ?? throw new ArgumentNullException("name");
             _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
             _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
+            
+            //TODO to be refactored with the Host Builder DI - Generic Host work item.
+            _logger = logger;
+            
             _brokerUriOverride = brokerUriOverride;
             _mapper = AutoMapperConfig.GetMapper();
         }
