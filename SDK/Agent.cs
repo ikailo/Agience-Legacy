@@ -6,15 +6,15 @@ using System.Text.Json;
 using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
-using Agience.SDK.Mappings;
 using AutoMapper;
+using Agience.SDK.Mappings;
 using QuikGraph;
 
 namespace Agience.SDK
 {
-    public class Agent : IMapped
+    [AutoMap(typeof(Models.Agent), ReverseMap = true)]
+    public class Agent
     {
-
         // TODO: Implement layer processing. Check link for more info.
         // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
         // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
@@ -46,9 +46,7 @@ namespace Agience.SDK
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
-        public Agent()
-        {
-        }
+        public Agent() { }
 
         internal Agent(
             string? id,
@@ -61,7 +59,7 @@ namespace Agience.SDK
             KernelPluginCollection plugins)
         {
             _kernel = new Kernel(services.BuildServiceProvider(), plugins);
-            
+
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
 
             //TODO Part of the Architecture Review about the SDK and DI            
@@ -112,8 +110,9 @@ namespace Agience.SDK
 
             if (IsConnected)
             {
+                // TODO: Advise the Agency that this Agent is no longer available.
+
                 await _broker.Unsubscribe(_authority.AgentTopic("+", Id!));
-                // TODO: Need to let the Agency know our templates are no longer available
                 await _agency.Disconnect();
                 IsConnected = false;
             }
@@ -232,16 +231,21 @@ namespace Agience.SDK
             }
         }
 
-        public async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(string message)
+        public async IAsyncEnumerable<ChatMessage> ProcessAsync(string message)
         {
-            var chatHistory = new ChatHistory(); // TODO: System Messages, Etc..  Probably ChatHistory isn't the correct object type.
-
+            var chatHistory = new ChatHistory();
             chatHistory.AddUserMessage(message);
 
-            return await ProcessAsync(chatHistory);
+            var processResult = await ProcessAsync(chatHistory);
+
+            foreach (var content in processResult)
+            {
+                // TODO: This can miss messages that have multiple items. This is a quick implementation for now.
+                yield return new ChatMessage(content.Role.ToString(), content.Content ?? string.Empty);
+            }
         }
 
-        public async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
+        internal async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
         {
             // TODO: Will need to summarize previous messages. This could get large.
             _chatHistory.AddRange(messages);
@@ -255,12 +259,6 @@ namespace Agience.SDK
                 cancellationToken).ConfigureAwait(false);
 
             return chatMessageContent;
-        }
-
-        public void Mapping(Profile profile)
-        {
-            profile.CreateMap<Agent, Models.Agent>();
-            profile.CreateMap<Models.Agent, Agent>();
         }
     }
 }

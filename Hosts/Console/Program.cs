@@ -1,29 +1,28 @@
-﻿using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Agience.Hosts._Console.Plugins;
 using Microsoft.Extensions.Logging;
-using Humanizer;
-using Agience.SDK;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
+using Agience.SDK;
 
 namespace Agience.Hosts._Console
 {
     internal class Program
     {
         private static SDK.Host? _host;
-
-        private static Agent? _contextAgent;
-
+        private static string? _contextAgentId;
         private static ILogger<Program>? _logger;
 
         internal static async Task Main(string[] args)
-        {           
-            HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args); 
-                        
+        {
+            // TODO: Handle this all in a separate class
+
+            HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
+
             builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();  
+            builder.Logging.AddConsole();
+
+            //builder.Logging.AddDebug();
 
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
 
@@ -33,43 +32,35 @@ namespace Agience.Hosts._Console
 
             if (string.IsNullOrEmpty(config.HostName)) { throw new ArgumentNullException("HostName"); }
             if (string.IsNullOrEmpty(config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
-            if (string.IsNullOrEmpty(config.ClientId)) { throw new ArgumentNullException("ClientId"); }
-            if (string.IsNullOrEmpty(config.ClientSecret)) { throw new ArgumentNullException("ClientSecret"); }
+            if (string.IsNullOrEmpty(config.HostId)) { throw new ArgumentNullException("HostId"); }
+            if (string.IsNullOrEmpty(config.HostSecret)) { throw new ArgumentNullException("HostSecret"); }
 
+            // Register local services
+            builder.Services.AddSingleton<IConsoleService, ConsoleService>();
+
+            // Add Agience Host
             builder
-            .AddAgienceHost(config.HostName, config.AuthorityUri, config.ClientId, config.ClientSecret, config.BrokerUriOverride, config.CustomNtpHost)
-            .AddAgiencePlugin<ConsolePlugin>()
-            .AddAgiencePlugin<EmailPlugin>()
-            .AddAgiencePlugin<AuthorEmailPlanner>()
+                .AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost)
 
-            .Services
-            // Add Chat Completion Service (OpenAI)
-            .AddSingleton(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey ?? throw new ArgumentNullException("OpenAiApiKey")))
-            // Add local services to the host. Local services can be invoked by local agents only. 
-            .AddSingleton(new ConsoleService());
+            // TODO: Move the plugins to the Primary Plugins Library and remove the SK dependency. Plugins can load during runtime and per-agent instead.
+                .AddAgiencePluginFromType<ConsolePlugin>()
+                .AddAgiencePluginFromType<EmailPlugin>()
+                .AddAgiencePluginFromType<AuthorEmailPlanner>();
+
+            // TODO: Add plugins from a local assembly directory (startup and runtime)        
+            // TODO: Add plugins initiated from Authority (startup and runtime)
 
             var app = builder.Build();
-            var agienceHost = app.GetAgieceHost();
 
-            agienceHost.AgentBuilding += _host_AgentBuilding;
-            agienceHost.AgentConnected += _host_AgentConnected;
-            agienceHost.AgentReady += _host_AgentReady;
+            _logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-            await agienceHost.Run();
+            _host = app.GetAgienceHost();
 
+            if (_host == null) { throw new InvalidOperationException("Host not found"); }
 
-            // Add local plugins to the host. Local plugins can be invoked by local or remote agents, if they are exposed (TODO).
-            // TODO: Add from a local assembly directory
+            _host.AgentConnected += _host_AgentConnected;            
 
-            // TODO: Add Prompt Template Plugins
-
-            // TODO: Add remote plugins/functions to the host (MQTT, GRPC, HTTP) that we want the local Kernels to consider local.
-            // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.            
-            // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
-
-            // TODO: Initiate plugin imports from Authority.
-
-            // TODO: Expose local plugins to remote via MQTT, GRPC, HTTP.
+            await _host.Run();
         }
 
         static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
@@ -77,79 +68,41 @@ namespace Agience.Hosts._Console
             _logger.LogError("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
         }
 
-        private static Task _host_AgentBuilding(AgentBuilder builder)
+        private static async Task _host_AgentConnected(Agent agent)
         {
-            builder.WithPersona(
-                "You are a friendly assistant who likes to follow the rules. You will complete required steps " +
-                "and request approval before taking any consequential actions. If the user doesn't provide " +
-                "enough information for you to complete a task, you will keep asking questions until you have " +
-                "enough information to complete the task."
-                );
+            _logger.LogInformation($"{agent.Name} Ready");
 
-            return Task.CompletedTask;
-        }
-
-        private static Task _host_AgentConnected(Agent agent)
-        {
-
-            // Agent instantiation is initiated from Authority-Manage.The Host does not have control.
-            // Returns an agent that has access to all the local & psuedo-local functions
-            // Agent has an Agency which connects them directly to other agents who are experts in their domain.
-
-            Console.WriteLine($"{agent.Name} Connected");
-
-            return Task.CompletedTask;
-        }
-
-        private static async Task _host_AgentReady(Agent agent)
-        {
-            Console.WriteLine($"{agent.Name} Ready");
-
-            if (_contextAgent == null)
+            if (_contextAgentId == null)
             {
-                SetAgentContext(agent.Id);
+                // TODO: Read the input and set the context agent. For now, we will just use the first agent.        
+
+                _contextAgentId = agent.Id;
+
+                _logger.LogInformation($"* Switched context to {_host!.GetAgentById(agent.Id)?.Name ?? "Unknown"} *");
+
                 await RunConsole();
             }
         }
 
-        // TODO: Read the input and set the context agent. For now, we will just use the first agent.        
-
-        private static void SetAgentContext(string? agentId)
-        {
-            _contextAgent = _host!.GetAgent(agentId);
-            Console.WriteLine($"* Switched context to {_contextAgent?.Name ?? "Unknown"} *");
-        }
-
         private static async Task RunConsole()
         {
+            // TODO: Add a way to switch context agents
 
-            if (_contextAgent == null) { throw new InvalidOperationException("No context agent"); }
+            var contextAgent = _host?.GetAgentById(_contextAgentId);
 
-            // Here we want to communicate with the context agent.
-
-            /// Create chat history
-            var chatHistory = new ChatHistory();
-
-            Console.Write("User > ");
+            if (contextAgent == null) { throw new InvalidOperationException("No context agent set"); }
 
             string? userInput;
 
             while ((userInput = Console.ReadLine()) != null)
             {
-                // Add user input
-                chatHistory.AddUserMessage(userInput);
-
-                var result = await _contextAgent.ProcessAsync(chatHistory);
-
-                // Print the results
-                foreach (var message in result)
-                {
-                    chatHistory.AddMessage(message.Role, message.Content ?? string.Empty);
-                    Console.WriteLine($"{message.Role.ToString().Pascalize()} > {message.Content}");
-                }
-
-                // Get user input again
                 Console.Write($"User > ");
+
+                await foreach (var message in _host!.GetAgentById(_contextAgentId)!.ProcessAsync(userInput))
+                {
+                    Console.WriteLine($"{message.AuthorRole} > {message.Content}");
+                }
+                
             }
         }
     }

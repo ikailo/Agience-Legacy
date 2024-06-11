@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
+using Agience.SDK.Mappings;
 
 namespace Agience.SDK
 {
@@ -19,16 +20,16 @@ namespace Agience.SDK
         public string Timestamp => _broker.Timestamp;
 
         private readonly Uri _authorityUri; // Expect without trailing slash
-        private readonly Broker _broker = new();
+        private readonly Broker _broker;
 
         private readonly IMapper _mapper;
 
-        public Authority(string authorityUri)
+        //public Authority() { }
+
+        public Authority(string authorityUri, Broker broker)
         {
-            if (authorityUri == null) { throw new ArgumentNullException(nameof(authorityUri)); }
-
-            _authorityUri = new Uri(authorityUri);
-
+            _authorityUri = authorityUri != null ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
+            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
             _mapper = AutoMapperConfig.GetMapper();
         }
 
@@ -67,15 +68,17 @@ namespace Agience.SDK
             }
         }       
 
-        public async Task Connect(string accessToken, string brokerUri)
-        {
-            if (BrokerUri == null)
-            {
-                await InitializeWithBackoff();
-            }
-
+        public async Task Connect(string accessToken)
+        {   
             if (!IsConnected)
             {
+                if (BrokerUri == null)
+                {
+                    await InitializeWithBackoff();
+                }
+
+                var brokerUri = BrokerUri ?? throw new ArgumentNullException("BrokerUri");
+
                 await _broker.Connect(accessToken, brokerUri);
                 await _broker.Subscribe(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
                 IsConnected = true;

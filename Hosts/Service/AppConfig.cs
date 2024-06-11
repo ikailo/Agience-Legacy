@@ -1,9 +1,7 @@
 ﻿namespace Agience.Hosts.Service
 {
-    public class AppConfig
+    public class AppConfig : SDK.HostConfig
     {
-        public string? AuthorityUri { get; set; }        
-        public string? ClientId { get; set; }
-        public string? ClientSecret { get; set; }
+
     }
 }

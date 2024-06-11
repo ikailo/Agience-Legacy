@@ -1,12 +1,13 @@
-﻿using Agience.SDK.Mappings;
-using AutoMapper;
+﻿using AutoMapper;
+using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Agience.SDK
 {
-    public class Agency : IMapped
+    [AutoMap(typeof(Models.Agency), ReverseMap = true)]
+    public class Agency
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
@@ -190,12 +191,6 @@ namespace Agience.SDK
             if (agentId == null) { return null; }
 
             return _agents.TryGetValue(agentId, out (Models.Agent, DateTime) agent) ? agent.Item1.Name : null;
-        }
-
-        public void Mapping(Profile profile)
-        {
-            profile.CreateMap<Agency, Models.Agency>();
-            profile.CreateMap<Models.Agency, Agency>();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.SemanticKernel;
 
 namespace Agience.SDK.Mappings
 {
@@ -7,7 +8,12 @@ namespace Agience.SDK.Mappings
     {
         public MappingProfile()
         {
-            this.ApplyMappingsFromAssembly(Assembly.GetExecutingAssembly());
+            // SDK.Host -> Models.Host: AutoMapperAtribute
+            // SDK.Agent -> Models.Agent: AutoMapperAtribute
+            // SDK.Agency -> Models.Agency: AutoMapperAtribute
+
+            // Add complex mappings here.
+            // We want to keep it all internal to the SDK, so we shouldn't use public Interfaces.
         }
     }
 }

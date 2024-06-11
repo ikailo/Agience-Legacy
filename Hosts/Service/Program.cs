@@ -1,32 +1,41 @@
+using Agience.SDK;
+
 namespace Agience.Hosts.Service;
 
 internal class Program
 {
+    private static SDK.Host? _host;
     private static void Main(string[] args)
     {
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
 
-        var builder = Host.CreateApplicationBuilder(args);
+        HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
 
         builder.Logging.ClearProviders();
         builder.Logging.AddConsole();
 
-        if (builder.Environment.EnvironmentName == "Development")
-        {
-            builder.Configuration.AddUserSecrets<Program>();
-        }
+        builder.Configuration.AddUserSecrets<AppConfig>();
+
+        var config = builder.Configuration.Get<AppConfig>();
+
+        if (string.IsNullOrEmpty(config?.HostName)) { throw new ArgumentNullException("HostName"); }
+        if (string.IsNullOrEmpty(config?.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
+        if (string.IsNullOrEmpty(config?.HostId)) { throw new ArgumentNullException("HostId"); }
+        if (string.IsNullOrEmpty(config?.HostSecret)) { throw new ArgumentNullException("HostSecret"); }
 
         var intermediateServiceProvider = builder.Services.BuildServiceProvider();
-        var configuration = intermediateServiceProvider.GetRequiredService<IConfiguration>();
-
-        var appConfig = new AppConfig();
-        configuration.Bind(appConfig);
-        builder.Services.AddSingleton(appConfig);
-
+        
         builder.Services.AddHostedService<Worker>();
 
-        var host = builder.Build();
-        host.Run();
+        builder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret);
+        
+        // TODO: Do these at runtime?
+        // .AddAgiencePlugin<ConsolePlugin>()
+          // .AddAgiencePlugin<EmailPlugin>()
+          // .AddAgiencePlugin<AuthorEmailPlanner>();
+
+        var app = builder.Build();
+        app.Run();
     }
 
     static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
