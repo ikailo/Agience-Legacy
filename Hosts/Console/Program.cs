@@ -94,15 +94,16 @@ namespace Agience.Hosts._Console
 
             string? userInput;
 
+            Console.Write($"User > ");
+
             while ((userInput = Console.ReadLine()) != null)
             {
-                Console.Write($"User > ");
-
                 await foreach (var message in _host!.GetAgentById(_contextAgentId)!.ProcessAsync(userInput))
                 {
                     Console.WriteLine($"{message.AuthorRole} > {message.Content}");
                 }
-                
+
+                Console.Write($"User > ");
             }
         }
     }

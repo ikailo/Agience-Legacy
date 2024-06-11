@@ -142,6 +142,8 @@ namespace Agience.SDK
                 return; // Invalid Agent
             }
 
+            // HERE: We need to make sure the Agent has access to the correct plugins and services. ***********************************************************
+
             var agentFactory = new AgentFactory(_authority, _broker, _services, _plugins);
             var agent = agentFactory.CreateAgent(modelAgent);
 
