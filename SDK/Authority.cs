@@ -2,6 +2,8 @@
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
+using Agience.SDK.Mappings;
+using Microsoft.Extensions.Logging;
 
 namespace Agience.SDK
 {
@@ -19,58 +21,66 @@ namespace Agience.SDK
         public string Timestamp => _broker.Timestamp;
 
         private readonly Uri _authorityUri; // Expect without trailing slash
-        private readonly Broker _broker = new();
-
+        private readonly Broker _broker;
+        private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
-        private static Dictionary<string, string> _defaultTemplates = new()
+        //public Authority() { }
+
+        public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
         {
-            { "log", "Agience.Client.Templates.Default.Log" },
-            { "context", "Agience.Client.Templates.Default.Context" },
-            { "debug", "Agience.Client.Templates.Default.Debug" },
-            { "echo", "Agience.Client.Templates.Default.Echo" },            
-            { "history", "Agience.Client.Templates.Default.History" },                        
-            { "prompt", "Agience.Client.Templates.Default.Prompt" },
-        };
-
-        public Authority(string authorityUri)
-        {
-            if (authorityUri == null) { throw new ArgumentNullException(nameof(authorityUri)); }
-
-            _authorityUri = new Uri(authorityUri);
-
+            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
+            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
 
-        internal async Task Initialize()
+        internal async Task InitializeWithBackoff(double maxDelaySeconds = 16)
         {
-            try
+            var delay = TimeSpan.FromSeconds(1);
+
+            while (true)
             {
-                var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                try
+                {
+                    _logger.LogInformation($"Initializing Authority: {_authorityUri.OriginalString}");
+
+                    var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
                     $"{_authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
                     new OpenIdConnectConfigurationRetriever());
 
-                var configuration = await configurationManager.GetConfigurationAsync();
+                    var configuration = await configurationManager.GetConfigurationAsync();
 
-                BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
-                TokenEndpoint = configuration?.TokenEndpoint;
-            }
-            catch (Exception ex)
-            {
-                // TODO: This fails way too often. Need to figure out why.
-                throw new Exception($"Failed to initialize authority {_authorityUri.OriginalString}", ex);
-            }
-        }
+                    BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
+                    TokenEndpoint = configuration?.TokenEndpoint;
 
-        public async Task Connect(string accessToken, string brokerUri)
-        {
-            if (BrokerUri == null)
-            {
-                await Initialize();
-            }
+                    _logger.LogInformation($"Authority initialized.");
 
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex.ToString());
+                    _logger.LogInformation($"Unable to initialize Authority. Retrying in {delay.TotalSeconds} seconds.");                    
+
+                    await Task.Delay(delay);
+
+                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
+                }
+            }
+        }       
+
+        public async Task Connect(string accessToken)
+        {   
             if (!IsConnected)
             {
+                if (BrokerUri == null)
+                {
+                    await InitializeWithBackoff();
+                }
+
+                var brokerUri = BrokerUri ?? throw new ArgumentNullException("BrokerUri");
+
                 await _broker.Connect(accessToken, brokerUri);
                 await _broker.Subscribe(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
                 IsConnected = true;
@@ -89,13 +99,13 @@ namespace Agience.SDK
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
-            if (message.SenderId == null || 
+            if (message.SenderId == null ||
                 message.Data == null //|| 
-                //message.Payload.Format != DataFormat.STRUCTURED
+                                     //message.Payload.Format != DataFormat.STRUCTURED
                 ) { return; }
-                        
-            if (message.Type == BrokerMessageType.EVENT && 
-                message.Data?["type"] == "host_connect" && 
+
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "host_connect" &&
                 message.Data?["host"] != null)
             {
                 var host = JsonSerializer.Deserialize<Models.Host>(message.Data?["host"]!);
@@ -122,8 +132,7 @@ namespace Agience.SDK
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) },
-                    { "default_templates", JsonSerializer.Serialize(_defaultTemplates) }
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }                    
                 }
             });
         }

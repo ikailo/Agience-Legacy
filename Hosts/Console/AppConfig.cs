@@ -4,9 +4,8 @@ namespace Agience.Hosts._Console
 {
     internal class AppConfig : SDK.HostConfig
     {
-        public string? AgentId { get; set; }
-
         public string? OpenAiApiKey { get; set; }
+        public string? OpenAIApiUrl { get; set; }
         public string? CustomNtpHost { get; set; }
     }
 }

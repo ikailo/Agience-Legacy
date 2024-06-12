@@ -1,11 +1,12 @@
 ﻿using Agience.SDK;
+using Agience.SDK.Models;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text.Json;
 
 namespace Agience.Plugins.Primary.Text
 {
-    internal class Chunk 
+    internal class Chunk : IAgiencePlugin
     {
         private const int DEFAULT_SIZE = 4000;
 

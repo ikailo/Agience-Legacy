@@ -1,9 +1,6 @@
 ﻿using Agience.SDK.Mappings;
 using AutoMapper;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -11,51 +8,47 @@ using System.Text.Json;
 
 namespace Agience.SDK
 {
-    public class Host : IMapped
+    [AutoMap(typeof(Models.Host), ReverseMap = true)]
+    public class Host
     {
-        public event Func<AgentBuilder, Task>? AgentBuilding;
         public event Func<Agent, Task>? AgentConnected;
-        public event Func<Agent, Task>? AgentReady;
 
-        public string Id { get; private set; }
+        public string Id => _id;
         public string? Name { get; private set; }
-        public bool IsConnected { get; private set; }
+        public bool IsConnected { get; private set; }        
 
-        //public IReadOnlyDictionary<string, string?> AgentNames => _agents.ToDictionary(a => a.Key, a => a.Value.Name);
-
+        private readonly string _id;
+        private readonly string _hostName;
+        private readonly string _hostSecret;
         private readonly Authority _authority;
-
-        private readonly Broker _broker = new();
-        
-        private readonly Dictionary<string, Agent> _agents = new();
-        private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
-
-        private readonly ServiceCollection _services = new();
-        private readonly KernelPluginCollection _plugins = new();        
-
-        private readonly string _clientSecret;
-        private readonly string? _brokerUriOverride;
-
-        private readonly IMapper _mapper;
-
+        private readonly Broker _broker;        
+        private readonly AgentFactory _agentFactory;        
+        private readonly PluginRuntimeLoader _pluginRuntimeLoader;        
         private readonly ILogger<Host> _logger;
 
-        public Host() { }
+        private readonly IMapper _mapper;
+        private readonly Dictionary<string, Agent> _agents = new();
 
-        public Host(
-            string name,
-            string authorityUri,
-            string clientId,
-            string clientSecret,
-            Broker broker,           
-            string? brokerUriOverride = null)
+        //public Host() { }
+
+        internal Host(
+            string? hostName, // TODO: HostName should be provided by the Authority in the welcome message.
+            string hostId,
+            string hostSecret,
+            Authority authority,
+            Broker broker,
+            AgentFactory agentFactory,
+            PluginRuntimeLoader pluginRuntimeLoader,
+            ILogger<Host> logger)
         {
-            Id = clientId ?? throw new ArgumentNullException("clientId");
-            Name = name ?? throw new ArgumentNullException("name");
-            _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
-            _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
-            _broker = broker;         
-            _brokerUriOverride = brokerUriOverride;
+            _id = !string.IsNullOrEmpty(hostId) ? hostId : throw new ArgumentNullException(nameof(hostId));
+            _hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided.
+            _hostSecret = !string.IsNullOrEmpty(hostSecret) ? hostSecret : throw new ArgumentNullException(nameof(hostSecret));
+            _authority = authority ?? throw new ArgumentNullException(nameof(authority));
+            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
+            _pluginRuntimeLoader = pluginRuntimeLoader;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
 
@@ -73,13 +66,13 @@ namespace Agience.SDK
 
         private async Task Connect()
         {
-            await _authority.Initialize();
-
-            var brokerUri = (string.IsNullOrEmpty(_brokerUriOverride) ? _authority.BrokerUri : _brokerUriOverride) ?? throw new ArgumentNullException("BrokerUri");
+            await _authority.InitializeWithBackoff();
 
             var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
 
-            await _broker.Connect(accessToken, brokerUri);
+            var brokerUri = _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri");
+
+            await _broker.Connect(accessToken, _authority.BrokerUri!);
 
             await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // All Hosts
 
@@ -123,8 +116,16 @@ namespace Agience.SDK
         {
             if (message.SenderId == null || message.Data == null) { return; }
 
-            // TODO: Incoming Host Welcome Message
-            // Will contain a list of plugins to load from external.
+            // Loading Plugins From External
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "load_plugins") //TODO: Review Message Data
+            {
+                _logger.LogInformation("Loading Plugins for Agent.");
+              
+                _pluginRuntimeLoader.SyncPlugins();
+              
+                _logger.LogInformation("Agent Plugins Loaded.");
+            }
 
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
@@ -148,25 +149,7 @@ namespace Agience.SDK
                 return; // Invalid Agent
             }
 
-            var builder = new AgentBuilder()
-                .WithId(modelAgent.Id)
-                .WithAuthority(_authority)
-                .WithBroker(_broker)
-                .WithAgency(modelAgent.Agency) // TODO: Agency should be in a local collection. Singleton instances.
-                .WithName(modelAgent.Name)
-                .WithPlugins(_plugins) // TODO: Select plugins based on message from Authority. For now, we're just adding all plugins to all agents.                
-                .WithServices(_services); // TODO: Select services based on plugin dependency? Or Just add all. 
-
-                //.WithDescription(modelAgent.Description)
-                //.WithPersona(modelAgent.Persona)                
-
-
-            if (AgentBuilding != null)
-            {   
-                await AgentBuilding.Invoke(builder);
-            }
-
-            var agent = builder.Build();
+            var agent = _agentFactory.CreateAgent(modelAgent);
 
             await agent.Connect();
 
@@ -178,19 +161,27 @@ namespace Agience.SDK
             }
 
             // ***** Adding a short delay to accept incoming messages, set defaults, etc.
-            // TODO: Improve this. Maybe not needed now that we're using SK.
-            await Task.Delay(5000);
+            // TODO: Improve this. Maybe not needed now that we're using SDK.
+            // await Task.Delay(5000);
             // *****
 
-            if (AgentReady != null)
-            {
-                await AgentReady.Invoke(agent);
-            }
+            //  *******************************
+            // TODO: Add remote plugins/functions (MQTT, GRPC, HTTP) that we want the Agent Kernels to consider local.
+            // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.
+            // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
+            //  *******************************
+
+            // Agent instantiation is initiated from Authority. The Host does not have control.
+            // Returns an agent that has access to all the local & psuedo-local functions
+            // Agent has an Agency which connects them directly to other agents who are experts in their domain.
+
+            _logger.LogInformation($"{agent.Name} Connected");
+
         }
 
         private async Task<string?> GetAccessToken()
         {
-            var clientSecret = _clientSecret;
+            var clientSecret = _hostSecret;
             var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("tokenEndpoint");
 
             // TODO: Use a shared HttpClient host
@@ -213,38 +204,14 @@ namespace Agience.SDK
             }
         }
 
-        public void ImportPluginFromType<T>(string? pluginName = null, IServiceProvider? serviceProvider = null)
+        public Agent? GetAgentById(string? agentId)
         {
-            _plugins.AddFromType<T>(pluginName, serviceProvider);
+            return !string.IsNullOrEmpty(agentId) && _agents.TryGetValue(agentId!, out var agent) ? agent : null;
         }
 
-        public void AddPlugins(IEnumerable<KernelPlugin> plugins)
+        public Agent? GetAgentByAgencyId(string? agencyId)
         {
-            _plugins.AddRange(plugins);
-        }
-
-        public void AddServices(ServiceCollection services)
-        {
-            foreach(var service in services)
-            {
-                _services.Add(service);
-            }
-        }
-
-        public void AddAgentBuilder(string name, AgentBuilder agentBuilder)
-        {
-            _agentBuilders.Add(name, agentBuilder);
-        }
-
-        public Agent? GetAgent(string? agentId)
-        {
-            return !string.IsNullOrEmpty(agentId) && _agents.ContainsKey(agentId) ? _agents[agentId!] : null;
-        }
-
-        public void Mapping(Profile profile)
-        {
-            profile.CreateMap<Host, Models.Host>();
-            profile.CreateMap<Models.Host, Host>();
+            return !string.IsNullOrEmpty(agencyId) ? _agents.Values.FirstOrDefault(agent => agent.Agency?.Id == agencyId) : null;
         }
 
         internal class TokenResponse

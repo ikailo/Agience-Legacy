@@ -1,11 +1,13 @@
-﻿using Agience.SDK.Mappings;
-using AutoMapper;
+﻿using AutoMapper;
+using System.Reflection;
 
-namespace Agience.SDK
+namespace Agience.SDK.Mappings
 {
     public static class AutoMapperConfig
     {
         private static IMapper? _mapper;
+
+        // TODO: Determine if it makes sense to load this via DI
 
         public static IMapper GetMapper()
         {
@@ -13,7 +15,8 @@ namespace Agience.SDK
             {
                 var config = new MapperConfiguration(cfg =>
                 {
-                    cfg.AddProfile<MappingProfile>(); // Assuming MappingProfile contains all the mappings
+                    cfg.AddMaps(Assembly.GetExecutingAssembly());
+                    cfg.AddProfile<MappingProfile>();
                 });
                 _mapper = config.CreateMapper();
             }

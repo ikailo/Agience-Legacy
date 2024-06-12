@@ -1,12 +1,13 @@
-﻿using Agience.SDK.Mappings;
-using AutoMapper;
+﻿using AutoMapper;
+using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Agience.SDK
 {
-    public class Agency : IMapped
+    [AutoMap(typeof(Models.Agency), ReverseMap = true)]
+    public class Agency
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
@@ -21,7 +22,7 @@ namespace Agience.SDK
         private readonly ILogger<Agency>? _logger;
         private readonly IMapper _mapper;
 
-        public Agency() { }
+        //public Agency() { }
 
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
@@ -75,7 +76,7 @@ namespace Agience.SDK
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Models.Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -164,7 +165,7 @@ namespace Agience.SDK
 
         // TODO: Handle race conditions
         // Network Latency, Simultaneous Joins, etc.
-        private void ReceiveRepresentativeClaim(Agent modelAgent, DateTime timestamp)
+        private void ReceiveRepresentativeClaim(Models.Agent modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
 
@@ -190,12 +191,6 @@ namespace Agience.SDK
             if (agentId == null) { return null; }
 
             return _agents.TryGetValue(agentId, out (Models.Agent, DateTime) agent) ? agent.Item1.Name : null;
-        }
-
-        public void Mapping(Profile profile)
-        {
-            profile.CreateMap<Agency, Models.Agency>();
-            profile.CreateMap<Models.Agency, Agency>();
         }
     }
 }
