@@ -25,8 +25,7 @@ namespace Agience.SDK
 
         private readonly Dictionary<string, Agent> _agents = new();
 
-        private readonly ServiceCollection _services = new();
-        private readonly KernelPluginCollection _plugins = new();
+        private readonly AgentFactory _agentFactory;
 
         private readonly string _hostSecret;
 
@@ -36,19 +35,21 @@ namespace Agience.SDK
 
         public Host() { }
 
-        public Host(
+        internal Host(
             string hostName,
-            string authorityUri,
             string hostId,
             string hostSecret,
+            Authority authority,
             Broker broker,
+            AgentFactory agentFactory,
             ILogger<Host> logger)
         {
-            Id = hostId ?? throw new ArgumentNullException("hostId");
             Name = hostName ?? throw new ArgumentNullException("hostName");
+            Id = hostId ?? throw new ArgumentNullException("hostId");
             _hostSecret = hostSecret ?? throw new ArgumentNullException("hostSecret");
-            _authority = new Authority(authorityUri, broker);
+            _authority = authority;
             _broker = broker;
+            _agentFactory = agentFactory;
             _logger = logger;
             _mapper = AutoMapperConfig.GetMapper();
         }
@@ -142,10 +143,7 @@ namespace Agience.SDK
                 return; // Invalid Agent
             }
 
-            // HERE: We need to make sure the Agent has access to the correct plugins and services. ***********************************************************
-
-            var agentFactory = new AgentFactory(_authority, _broker, _services, _plugins);
-            var agent = agentFactory.CreateAgent(modelAgent);
+            var agent = _agentFactory.CreateAgent(modelAgent);
 
             await agent.Connect();
 

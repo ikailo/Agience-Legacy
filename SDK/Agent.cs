@@ -55,10 +55,10 @@ namespace Agience.SDK
             Broker broker,
             Models.Agency modelAgency,
             string? persona,
-            ServiceCollection services,
+            IServiceProvider serviceProvider,
             KernelPluginCollection plugins)
         {
-            _kernel = new Kernel(services.BuildServiceProvider(), plugins);
+            _kernel = new Kernel(serviceProvider, plugins);
 
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
 

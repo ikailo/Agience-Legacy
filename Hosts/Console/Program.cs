@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Agience.SDK;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Agience.Hosts._Console
 {
@@ -35,8 +37,14 @@ namespace Agience.Hosts._Console
             if (string.IsNullOrEmpty(config.HostId)) { throw new ArgumentNullException("HostId"); }
             if (string.IsNullOrEmpty(config.HostSecret)) { throw new ArgumentNullException("HostSecret"); }
 
+            if (string.IsNullOrEmpty(config.OpenAiApiKey)) { throw new ArgumentNullException("OpenAiApiKey"); }
+
             // Register local services
-            builder.Services.AddSingleton<IConsoleService, ConsoleService>();
+            builder.Services.AddSingleton<IConsoleService>(new ConsoleService());
+
+            // TODO: This needs to be specific to the Agent or Agency. Configured by the Authority.
+            builder.Services.AddSingleton<IChatCompletionService>(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey));
+
 
             // Add Agience Host
             builder

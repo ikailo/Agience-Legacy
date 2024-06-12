@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
 using Agience.SDK.Mappings;
+using Microsoft.Extensions.Logging;
 
 namespace Agience.SDK
 {
@@ -21,15 +22,16 @@ namespace Agience.SDK
 
         private readonly Uri _authorityUri; // Expect without trailing slash
         private readonly Broker _broker;
-
+        private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
         //public Authority() { }
 
-        public Authority(string authorityUri, Broker broker)
+        public Authority(string authorityUri, Broker broker, ILogger<Authority> logger)
         {
             _authorityUri = authorityUri != null ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            _logger = logger;
             _mapper = AutoMapperConfig.GetMapper();
         }
 
@@ -41,7 +43,7 @@ namespace Agience.SDK
             {
                 try
                 {
-                    Console.WriteLine($"Initializing Authority: {_authorityUri.OriginalString}");
+                    _logger.LogInformation($"Initializing Authority: {_authorityUri.OriginalString}");
 
                     var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
                     $"{_authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
@@ -52,14 +54,14 @@ namespace Agience.SDK
                     BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
                     TokenEndpoint = configuration?.TokenEndpoint;
 
-                    Console.WriteLine($"Authority initialized.");
+                    _logger.LogInformation($"Authority initialized.");
 
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
-                    Console.WriteLine($"Authority initialization failed. Trying again in {delay.TotalSeconds} seconds.");                    
+                    _logger.LogDebug(ex.ToString());
+                    _logger.LogInformation($"Unable to initialize Authority. Retrying in {delay.TotalSeconds} seconds.");                    
 
                     await Task.Delay(delay);
 
