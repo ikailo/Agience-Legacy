@@ -15,17 +15,19 @@ namespace Agience.SDK
 
         public string Id => _id;
         public string? Name { get; private set; }
-        public bool IsConnected { get; private set; }
+        public bool IsConnected { get; private set; }        
 
         private readonly string _id;
         private readonly string _hostName;
-        private readonly Authority _authority;
-        private readonly Broker _broker;
-        private readonly Dictionary<string, Agent> _agents = new();
-        private readonly AgentFactory _agentFactory;
         private readonly string _hostSecret;
-        private readonly IMapper _mapper;
+        private readonly Authority _authority;
+        private readonly Broker _broker;        
+        private readonly AgentFactory _agentFactory;        
+        private readonly PluginRuntimeLoader _pluginRuntimeLoader;        
         private readonly ILogger<Host> _logger;
+
+        private readonly IMapper _mapper;
+        private readonly Dictionary<string, Agent> _agents = new();
 
         //public Host() { }
 
@@ -36,14 +38,16 @@ namespace Agience.SDK
             Authority authority,
             Broker broker,
             AgentFactory agentFactory,
+            PluginRuntimeLoader pluginRuntimeLoader,
             ILogger<Host> logger)
-        {   
+        {
             _id = !string.IsNullOrEmpty(hostId) ? hostId : throw new ArgumentNullException(nameof(hostId));
             _hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided.
             _hostSecret = !string.IsNullOrEmpty(hostSecret) ? hostSecret : throw new ArgumentNullException(nameof(hostSecret));
             _authority = authority ?? throw new ArgumentNullException(nameof(authority));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
             _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
+            _pluginRuntimeLoader = pluginRuntimeLoader;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
@@ -112,8 +116,16 @@ namespace Agience.SDK
         {
             if (message.SenderId == null || message.Data == null) { return; }
 
-            // TODO: Incoming Host Welcome Message
-            // Will contain a list of plugins to load from external.
+            // Loading Plugins From External
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "load_plugins") //TODO: Review Message Data
+            {
+                _logger.LogInformation("Loading Plugins for Agent.");
+              
+                _pluginRuntimeLoader.SyncPlugins();
+              
+                _logger.LogInformation("Agent Plugins Loaded.");
+            }
 
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
