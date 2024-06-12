@@ -3,10 +3,10 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.Extensions.DependencyInjection;
 using Agience.Hosts._Console.Plugins;
 using Microsoft.Extensions.Logging;
-using Humanizer;
 using Agience.SDK;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.SemanticKernel;
 
 namespace Agience.Hosts._Console
 {
@@ -38,9 +38,6 @@ namespace Agience.Hosts._Console
 
             builder
             .AddAgienceHost(config.HostName, config.AuthorityUri, config.ClientId, config.ClientSecret, config.BrokerUriOverride, config.CustomNtpHost)
-            .AddAgiencePlugin<ConsolePlugin>()
-            .AddAgiencePlugin<EmailPlugin>()
-            .AddAgiencePlugin<AuthorEmailPlanner>()
 
             .Services
             // Add Chat Completion Service (OpenAI)
@@ -49,6 +46,12 @@ namespace Agience.Hosts._Console
             .AddSingleton(new ConsoleService());
 
             var app = builder.Build();
+
+            app
+            .AddAgiencePlugin<ConsolePlugin>()
+            .AddAgiencePlugin<EmailPlugin>()
+            .AddAgiencePlugin<AuthorEmailPlanner>();
+
             var agienceHost = app.GetAgieceHost();
 
             agienceHost.AgentBuilding += _host_AgentBuilding;
@@ -145,7 +148,7 @@ namespace Agience.Hosts._Console
                 foreach (var message in result)
                 {
                     chatHistory.AddMessage(message.Role, message.Content ?? string.Empty);
-                    Console.WriteLine($"{message.Role.ToString().Pascalize()} > {message.Content}");
+                    Console.WriteLine($"{message.Role.ToString()} > {message.Content}");
                 }
 
                 // Get user input again

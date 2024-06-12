@@ -26,17 +26,19 @@ namespace Agience.SDK
         private readonly Authority _authority;
 
         private readonly Broker _broker = new();
-        
+
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
 
         private readonly ServiceCollection _services = new();
-        private readonly KernelPluginCollection _plugins = new();        
+        private readonly KernelPluginCollection _plugins = new();
 
         private readonly string _clientSecret;
         private readonly string? _brokerUriOverride;
 
         private readonly IMapper _mapper;
+
+        private readonly PluginRuntimeLoader _pluginRuntimeLoader;
 
         private readonly ILogger<Host> _logger;
 
@@ -47,14 +49,16 @@ namespace Agience.SDK
             string authorityUri,
             string clientId,
             string clientSecret,
-            Broker broker,           
+            Broker broker,
+            PluginRuntimeLoader pluginRuntimeLoader,
             string? brokerUriOverride = null)
         {
             Id = clientId ?? throw new ArgumentNullException("clientId");
             Name = name ?? throw new ArgumentNullException("name");
             _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
             _authority = new Authority(authorityUri ?? throw new ArgumentNullException("authorityUri"));
-            _broker = broker;         
+            _broker = broker;
+            _pluginRuntimeLoader = pluginRuntimeLoader;
             _brokerUriOverride = brokerUriOverride;
             _mapper = AutoMapperConfig.GetMapper();
         }
@@ -123,8 +127,16 @@ namespace Agience.SDK
         {
             if (message.SenderId == null || message.Data == null) { return; }
 
-            // TODO: Incoming Host Welcome Message
-            // Will contain a list of plugins to load from external.
+            // Loading Plugins From External
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "load_plugins") //TODO: Review Message Data
+            {
+                _logger.LogInformation("Loading Plugins for Agent.");
+              
+                _pluginRuntimeLoader.SyncPlugins();
+              
+                _logger.LogInformation("Agent Plugins Loaded.");
+            }
 
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
@@ -157,12 +169,12 @@ namespace Agience.SDK
                 .WithPlugins(_plugins) // TODO: Select plugins based on message from Authority. For now, we're just adding all plugins to all agents.                
                 .WithServices(_services); // TODO: Select services based on plugin dependency? Or Just add all. 
 
-                //.WithDescription(modelAgent.Description)
-                //.WithPersona(modelAgent.Persona)                
+            //.WithDescription(modelAgent.Description)
+            //.WithPersona(modelAgent.Persona)                
 
 
             if (AgentBuilding != null)
-            {   
+            {
                 await AgentBuilding.Invoke(builder);
             }
 
@@ -225,7 +237,7 @@ namespace Agience.SDK
 
         public void AddServices(ServiceCollection services)
         {
-            foreach(var service in services)
+            foreach (var service in services)
             {
                 _services.Add(service);
             }

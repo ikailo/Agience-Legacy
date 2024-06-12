@@ -14,20 +14,21 @@ public static class HostBuilderExtensions
         string? brokerUriOverride = null,
         string? customNtpHost = null)
     {
+        builder.Services.AddSingleton<KernelPluginCollection>();     
+        builder.Services.AddSingleton<PluginRuntimeLoader>();      
         builder.Services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost)); 
-        builder.Services.AddSingleton(x => new Host(name, authorityUri, clientId, clientSecret, x.GetRequiredService<Broker>(), brokerUriOverride));
-        builder.Services.AddSingleton(new KernelPluginCollection());
+        builder.Services.AddSingleton(x => new Host(name, authorityUri, clientId, clientSecret, x.GetRequiredService<Broker>(), x.GetRequiredService<PluginRuntimeLoader>(), brokerUriOverride));
         return builder;
     }
 
-    public static IHostApplicationBuilder AddAgiencePlugin<T>(this IHostApplicationBuilder builder,
+    public static IHost AddAgiencePlugin<T>(this IHost host,
         string? pluginName = null,
         IServiceProvider? serviceProvider = null)
     {
-        builder.Services.AddSingleton(x => x.GetService<KernelPluginCollection>().AddFromType<T>(pluginName, serviceProvider));
-        return builder;
+        host.Services.GetRequiredService<KernelPluginCollection>().AddFromType<T>(pluginName, serviceProvider);
+        return host;
     }
 
-    public static Host GetAgieceHost(this IHost host) => host.Services.GetService<Host>();
+    public static Host GetAgieceHost(this IHost host) => host.Services.GetRequiredService<Host>();
 
 }
