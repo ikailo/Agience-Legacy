@@ -46,7 +46,7 @@ namespace Agience.SDK
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
-        public Agent() { }
+        //public Agent() { }
 
         internal Agent(
             string? id,

@@ -27,11 +27,11 @@ namespace Agience.SDK
 
         //public Authority() { }
 
-        public Authority(string authorityUri, Broker broker, ILogger<Authority> logger)
+        public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
         {
-            _authorityUri = authorityUri != null ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
+            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
 

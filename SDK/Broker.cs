@@ -19,7 +19,7 @@ namespace Agience.SDK
             remove => _client.DisconnectedAsync -= async (args) => await value();
         }
 
-        NtpClient _ntpClient;
+        NtpClient? _ntpClient;
 
         string? _customNtpHost = null;
 

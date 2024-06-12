@@ -1,8 +1,6 @@
 ﻿using Agience.SDK.Mappings;
 using AutoMapper;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -15,42 +13,38 @@ namespace Agience.SDK
     {
         public event Func<Agent, Task>? AgentConnected;
 
-        public string Id { get; private set; }
+        public string Id => _id;
         public string? Name { get; private set; }
         public bool IsConnected { get; private set; }
 
+        private readonly string _id;
+        private readonly string _hostName;
         private readonly Authority _authority;
-
         private readonly Broker _broker;
-
         private readonly Dictionary<string, Agent> _agents = new();
-
         private readonly AgentFactory _agentFactory;
-
         private readonly string _hostSecret;
-
         private readonly IMapper _mapper;
-
         private readonly ILogger<Host> _logger;
 
-        public Host() { }
+        //public Host() { }
 
         internal Host(
-            string hostName,
+            string? hostName, // TODO: HostName should be provided by the Authority in the welcome message.
             string hostId,
             string hostSecret,
             Authority authority,
             Broker broker,
             AgentFactory agentFactory,
             ILogger<Host> logger)
-        {
-            Name = hostName ?? throw new ArgumentNullException("hostName");
-            Id = hostId ?? throw new ArgumentNullException("hostId");
-            _hostSecret = hostSecret ?? throw new ArgumentNullException("hostSecret");
-            _authority = authority;
-            _broker = broker;
-            _agentFactory = agentFactory;
-            _logger = logger;
+        {   
+            _id = !string.IsNullOrEmpty(hostId) ? hostId : throw new ArgumentNullException(nameof(hostId));
+            _hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided.
+            _hostSecret = !string.IsNullOrEmpty(hostSecret) ? hostSecret : throw new ArgumentNullException(nameof(hostSecret));
+            _authority = authority ?? throw new ArgumentNullException(nameof(authority));
+            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
 

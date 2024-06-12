@@ -22,7 +22,7 @@ namespace Agience.SDK
         private readonly ILogger<Agency>? _logger;
         private readonly IMapper _mapper;
 
-        public Agency() { }
+        //public Agency() { }
 
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
@@ -76,7 +76,7 @@ namespace Agience.SDK
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Models.Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -165,7 +165,7 @@ namespace Agience.SDK
 
         // TODO: Handle race conditions
         // Network Latency, Simultaneous Joins, etc.
-        private void ReceiveRepresentativeClaim(Agent modelAgent, DateTime timestamp)
+        private void ReceiveRepresentativeClaim(Models.Agent modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
 
