@@ -155,6 +155,8 @@ namespace Agience.SDK
 
             _agents.Add(agent.Id!, agent);
 
+            _logger.LogInformation($"{agent.Name} Connected");
+
             if (AgentConnected != null)
             {
                 await AgentConnected.Invoke(agent);
@@ -173,9 +175,7 @@ namespace Agience.SDK
 
             // Agent instantiation is initiated from Authority. The Host does not have control.
             // Returns an agent that has access to all the local & psuedo-local functions
-            // Agent has an Agency which connects them directly to other agents who are experts in their domain.
-
-            _logger.LogInformation($"{agent.Name} Connected");
+            // Agent has an Agency which connects them directly to other agents who are experts in their domain.            
 
         }
 

@@ -80,10 +80,10 @@ namespace Agience.Hosts._Console
         {
             _logger.LogInformation($"{agent.Name} Ready");
 
+            // TODO: Read the input and set the context agent. For now, we will just use the first agent.
+
             if (_contextAgentId == null)
             {
-                // TODO: Read the input and set the context agent. For now, we will just use the first agent.        
-
                 _contextAgentId = agent.Id;
 
                 _logger.LogInformation($"* Switched context to {_host!.GetAgentById(agent.Id)?.Name ?? "Unknown"} *");
