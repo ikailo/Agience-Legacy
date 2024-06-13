@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <UserSecretsId>3ff5e00b-91c8-4e50-8295-785456482cae</UserSecretsId>
     <RootNamespace>Agience.Agents_Console</RootNamespace>
-    <Configurations>Debug;Release;Staging;Local</Configurations>    	
+    <Configurations>Local;Staging;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
