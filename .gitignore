@@ -398,6 +398,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Agience
+**/keys/
 *.crt
 *.key
 *.pfx
