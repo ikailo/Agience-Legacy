@@ -7,6 +7,7 @@ namespace Agience.SDK.Plugins
     {   
         //public override string[] InputKeys => new string[] { "template_id", "input_string" };
 
+
         [KernelFunction, Description("Debug a template with input data.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {

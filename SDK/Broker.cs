@@ -45,7 +45,13 @@ namespace Agience.SDK
         private readonly IMqttClient _client;
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
+<<<<<<< Updated upstream
         private readonly ILogger<Broker> _logger;        
+=======
+        private readonly ILogger<Broker> _logger;
+
+        //internal Broker() { }
+>>>>>>> Stashed changes
 
         internal Broker(ILogger<Broker> logger, string? customNtpHost = null)
         {
