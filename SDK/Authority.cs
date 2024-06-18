@@ -22,7 +22,6 @@ namespace Agience.SDK
 
         private readonly Uri _authorityUri; // Expect without trailing slash
         private readonly Broker _broker;
-<<<<<<< Updated upstream
         private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
@@ -33,15 +32,6 @@ namespace Agience.SDK
             _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-=======
-
-        private readonly IMapper _mapper;
-
-        public Authority(string authorityUri, Broker broker)
-        {
-            _authorityUri = authorityUri != null ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
-            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
->>>>>>> Stashed changes
             _mapper = AutoMapperConfig.GetMapper();
         }
 

@@ -21,7 +21,6 @@ namespace Agience.SDK
         private readonly string _hostName;
         private readonly string _hostSecret;
         private readonly Authority _authority;
-<<<<<<< Updated upstream
         private readonly Broker _broker;        
         private readonly AgentFactory _agentFactory;        
         private readonly PluginRuntimeLoader _pluginRuntimeLoader;        
@@ -29,8 +28,6 @@ namespace Agience.SDK
 
         private readonly IMapper _mapper;
         private readonly Dictionary<string, Agent> _agents = new();
-
-        //public Host() { }
 
         internal Host(
             string? hostName, // TODO: HostName should be provided by the Authority in the welcome message.
@@ -50,38 +47,6 @@ namespace Agience.SDK
             _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
             _pluginRuntimeLoader = pluginRuntimeLoader;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-=======
-
-        private readonly Broker _broker;
-        
-        private readonly Dictionary<string, Agent> _agents = new();
-        private readonly Dictionary<string, AgentBuilder> _agentBuilders = new();
-
-        private readonly ServiceCollection _services = new();
-        private readonly KernelPluginCollection _plugins = new();        
-
-        private readonly string _clientSecret;
-        private readonly string? _brokerUriOverride;
-
-        private readonly IMapper _mapper;
-
-        private readonly ILogger<Host> _logger;
-
-        public Host(
-            string name,
-            string authorityUri,
-            string clientId,
-            string clientSecret,
-            Broker broker,           
-            string? brokerUriOverride = null)
-        {
-            Id = clientId ?? throw new ArgumentNullException("clientId");
-            Name = name ?? throw new ArgumentNullException("name");
-            _clientSecret = clientSecret ?? throw new ArgumentNullException("clientSecret");
-            _authority = new Authority(authorityUri, broker);
-            _broker = broker;         
-            _brokerUriOverride = brokerUriOverride;
->>>>>>> Stashed changes
             _mapper = AutoMapperConfig.GetMapper();
         }
 
