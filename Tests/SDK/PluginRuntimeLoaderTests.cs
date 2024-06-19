@@ -27,6 +27,12 @@ public class PluginRuntimeLoaderTests
 
 
     [Fact]
+    public void Whatever()
+    {
+
+    }
+
+    [Fact]
     public void SyncPlugins_AddsPrimaryPluginsLibrary()
     {
         var serviceProvider = arrangeServiceProvider();
