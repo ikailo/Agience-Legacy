@@ -25,13 +25,6 @@ public class PluginRuntimeLoaderTests
         kernelPluginCollection.Should().BeEmpty();
     }
 
-
-    [Fact]
-    public void Whatever()
-    {
-
-    }
-
     [Fact]
     public void SyncPlugins_AddsPrimaryPluginsLibrary()
     {
@@ -80,7 +73,7 @@ public class PluginRuntimeLoaderTests
         if (!Directory.Exists(_pluginFolderName))
             Directory.CreateDirectory(_pluginFolderName);
 
-        var libraryFile = new FileInfo(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.Parent.FullName + "\\Core\\Plugins\\Primary\\bin\\Debug\\net8.0\\Agience.Plugins.Primary.dll");
+        var libraryFile = new FileInfo(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.Parent.Parent.Parent.FullName + "\\Core\\Plugins\\Primary\\bin\\Local\\net8.0\\Agience.Plugins.Primary.dll");
 
         if (!libraryFile.Exists)
             return false;

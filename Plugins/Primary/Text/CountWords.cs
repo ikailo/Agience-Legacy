@@ -6,7 +6,9 @@ using System.ComponentModel;
 namespace Agience.Plugins.Primary.Text
 {
     internal class CountWords : IAgiencePlugin
-    {   
+    {
+
+        public List<(string package, string version)> NugetPackages => new();
 
         [KernelFunction, Description("Count the number of words in the input.")]
         public Task<Data?> Process(Runner runner, Data? input = null)

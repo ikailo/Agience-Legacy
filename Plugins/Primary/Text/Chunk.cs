@@ -8,6 +8,8 @@ namespace Agience.Plugins.Primary.Text
 {
     internal class Chunk : IAgiencePlugin
     {
+        public List<(string package, string version)> NugetPackages => new();
+
         private const int DEFAULT_SIZE = 4000;
 
         //public override string[] InputKeys => ["text", "size:int"];

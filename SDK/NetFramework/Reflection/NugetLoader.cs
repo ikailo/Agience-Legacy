@@ -12,8 +12,35 @@ using NuGet.Resolver;
 using NuGet.Versioning;
 using NuGet;
 
-namespace NugetConsole
+namespace Agience.SDK.NetFramework.Reflection
 {
+    public static class NugetExtensions
+    {
+        public static void InstallNugetPackage(string packageName, string version, string appRunningFolder)
+        {
+            //https://api.nuget.org/v3/index.json
+            var packageRepository = PackageRepositoryFactory.Default.CreateRepository("https://packages.nuget.org/api/v2");
+
+            string path = appRunningFolder + "\\NugetRepository";
+            var packageManager = new PackageManager(packageRepository, path);
+
+            packageManager.PackageInstalled += PackageManager_PackageInstalled;
+
+            var package = packageRepository.FindPackage(packageName, NuGet.SemanticVersion.Parse(version));
+
+            if (package != null)
+                packageManager.InstallPackage(package, ignoreDependencies: false, allowPrereleaseVersions: true);
+        }
+
+        static void PackageManager_PackageInstalled(object? sender, PackageOperationEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+  
+
+
     //public class NugetLoader
     //{
     //    /// <summary>

@@ -1,4 +1,5 @@
 ﻿using Agience.SDK.Models;
+using Agience.SDK.NetFramework.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System;
@@ -52,11 +53,11 @@ public class PluginRuntimeLoader
                 //Adding the main Plugin library: it must have the same name of the folder + .dll    
                 var assembly = Assembly.LoadFrom(folderPath + "\\" + pluginFolderName + ".dll");
 
-                //TODO: Add other dll dependencies in the same folder of the Plugin. 
-             
-                //TODO: Add Nuget packages references needed for the Assembly.
+                //TODO: Add other dll dependencies in the same folder of the Plugin.              
 
-                var iAgienciePluginTypes = getValidIAgiencePluginsFromAssembly(assembly);
+                List<Type>? iAgienciePluginTypes = null;
+
+                iAgienciePluginTypes = tryGettingPlugins(assembly);
 
                 foreach(var iAgienciePluginType in iAgienciePluginTypes)
                 {
@@ -71,6 +72,33 @@ public class PluginRuntimeLoader
                 _logger.LogError($"Error on adding Plugin {pluginFolderName} => " + ex.ToString());
             }
 
+        }
+    }
+
+    /// <summary>
+    /// It tries to get the Plugin Types while loads the missing Nuget packages recursively.
+    /// </summary>
+    /// <param name="assembly"></param>
+    private List<Type> tryGettingPlugins(Assembly assembly)
+    {
+        try
+        {
+            return getValidIAgiencePluginsFromAssembly(assembly);
+        }
+        catch (ReflectionTypeLoadException ex) when (ex.Message.Contains("Could not load file or assembly"))
+        {
+            //Load Missing Nuget and Retry
+            var errorIndexText = "Could not load file or assembly '";
+            var messagePartOne = ex.Message.Substring(ex.Message.IndexOf(errorIndexText) + errorIndexText.Length); 
+            var packageName = messagePartOne.Substring(0, messagePartOne.IndexOf(","));
+            var versionIndexText = "Version=";
+            var messagePartTwo = messagePartOne.Substring(messagePartOne.IndexOf(versionIndexText) + versionIndexText.Length);
+            var version = messagePartTwo.Substring(0, messagePartTwo.IndexOf(","));
+
+
+            NugetExtensions.InstallNugetPackage(packageName, version, Environment.CurrentDirectory);
+
+            return tryGettingPlugins(assembly);  
         }
     }
 
