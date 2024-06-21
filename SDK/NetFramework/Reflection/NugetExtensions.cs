@@ -31,7 +31,7 @@ public static class NugetExtensions
     /// Captures the package info in the exception details from a missing Nuget dependency needed.
     /// </summary>
     /// <param name="ex"></param>
-    public static (string PackageName, string Version) GetPackageInfo(this Exception ex)
+    public static (string PackageName, string Version) GetNugetPackageInfo(this Exception ex)
     {
         var errorIndexText = "Could not load file or assembly '";
         var messagePartOne = ex.Message.Substring(ex.Message.IndexOf(errorIndexText) + errorIndexText.Length);

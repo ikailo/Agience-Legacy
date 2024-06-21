@@ -90,7 +90,7 @@ public class PluginRuntimeLoader
         {
             //Load Missing Nuget and Retry
 
-            var packageInfo = ex.GetPackageInfo();  
+            var packageInfo = ex.GetNugetPackageInfo();  
 
             await NugetExtensions.InstallNugetPackage(packageInfo.PackageName, packageInfo.Version);        
 
