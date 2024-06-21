@@ -12,7 +12,7 @@ public class PluginRuntimeLoaderTests
     string _pluginFolderName = Environment.CurrentDirectory + "\\Plugins";
 
     [Fact]
-    public void SyncPlugins_DoNothing_IfNoPluginFolder()
+    public async Task SyncPlugins_DoNothing_IfNoPluginFolder()
     {
         var serviceProvider = arrangeServiceProvider();
         var kernelPluginCollection = serviceProvider.GetRequiredService<KernelPluginCollection>();
@@ -20,13 +20,13 @@ public class PluginRuntimeLoaderTests
 
         cleanPluginFolder();
 
-        pluginRuntimeLoader.SyncPlugins();
+        await pluginRuntimeLoader.SyncPlugins();
 
         kernelPluginCollection.Should().BeEmpty();
     }
 
     [Fact]
-    public void SyncPlugins_AddsPrimaryPluginsLibrary()
+    public async Task SyncPlugins_AddsPrimaryPluginsLibrary()
     {
         var serviceProvider = arrangeServiceProvider();
         var kernelPluginCollection = serviceProvider.GetRequiredService<KernelPluginCollection>();
@@ -38,9 +38,10 @@ public class PluginRuntimeLoaderTests
         if (!libraryAdded)
             return;
 
-        pluginRuntimeLoader.SyncPlugins();
+        await pluginRuntimeLoader.SyncPlugins();
 
-        kernelPluginCollection.Should().HaveCountGreaterThan(0);
+        kernelPluginCollection.Should().HaveCountGreaterThan(0);        
+        kernelPluginCollection.Should().Contain(x => x.Name == "CryptoExchangeData");
         kernelPluginCollection.Should().Contain(x => x.Name == "CharacterLength");
         kernelPluginCollection.Should().Contain(x => x.Name == "CountWords");
     }

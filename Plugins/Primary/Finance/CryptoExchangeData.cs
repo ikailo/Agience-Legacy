@@ -9,11 +9,6 @@ namespace Agience.Plugins.Primary.Finance
 {
     public class CryptoExchangeData : IAgiencePlugin
     {
-        public List<(string package, string version)> NugetPackages => new()
-            {
-                ("Binance.Net","9.10.0")
-            };
-
         [KernelFunction, Description("Get the spot price of a Cryptocurrency from Binance.")]
         public async Task<decimal> GetCryptoTickerExchangeData(
             [Description("The specific ticker to retrieve the Cryptocurrency price")] string ticker)

@@ -1,5 +1,6 @@
 ﻿using Agience.SDK.Models;
 using Agience.SDK.NetFramework.Reflection;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System;
@@ -33,7 +34,7 @@ public class PluginRuntimeLoader
     /// <summary>
     /// Scans the Plugins from from the current directory folder, and adds the missing Plugins to the Kernel Collection.
     /// </summary>
-    public void SyncPlugins()
+    public async Task SyncPlugins()
     {
         var currentPluginDirectory = Environment.CurrentDirectory + "\\Plugins";
 
@@ -57,13 +58,13 @@ public class PluginRuntimeLoader
 
                 List<Type>? iAgienciePluginTypes = null;
 
-                iAgienciePluginTypes = tryGettingPlugins(assembly);
+                iAgienciePluginTypes = await tryGettingPlugins(assembly);
 
-                foreach(var iAgienciePluginType in iAgienciePluginTypes)
+                foreach (var iAgienciePluginType in iAgienciePluginTypes)
                 {
                     var pluginObject = Activator.CreateInstance(iAgienciePluginType);
                     _pluginCollection.AddFromObject(pluginObject);
-                }    
+                }
 
                 _logger.LogInformation($"Loaded Plugin {pluginFolderName}");
             }
@@ -79,26 +80,21 @@ public class PluginRuntimeLoader
     /// It tries to get the Plugin Types while loads the missing Nuget packages recursively.
     /// </summary>
     /// <param name="assembly"></param>
-    private List<Type> tryGettingPlugins(Assembly assembly)
+    private async Task<List<Type>> tryGettingPlugins(Assembly assembly)
     {
         try
         {
             return getValidIAgiencePluginsFromAssembly(assembly);
         }
-        catch (ReflectionTypeLoadException ex) when (ex.Message.Contains("Could not load file or assembly"))
+        catch (Exception ex) when (ex.IsMissingNugetException())
         {
             //Load Missing Nuget and Retry
-            var errorIndexText = "Could not load file or assembly '";
-            var messagePartOne = ex.Message.Substring(ex.Message.IndexOf(errorIndexText) + errorIndexText.Length); 
-            var packageName = messagePartOne.Substring(0, messagePartOne.IndexOf(","));
-            var versionIndexText = "Version=";
-            var messagePartTwo = messagePartOne.Substring(messagePartOne.IndexOf(versionIndexText) + versionIndexText.Length);
-            var version = messagePartTwo.Substring(0, messagePartTwo.IndexOf(","));
 
+            var packageInfo = ex.GetPackageInfo();  
 
-            NugetExtensions.InstallNugetPackage(packageName, version, Environment.CurrentDirectory);
+            await NugetExtensions.InstallNugetPackage(packageInfo.PackageName, packageInfo.Version);        
 
-            return tryGettingPlugins(assembly);  
+            return await tryGettingPlugins(assembly);
         }
     }
 
@@ -108,13 +104,13 @@ public class PluginRuntimeLoader
     /// </summary> 
     private List<Type> getValidIAgiencePluginsFromAssembly(Assembly assembly)
     {
-        var response = new List<Type>();  
+        var response = new List<Type>();
 
         var iAgenciePluginTypes = assembly.GetTypes().Where(x => x.GetInterfaces().Contains(typeof(IAgiencePlugin))).ToList();
 
-        foreach (var iAgenciePluginType in iAgenciePluginTypes)        
+        foreach (var iAgenciePluginType in iAgenciePluginTypes)
             if (iAgenciePluginType.GetMethods().Any(x => x.GetCustomAttributes<KernelFunctionAttribute>(true).Any()))
-                response.Add(iAgenciePluginType);        
+                response.Add(iAgenciePluginType);
 
         return response;
     }
