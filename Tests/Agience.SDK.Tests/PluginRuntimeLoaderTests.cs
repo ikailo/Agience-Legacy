@@ -74,6 +74,7 @@ public class PluginRuntimeLoaderTests
         if (!Directory.Exists(_pluginFolderName))
             Directory.CreateDirectory(_pluginFolderName);
 
+        // TODO: Use environment variable (Local) instead of hardcoding
         var libraryFile = new FileInfo(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.Parent.Parent.Parent.FullName + "\\Core\\Plugins\\Primary\\bin\\Local\\net8.0\\Agience.Plugins.Primary.dll");
 
         if (!libraryFile.Exists)
