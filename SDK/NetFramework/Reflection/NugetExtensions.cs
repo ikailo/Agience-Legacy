@@ -145,7 +145,7 @@ public static class NugetExtensions
     private static string getBestFrameworkNugetLibPath(string basePath)
     {
 
-        //TODO: Optimize to detect the current running app compatible frameworks without hardcoding
+        //TODO: Optimize to detect the preferred running app library framework without hardcoding
 
         if (Directory.Exists(basePath + $"\\net8.0"))
             return basePath + $"\\net8.0";
