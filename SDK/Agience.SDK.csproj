@@ -41,7 +41,6 @@
     <PackageReference Include="NuGet.Resolver" Version="6.10.0" />
     <PackageReference Include="NuGet.Versioning" Version="6.10.0" />
     <PackageReference Include="QuikGraph" Version="2.5.0" />
-    <PackageReference Include="Rocket.NuGet" Version="5.0.0.694" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.35.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Management" Version="7.0.1" />
