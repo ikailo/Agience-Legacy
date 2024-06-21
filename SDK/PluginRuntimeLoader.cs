@@ -58,7 +58,7 @@ public class PluginRuntimeLoader
 
                 List<Type>? iAgienciePluginTypes = null;
 
-                iAgienciePluginTypes = await tryGettingPlugins(assembly);
+                iAgienciePluginTypes = await tryGettingPlugin(assembly);
 
                 foreach (var iAgienciePluginType in iAgienciePluginTypes)
                 {
@@ -80,7 +80,7 @@ public class PluginRuntimeLoader
     /// It tries to get the Plugin Types while loads the missing Nuget packages recursively.
     /// </summary>
     /// <param name="assembly"></param>
-    private async Task<List<Type>> tryGettingPlugins(Assembly assembly)
+    private async Task<List<Type>> tryGettingPlugin(Assembly assembly)
     {
         try
         {
@@ -94,7 +94,7 @@ public class PluginRuntimeLoader
 
             await NugetExtensions.InstallNugetPackage(packageInfo.PackageName, packageInfo.Version);        
 
-            return await tryGettingPlugins(assembly);
+            return await tryGettingPlugin(assembly);
         }
     }
 
