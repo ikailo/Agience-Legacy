@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models
 {
-    public class Plugin : AgienceObject
+    public class Plugin : AgienceRecord
     {
        
     }    

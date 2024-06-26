@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models
 {
-    public class AgienceObject
+    public class AgienceRecord : IAgienceRecord
     {
         [JsonPropertyName("id")]
         public string? Id { get; set; }
@@ -10,7 +10,7 @@ namespace Agience.SDK.Models
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
-        protected static T? SetId<T>(T? obj, string? value) where T : AgienceObject, new()
+        protected static T? SetId<T>(T? obj, string? value) where T : AgienceRecord, new()
         {
             if (value == null) return null;
             var result = obj ?? new T();

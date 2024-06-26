@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models
 {
-    public class Agent : AgienceObject
+    public class Agent : AgienceRecord
     {
         [JsonPropertyName("agency")]
         public Agency? Agency { get; set; }

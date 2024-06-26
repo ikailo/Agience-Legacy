@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models
 {
-    public class Agency : AgienceObject
+    public class Agency : AgienceRecord
     {
 
     }

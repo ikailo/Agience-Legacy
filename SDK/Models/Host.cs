@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models
 {
-    public class Host : AgienceObject
+    public class Host : AgienceRecord
     {
 
         [JsonPropertyName("plugin")]
