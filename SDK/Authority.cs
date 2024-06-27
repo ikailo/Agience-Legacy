@@ -120,6 +120,8 @@ namespace Agience.SDK
 
         public void PublishAgentConnectEvent(Models.Agent agent)
         {
+            throw new NotImplementedException();
+            /*
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
@@ -134,11 +136,13 @@ namespace Agience.SDK
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }                    
                 }
-            });
+            });*/
         }
 
         public void PublishAgentDisconnectEvent(Models.Agent agent)
         {
+            throw new NotImplementedException();
+            /*
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
@@ -153,7 +157,7 @@ namespace Agience.SDK
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }
                 }
-            });
+            }); */
         }
 
         public string Topic(string senderId, string? hostId, string? agencyId, string? agentId)

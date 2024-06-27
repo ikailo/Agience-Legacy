@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models
 {
-    public class Agency : AgienceEntity
+    public class Function : AgienceEntity
     {
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
@@ -10,8 +10,7 @@ namespace Agience.SDK.Models
         [JsonPropertyName("description")]
         public string Description { get; set; } = string.Empty;
 
-        [JsonIgnore]
-        public virtual List<Agent> Agents { get; set; } = new List<Agent>();
+        [JsonPropertyName("root_plugin_id")]
+        public string? RootPluginId { get; set; }
     }
 }
-

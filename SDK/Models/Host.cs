@@ -2,18 +2,9 @@
 
 namespace Agience.SDK.Models
 {
-    public class Host : AgienceRecord
+    public class Host : AgienceEntity
     {
-
-        [JsonPropertyName("plugin")]
-        public Plugin? Plugin { get; set; }
-
-        [JsonIgnore]
-        public string? PluginId
-        {
-            get { return Plugin?.Id; }
-            set { Plugin = SetId(Plugin, value); }
-        }
-
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
     }
 }

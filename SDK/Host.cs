@@ -142,6 +142,9 @@ namespace Agience.SDK
 
         private async Task ReceiveAgentConnect(Models.Agent modelAgent, DateTime? timestamp)
         {
+            throw new NotImplementedException();
+
+            /*
             if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
             {
                 return; // Invalid Agent
@@ -158,7 +161,7 @@ namespace Agience.SDK
             if (AgentConnected != null)
             {
                 await AgentConnected.Invoke(agent);
-            }
+            }*/
 
             // ***** Adding a short delay to accept incoming messages, set defaults, etc.
             // TODO: Improve this. Maybe not needed now that we're using SDK.

@@ -58,7 +58,7 @@ namespace Agience.SDK
             plugins.AddRange(_hostPlugins); 
             
 
-            return new Agent(model.Id, model.Name, _authority, _broker, model.Agency, null, serviceProvider, plugins);
+            return new Agent(model.Id, model.Name, _authority, _broker, new Models.Agency() { Id = model.AgencyId }, null, serviceProvider, plugins);
         }
     }
 }

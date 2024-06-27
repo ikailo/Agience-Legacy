@@ -2,26 +2,24 @@
 
 namespace Agience.SDK.Models
 {
-    public class Agent : AgienceRecord
+    public class Agent : AgienceEntity
     {
-        [JsonPropertyName("agency")]
-        public Agency? Agency { get; set; }
-        
-        [JsonIgnore]
-        public string? AgencyId
-        {
-            get { return Agency?.Id; }
-            set { Agency = SetId(Agency, value); }
-        }
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
 
-        [JsonPropertyName("host")]
-        public Host? Host { get; set; }
-        
-        [JsonIgnore]
-        public string? HostId
-        {
-            get { return Host?.Id; }
-            set { Host = SetId(Host, value); }
-        }
+        [JsonPropertyName("description")]
+        public string Description { get; set; } = string.Empty;
+
+        [JsonPropertyName("agency_id")]
+        public string? AgencyId { get; set; }
+
+        [JsonPropertyName("plugin_id")]
+        public string? PluginId { get; set; }
+
+        [JsonPropertyName("agency")]
+        public virtual Agency? Agency { get; set; }
+
+        [JsonPropertyName("plugin")]
+        public virtual Plugin? Plugin { get; set; }
     }
 }
