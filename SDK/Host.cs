@@ -1,5 +1,6 @@
 ﻿using Agience.SDK.Mappings;
 using AutoMapper;
+using Azure.Core;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -15,15 +16,15 @@ namespace Agience.SDK
 
         public string Id => _id;
         public string? Name { get; private set; }
-        public bool IsConnected { get; private set; }        
+        public bool IsConnected { get; private set; }
 
         private readonly string _id;
         private readonly string _hostName;
         private readonly string _hostSecret;
         private readonly Authority _authority;
-        private readonly Broker _broker;        
-        private readonly AgentFactory _agentFactory;        
-        private readonly PluginRuntimeLoader _pluginRuntimeLoader;        
+        private readonly Broker _broker;
+        private readonly AgentFactory _agentFactory;
+        private readonly PluginRuntimeLoader _pluginRuntimeLoader;
         private readonly ILogger<Host> _logger;
 
         private readonly IMapper _mapper;
@@ -52,7 +53,23 @@ namespace Agience.SDK
 
         public async Task Run()
         {
-            await Connect();
+            while (!IsConnected)
+            {
+                try
+                {
+                    _logger.LogInformation("Connecting Host");
+                    await Connect();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unable to Connect");
+                    _logger.LogInformation("Retrying in 10 seconds");
+
+                    await Task.Delay(10 * 1000);
+                }
+            }
+
+            _logger.LogInformation("Host Connected");
 
             do { await Task.Delay(10); } while (IsConnected);
         }
@@ -66,9 +83,9 @@ namespace Agience.SDK
         {
             await _authority.InitializeWithBackoff();
 
-            var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
-
             var brokerUri = _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri");
+
+            var accessToken = await GetAccessToken() ?? throw new ArgumentNullException("accessToken");
 
             await _broker.Connect(accessToken, _authority.BrokerUri!);
 
@@ -119,9 +136,9 @@ namespace Agience.SDK
                 message.Data?["type"] == "load_plugins") //TODO: Review Message Data
             {
                 _logger.LogInformation("Loading Plugins for Agent.");
-              
+
                 _pluginRuntimeLoader.SyncPlugins();
-              
+
                 _logger.LogInformation("Agent Plugins Loaded.");
             }
 
@@ -199,9 +216,12 @@ namespace Agience.SDK
 
                 var httpResponse = await httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(parameters));
 
-                return httpResponse.IsSuccessStatusCode ?
-                    (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token :
-                    throw new HttpRequestException("Unauthorized", null, httpResponse.StatusCode);
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    return (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token;
+                }
+
+                return null;
             }
         }
 
