@@ -25,6 +25,8 @@ namespace Agience.SDK
         private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
+        public Authority() { }
+
         public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
         {
             _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
