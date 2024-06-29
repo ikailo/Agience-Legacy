@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Agience.SDK.Models
 {
@@ -16,10 +17,12 @@ namespace Agience.SDK.Models
         [JsonPropertyName("plugin_id")]
         public string? PluginId { get; set; }
 
-        [JsonPropertyName("agency")]
+        [ForeignKey("AgencyId")]
+        [JsonIgnore]
         public virtual Agency? Agency { get; set; }
 
-        [JsonPropertyName("plugin")]
+        [ForeignKey("PluginId")]
+        [JsonIgnore]
         public virtual Plugin? Plugin { get; set; }
     }
 }

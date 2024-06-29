@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Agience.SDK.Models
 {
@@ -12,5 +13,9 @@ namespace Agience.SDK.Models
 
         [JsonPropertyName("root_plugin_id")]
         public string? RootPluginId { get; set; }
+
+        [ForeignKey("RootPluginId")]
+        [JsonIgnore]
+        public virtual Plugin? RootPlugin { get; set; }
     }
 }

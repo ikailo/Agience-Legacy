@@ -46,8 +46,6 @@ namespace Agience.SDK
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
-        //public Agent() { }
-
         internal Agent(
             string? id,
             string? name,
@@ -62,7 +60,7 @@ namespace Agience.SDK
 
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
 
-            //TODO Part of the Architecture Review about the SDK and DI            
+            //TODO: Part of the Architecture Review about the SDK and DI            
             //Kernel.LoggerFactory.AddProvider()
 
             _mapper = AutoMapperConfig.GetMapper();
