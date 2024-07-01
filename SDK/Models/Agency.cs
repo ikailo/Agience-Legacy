@@ -8,7 +8,7 @@ namespace Agience.SDK.Models
         public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         [JsonIgnore]
         public virtual List<Agent> Agents { get; set; } = new List<Agent>();

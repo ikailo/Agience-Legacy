@@ -9,7 +9,7 @@ namespace Agience.SDK.Models
         public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         [JsonPropertyName("root_plugin_id")]
         public string? RootPluginId { get; set; }
