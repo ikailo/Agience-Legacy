@@ -19,18 +19,18 @@ namespace Agience.Hosts._Console
         {
             // TODO: Handle this all in a separate class
 
-            HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
+            HostApplicationBuilder appBuilder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
 
-            builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();
+            appBuilder.Logging.ClearProviders();
+            appBuilder.Logging.AddConsole();
 
             //builder.Logging.AddDebug();
 
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
 
-            builder.Configuration.AddUserSecrets<AppConfig>();
+            appBuilder.Configuration.AddUserSecrets<AppConfig>();
 
-            var config = builder.Configuration.Get<AppConfig>();
+            var config = appBuilder.Configuration.Get<AppConfig>();
 
             if (string.IsNullOrEmpty(config.HostName)) { throw new ArgumentNullException("HostName"); }
             if (string.IsNullOrEmpty(config.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
@@ -40,15 +40,14 @@ namespace Agience.Hosts._Console
             if (string.IsNullOrEmpty(config.OpenAiApiKey)) { throw new ArgumentNullException("OpenAiApiKey"); }
 
             // Register local services
-            builder.Services.AddSingleton<IConsoleService>(new ConsoleService());
+            appBuilder.Services.AddSingleton<IConsoleService>(new ConsoleService());
 
             // TODO: This needs to be specific to the Agent or Agency. Configured by the Authority.
-            builder.Services.AddSingleton<IChatCompletionService>(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey));
+            appBuilder.Services.AddSingleton<IChatCompletionService>(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey));
 
 
             // Add Agience Host
-            builder
-                .AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost)
+            appBuilder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost)
 
             // TODO: Move the plugins to the Primary Plugins Library and remove the SK dependency. Plugins can load during runtime and per-agent instead.
                 .AddAgiencePluginFromType<ConsolePlugin>()
@@ -58,7 +57,7 @@ namespace Agience.Hosts._Console
             // TODO: Add plugins from a local assembly directory (startup and runtime)        
             // TODO: Add plugins initiated from Authority (startup and runtime)
 
-            var app = builder.Build();
+            var app = appBuilder.Build();
 
             _logger = app.Services.GetRequiredService<ILogger<Program>>();
 
@@ -66,7 +65,7 @@ namespace Agience.Hosts._Console
 
             if (_host == null) { throw new InvalidOperationException("Host not found"); }
 
-            _host.AgentConnected += _host_AgentConnected;            
+            _host.AgentConnected += _host_AgentConnected;
 
             await _host.Run();
         }

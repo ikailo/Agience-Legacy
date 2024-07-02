@@ -1,11 +1,10 @@
-﻿using NuGet.Versioning;
+﻿using System.Reflection;
+using NuGet.Versioning;
 using NuGet.Common;
 using NuGet.Packaging.Core;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 using NuGet.Protocol;
-using System.Reflection;
-using Json.Schema;
 using NuGet.Configuration;
 using NuGet.Packaging.Signing;
 using NuGet.Resolver;

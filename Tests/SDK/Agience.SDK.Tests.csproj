@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Plugins\Primary\Agience.Plugins.Primary.csproj" />
+    <ProjectReference Include="..\..\SDK\Agience.SDK.csproj" />
   </ItemGroup>
 
   <ItemGroup>
