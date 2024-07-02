@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
@@ -6,7 +6,7 @@ namespace Agience.Plugins.Primary
 {
     public class Process
     {   
-
+        /*
         [KernelFunction, Description("Handle the user's input.")]
         protected async Task<Data?> Input(Runner runner, Data? input = null)
         {
@@ -24,6 +24,6 @@ namespace Agience.Plugins.Primary
 
             //return execute.Output;
             throw new NotImplementedException();
-        }
+        }*/
     }
 }

@@ -1,5 +1,5 @@
-﻿using Agience.SDK;
-using Agience.SDK.Models;
+﻿//using Agience.SDK;
+//using Agience.SDK.Models;
 using Binance.Net.Clients;
 using CryptoExchange.Net.Interfaces;
 using Microsoft.SemanticKernel;
@@ -7,7 +7,7 @@ using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Finance
 {
-    public class CryptoExchangeData : IAgiencePlugin
+    public class CryptoExchangeData //: IAgiencePlugin
     {
         [KernelFunction, Description("Get the spot price of a Cryptocurrency from Binance.")]
         public async Task<decimal> GetCryptoTickerExchangeData(

@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Net.Http.Headers;
@@ -8,6 +8,7 @@ namespace Agience.Plugins.Primary.Jira
 { 
     public class GetComments 
     {   
+        /*
         //public override string[] InputKeys => [ "domain", "issueID" ];
         //public override string[] OutputKeys => [ "content" ];
 
@@ -44,8 +45,8 @@ namespace Agience.Plugins.Primary.Jira
             {
                 return Data.Create(e);
             }
-            */
-        }
+          
+        }*/
     }
 }
 

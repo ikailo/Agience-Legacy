@@ -1,5 +1,4 @@
-﻿using Agience.SDK;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Files
