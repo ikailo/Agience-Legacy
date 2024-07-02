@@ -26,7 +26,6 @@ internal class Program
         var intermediateServiceProvider = builder.Services.BuildServiceProvider();
         
         builder.Services.AddHostedService<Worker>();
-
         builder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret);
         
         // TODO: Do these at runtime?

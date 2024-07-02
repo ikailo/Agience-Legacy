@@ -1,27 +1,28 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Agience.SDK.Models
 {
-    public class Agent : AgienceObject
+    public class Agent : AgienceEntity
     {
-        [JsonPropertyName("agency")]
-        public Agency? Agency { get; set; }
-        
-        [JsonIgnore]
-        public string? AgencyId
-        {
-            get { return Agency?.Id; }
-            set { Agency = SetId(Agency, value); }
-        }
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
 
-        [JsonPropertyName("host")]
-        public Host? Host { get; set; }
-        
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        [JsonPropertyName("agency_id")]
+        public string? AgencyId { get; set; }
+
+        [JsonPropertyName("plugin_id")]
+        public string? PluginId { get; set; }
+
+        [ForeignKey("AgencyId")]
         [JsonIgnore]
-        public string? HostId
-        {
-            get { return Host?.Id; }
-            set { Host = SetId(Host, value); }
-        }
+        public virtual Agency? Agency { get; set; }
+
+        [ForeignKey("PluginId")]
+        [JsonIgnore]
+        public virtual Plugin? Plugin { get; set; }
     }
 }

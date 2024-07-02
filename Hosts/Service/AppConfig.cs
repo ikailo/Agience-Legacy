@@ -1,7 +1,4 @@
 ﻿namespace Agience.Hosts.Service
 {
-    public class AppConfig : SDK.HostConfig
-    {
-
-    }
+    public class AppConfig : SDK.HostConfig { }
 }

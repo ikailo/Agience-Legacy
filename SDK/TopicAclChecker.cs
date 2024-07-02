@@ -13,11 +13,11 @@
         private const int READ_WRITE = 3;
         private const int SUBSCRIBE = 4;
 
-        private Func<string, string?, string?, string?, Task<bool>> _checkRelationships;
+        private Func<string, string?, string?, string?, Task<bool>> _verifyHostSourceTargetRelationships;
 
-        public TopicAclChecker(Func<string, string?, string?, string?, Task<bool>> checkRelationships)
+        public TopicAclChecker(Func<string, string?, string?, string?, Task<bool>> verifyHostSourceTargetRelationships)
         {
-            _checkRelationships = checkRelationships;
+            _verifyHostSourceTargetRelationships = verifyHostSourceTargetRelationships;
         }
 
         // TODO: Return better status codes, logging.
@@ -135,7 +135,7 @@
                 }
             }
 
-            return await _checkRelationships(hostId, sourceId, targetAgencyId, targetAgentId);
+            return await _verifyHostSourceTargetRelationships(hostId, sourceId, targetAgencyId, targetAgentId);
         }
 
         private bool CheckMask(string topic, string mask, int accessType)

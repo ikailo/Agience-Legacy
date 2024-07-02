@@ -16,8 +16,4 @@
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.13.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\SDK\Agience.SDK.csproj" />
-  </ItemGroup>
-
 </Project>

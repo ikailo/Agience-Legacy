@@ -10,8 +10,7 @@ namespace Agience.Hosts.Service
         public Worker(SDK.Host host, ILogger<Worker> logger)
         {
             _logger = logger;
-            _host = host;
-            
+            _host = host;           
             _host.AgentConnected += _host_AgentConnected;
         }
 

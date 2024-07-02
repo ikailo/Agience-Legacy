@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text;
@@ -7,7 +7,7 @@ namespace Agience.Plugins.Primary.Jira
 {
     public class UpdateTicket
     {
-        
+  /*      
         //public override string[] InputKeys => [ "domain", "issueID", "editObject" ];
         //public override string[] OutputKeys => [ "content" ];
 
@@ -46,7 +46,7 @@ namespace Agience.Plugins.Primary.Jira
             {
                 return Data.Create(e);
             }
-            */
-        }
+            
+        }*/
     }
 }

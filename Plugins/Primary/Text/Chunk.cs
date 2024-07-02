@@ -1,41 +1,21 @@
-﻿using Agience.SDK;
-using Agience.SDK.Models;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
-using System.Text.Json;
 
 namespace Agience.Plugins.Primary.Text
 {
-    internal class Chunk : IAgiencePlugin
-    {    
-        private const int DEFAULT_SIZE = 4000;
-
-        //public override string[] InputKeys => ["text", "size:int"];
-        //public override string[] OutputKeys => ["chunks:string[]"];
+    internal class Text //: IAgiencePlugin
+    {
+        private const int DEFAULT_LENGTH = 4000;
 
         [KernelFunction, Description("Split text into chunks.")]
-        public Task<Data?> Process(Runner runner, Data? input = null)
-        {
-            string? text = string.Empty;
-            int size = DEFAULT_SIZE;
+        public static string[] SplitText(
 
-            if (input?["text"] != null)
-            {
-                text = input?["text"];
-                size = int.TryParse(input?["size"], out size) ? size : DEFAULT_SIZE;
-            }
-            else
-            {
-                text = input;
-            }
+            [Description("The text to split.")]
+            string text,
 
-            return Task.FromResult<Data?>(new()
-            {
-                { "chunks", JsonSerializer.Serialize(SplitText(text ?? string.Empty, size)) }
-            });
-        }
-
-        public static string[] SplitText(string text, int maxLength = DEFAULT_SIZE)
+            [Description("The maximum size of each chunk.")]
+            int maxLength = DEFAULT_LENGTH
+         )
         {
             List<string> result = new List<string>();
             int start = 0;

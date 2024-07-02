@@ -25,7 +25,7 @@ namespace Agience.SDK
         private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
-        //public Authority() { }
+        public Authority() { }
 
         public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
         {
@@ -37,6 +37,12 @@ namespace Agience.SDK
 
         internal async Task InitializeWithBackoff(double maxDelaySeconds = 16)
         {
+            if (!string.IsNullOrEmpty(BrokerUri) && !string.IsNullOrEmpty(TokenEndpoint))
+            {
+                _logger.LogInformation("Authority already initialized.");
+                return;
+            }
+
             var delay = TimeSpan.FromSeconds(1);
 
             while (true)
@@ -61,20 +67,20 @@ namespace Agience.SDK
                 catch (Exception ex)
                 {
                     _logger.LogDebug(ex.ToString());
-                    _logger.LogInformation($"Unable to initialize Authority. Retrying in {delay.TotalSeconds} seconds.");                    
+                    _logger.LogInformation($"Unable to initialize Authority. Retrying in {delay.TotalSeconds} seconds.");
 
                     await Task.Delay(delay);
 
                     delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
                 }
             }
-        }       
+        }
 
         public async Task Connect(string accessToken)
-        {   
+        {
             if (!IsConnected)
             {
-                if (BrokerUri == null)
+                if (string.IsNullOrEmpty(BrokerUri))
                 {
                     await InitializeWithBackoff();
                 }
@@ -120,6 +126,8 @@ namespace Agience.SDK
 
         public void PublishAgentConnectEvent(Models.Agent agent)
         {
+            throw new NotImplementedException();
+            /*
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
@@ -134,11 +142,13 @@ namespace Agience.SDK
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }                    
                 }
-            });
+            });*/
         }
 
         public void PublishAgentDisconnectEvent(Models.Agent agent)
         {
+            throw new NotImplementedException();
+            /*
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
@@ -153,7 +163,7 @@ namespace Agience.SDK
                     { "timestamp", _broker.Timestamp},
                     { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }
                 }
-            });
+            }); */
         }
 
         public string Topic(string senderId, string? hostId, string? agencyId, string? agentId)

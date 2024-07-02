@@ -22,8 +22,6 @@ namespace Agience.SDK
         private readonly ILogger<Agency>? _logger;
         private readonly IMapper _mapper;
 
-        //public Agency() { }
-
         internal Agency(Authority authority, Agent agent, Broker broker)
         {
             _authority = authority;

@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.IO;
@@ -14,12 +14,12 @@ namespace Agience.Plugins.Primary.Jira
         //public override Data? Description => "Post Jira Comments";
         //public override string[] InputKeys => [ "domain", "issueID", "comment" ];
         //public override string[] OutputKeys => [ "content" ];
-
+        /*
         [KernelFunction, Description("Post a comment to a Jira issue.")]
         public Task<Data?> NewComment(Runner runner, Data? input = null)
         {
             throw new NotImplementedException();
-
+        */
             /*
             var domain = information.Input.Structured["domain"];
             var issueID = information.Input.Structured["issueID"];
@@ -61,7 +61,7 @@ namespace Agience.Plugins.Primary.Jira
             {
                 return Data.Create(e);
             }
-            */
-        }
+           
+        }*/
     }
 }

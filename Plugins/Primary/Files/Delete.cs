@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
@@ -8,7 +8,7 @@ namespace Agience.Plugins.Primary.Files
     {
         
         //public override string[] InputKeys => ["file_path"];
-
+        /*
         [KernelFunction, Description("Delete a file on the local filesystem.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
@@ -20,6 +20,6 @@ namespace Agience.Plugins.Primary.Files
             }
 
             return Task.FromResult<Data?>(null);
-        }
+        }*/
     }
 }

@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text.Json;
@@ -7,6 +7,7 @@ namespace Agience.Plugins.Primary
 {
     public sealed class PlanExecutor
     {
+        /*
         [KernelFunction, Description("Execute a plan from a series of steps.")]
         public async Task<string> Execute(
             [Description("The JSON array of steps to execute.")] string stepsJson)
@@ -31,6 +32,6 @@ namespace Agience.Plugins.Primary
             }
 
             return "Plan execution complete.";
-        }
+        }*/
     }
 }

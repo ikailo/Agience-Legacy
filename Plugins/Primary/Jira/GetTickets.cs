@@ -1,4 +1,4 @@
-﻿using Agience.SDK;
+﻿//using Agience.SDK;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Net.Http.Headers;
@@ -13,7 +13,7 @@ namespace Agience.Plugins.Primary.Jira
 
         //public override string[] InputKeys => ["domain"];
         //public override string[] OutputKeys => ["domain"];
-
+        /*
         [KernelFunction, Description("Get all Jira tickets.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
@@ -46,7 +46,7 @@ namespace Agience.Plugins.Primary.Jira
             {
                 return Data.Create(e);
             }
-            */
-        }
+            
+        } */
     }
 }
