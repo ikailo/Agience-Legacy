@@ -1,5 +1,5 @@
 ﻿using Agience.SDK.Models;
-using Agience.SDK.NetFramework.Reflection;
+using Agience.SDK.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.Reflection;
@@ -84,7 +84,7 @@ public class PluginRuntimeLoader
 
             var packageInfo = ex.GetNugetPackageInfo();  
 
-            await NugetExtensions.InstallNugetPackage(packageInfo.PackageName, packageInfo.Version);        
+            await NuGetExtensions.InstallNugetPackage(packageInfo.PackageName, packageInfo.Version);        
 
             return await tryGettingPlugin(assembly);
         }

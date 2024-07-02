@@ -6,7 +6,7 @@ namespace Agience.SDK.Plugins
     public class Log 
     {   
         //public override string[] InputKeys => new[] { "timestamp", "agent_id", "agent_name", "level", "message" };
-
+        /*
         [KernelFunction, Description("Write entries to the Agency log.")]
         public Task<Data?> Process(Runner runner, Data? input = null)
         {
@@ -19,6 +19,6 @@ namespace Agience.SDK.Plugins
             Console.WriteLine($"{timestamp} | default-{level} | {agentName} | {message}");
             
             return Task.FromResult<Data?>(null);
-        }
+        }*/
     }
 }

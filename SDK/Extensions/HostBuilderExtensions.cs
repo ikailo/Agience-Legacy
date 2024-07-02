@@ -3,8 +3,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 
-namespace Agience.SDK;
-public static class Extensions
+namespace Agience.SDK.Extensions;
+public static class HostBuilderExtensions
 {
     public static IHostApplicationBuilder AddAgienceHost(this IHostApplicationBuilder appBuilder,
           string hostName,
@@ -48,7 +48,7 @@ public static class Extensions
             services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
             services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x, x.GetRequiredService<KernelPluginCollection>()));
             services.AddSingleton(x => new Host(hostName, hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), x.GetRequiredService<PluginRuntimeLoader>(), x.GetRequiredService<ILogger<Host>>()));
-            
+
         });
 
         return hostBuilder;
@@ -61,8 +61,8 @@ public static class Extensions
         string? customNtpHost = null
         )
     {
-        builder.Services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost)); 
-        builder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));        
+        builder.Services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
+        builder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
         return builder;
     }
 

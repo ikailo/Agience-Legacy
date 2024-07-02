@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Agience.Hosts._Console.Plugins;
+using Agience.SDK;
+using Agience.SDK.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-using Agience.SDK;
+
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
@@ -40,19 +41,19 @@ namespace Agience.Hosts._Console
             if (string.IsNullOrEmpty(config.OpenAiApiKey)) { throw new ArgumentNullException("OpenAiApiKey"); }
 
             // Register local services
-            appBuilder.Services.AddSingleton<IConsoleService>(new ConsoleService());
+            //appBuilder.Services.AddSingleton<IConsoleService>(new ConsoleService());
 
             // TODO: This needs to be specific to the Agent or Agency. Configured by the Authority.
             appBuilder.Services.AddSingleton<IChatCompletionService>(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey));
 
 
             // Add Agience Host
-            appBuilder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost)
+            appBuilder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost);
 
             // TODO: Move the plugins to the Primary Plugins Library and remove the SK dependency. Plugins can load during runtime and per-agent instead.
-                .AddAgiencePluginFromType<ConsolePlugin>()
-                .AddAgiencePluginFromType<EmailPlugin>()
-                .AddAgiencePluginFromType<AuthorEmailPlanner>();
+            //    .AddAgiencePluginFromType<ConsolePlugin>()
+            //    .AddAgiencePluginFromType<EmailPlugin>()
+            //    .AddAgiencePluginFromType<AuthorEmailPlanner>();
 
             // TODO: Add plugins from a local assembly directory (startup and runtime)        
             // TODO: Add plugins initiated from Authority (startup and runtime)
