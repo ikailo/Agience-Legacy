@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 
-namespace Agience.Plugins.Primary
+namespace Agience.Plugins.Primary.Uncategorized
 {
     public sealed class Communication
     {
@@ -27,7 +27,7 @@ namespace Agience.Plugins.Primary
 
             var request = new
             {
-                model = model,
+                model,
                 messages = new[]
                 {
                     new { role = "user", content = promptContent }

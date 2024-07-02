@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text.Json;
 
-namespace Agience.Plugins.Primary
+namespace Agience.Plugins.Primary.Uncategorized
 {
     public sealed class PlanExecutor
     {
