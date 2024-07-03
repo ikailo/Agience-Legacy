@@ -17,7 +17,7 @@ public static class HostBuilderExtensions
         appBuilder.Services.AddSingleton(new KernelPluginCollection());
         appBuilder.Services.AddSingleton<PluginRuntimeLoader>();
         appBuilder.Services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-        appBuilder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
+        appBuilder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
         appBuilder.Services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x, x.GetRequiredService<KernelPluginCollection>()));
         appBuilder.Services.AddSingleton(x => new Host(hostName, hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), x.GetRequiredService<PluginRuntimeLoader>(), x.GetRequiredService<ILogger<Host>>()));
         return appBuilder;
@@ -38,10 +38,9 @@ public static class HostBuilderExtensions
             services.AddSingleton(new KernelPluginCollection());
             services.AddSingleton<PluginRuntimeLoader>();
             services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-            services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
+            services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
             services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x, x.GetRequiredService<KernelPluginCollection>()));
             services.AddSingleton(x => new Host(hostName, hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), x.GetRequiredService<PluginRuntimeLoader>(), x.GetRequiredService<ILogger<Host>>()));
-
         });
 
         return hostBuilder;
@@ -56,8 +55,6 @@ public static class HostBuilderExtensions
         builder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
         return builder;
     }
-
-
 
     public static IHostApplicationBuilder AddAgiencePluginFromType<T>(this IHostApplicationBuilder appBuilder,
         string? pluginName = null,

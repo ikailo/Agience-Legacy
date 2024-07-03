@@ -15,7 +15,6 @@ namespace Agience.SDK
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
         private readonly IAuthorityDataAdapter _authorityDataAdapter;
-        private readonly IHostDataAdapter _hostDataAdapter;
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -39,11 +38,10 @@ namespace Agience.SDK
             _mapper = AutoMapperConfig.GetMapper();
         }
 
-        public Authority(string authorityUri, Broker broker, IHostDataAdapter hostDataAdapter, ILogger<Authority>? logger = null)
+        public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
         {
             _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
-            _hostDataAdapter = hostDataAdapter ?? throw new ArgumentNullException(nameof(hostDataAdapter));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
