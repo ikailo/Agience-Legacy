@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace Agience.SDK.Models
+namespace Agience.SDK.Models.Entities
 {
     public class Agent : AgienceEntity
     {

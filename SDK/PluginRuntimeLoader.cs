@@ -1,8 +1,8 @@
-﻿using Agience.SDK.Models;
-using Agience.SDK.Extensions;
+﻿using Agience.SDK.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.Reflection;
+using Agience.SDK.Models.Entities;
 
 namespace Agience.SDK;
 

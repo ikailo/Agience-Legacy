@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Agience.SDK.Models.Entities;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -16,20 +17,12 @@ public static class HostBuilderExtensions
         appBuilder.Services.AddSingleton(new KernelPluginCollection());
         appBuilder.Services.AddSingleton<PluginRuntimeLoader>();
         appBuilder.Services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-        appBuilder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
+        appBuilder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
         appBuilder.Services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x, x.GetRequiredService<KernelPluginCollection>()));
         appBuilder.Services.AddSingleton(x => new Host(hostName, hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), x.GetRequiredService<PluginRuntimeLoader>(), x.GetRequiredService<ILogger<Host>>()));
         return appBuilder;
     }
 
-    public static IHostApplicationBuilder AddAgiencePluginFromType<T>(this IHostApplicationBuilder appBuilder,
-        string? pluginName = null,
-        IServiceProvider? serviceProvider = null)
-    {
-        appBuilder.Services.AddSingleton(x => x.GetService<KernelPluginCollection>().AddFromType<T>(pluginName, serviceProvider));
-
-        return appBuilder;
-    }
 
     public static IHostBuilder ConfigureAgienceHost(this IHostBuilder hostBuilder)
     {
@@ -45,7 +38,7 @@ public static class HostBuilderExtensions
             services.AddSingleton(new KernelPluginCollection());
             services.AddSingleton<PluginRuntimeLoader>();
             services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-            services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
+            services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
             services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x, x.GetRequiredService<KernelPluginCollection>()));
             services.AddSingleton(x => new Host(hostName, hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), x.GetRequiredService<PluginRuntimeLoader>(), x.GetRequiredService<ILogger<Host>>()));
 
@@ -54,17 +47,28 @@ public static class HostBuilderExtensions
         return hostBuilder;
     }
 
-    public static Host? GetAgienceHost(this IHost host) => host.Services.GetService<Host>();
-
     public static IHostApplicationBuilder AddAgienceAuthority(this IHostApplicationBuilder builder,
         string authorityUri,
         string? customNtpHost = null
         )
     {
         builder.Services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-        builder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<Authority>>()));
+        builder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
         return builder;
     }
+
+
+
+    public static IHostApplicationBuilder AddAgiencePluginFromType<T>(this IHostApplicationBuilder appBuilder,
+        string? pluginName = null,
+        IServiceProvider? serviceProvider = null)
+    {
+        appBuilder.Services.AddSingleton(x => x.GetService<KernelPluginCollection>().AddFromType<T>(pluginName, serviceProvider));
+
+        return appBuilder;
+    }
+
+    public static Host? GetAgienceHost(this IHost host) => host.Services.GetService<Host>();
 
     public static Authority? GetAgienceAuthority(this IHost host) => host.Services.GetService<Authority>();
 }

@@ -3,10 +3,11 @@ using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Agience.SDK.Models.Messages;
 
 namespace Agience.SDK
 {
-    [AutoMap(typeof(Models.Agency), ReverseMap = true)]
+    [AutoMap(typeof(Models.Entities.Agency), ReverseMap = true)]
     public class Agency
     {
         public string? Id { get; set; }
@@ -15,7 +16,7 @@ namespace Agience.SDK
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
         
-        private readonly ConcurrentDictionary<string, (Models.Agent, DateTime)> _agents = new();        
+        private readonly ConcurrentDictionary<string, (Models.Entities.Agent, DateTime)> _agents = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly Agent _agent; // TODO: Will need to be a list of Agents
@@ -59,7 +60,7 @@ namespace Agience.SDK
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Models.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -74,7 +75,7 @@ namespace Agience.SDK
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Models.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
 
                 if (agent?.Id == message.SenderId && timestamp != null)
                 {
@@ -98,12 +99,12 @@ namespace Agience.SDK
             return Task.CompletedTask;
         }
 
-        private void ReceiveJoin(Models.Agent modelAgent, DateTime timestamp)
+        private void ReceiveJoin(Models.Entities.Agent modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveJoin {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
-            if (_agents.TryGetValue(modelAgent.Id!, out (Models.Agent, DateTime) agent))
+            if (_agents.TryGetValue(modelAgent.Id!, out (Models.Entities.Agent, DateTime) agent))
             {
                 if (timestamp > agent.Item2)
                 {
@@ -121,7 +122,7 @@ namespace Agience.SDK
             }
         }
 
-        private void SendWelcome(Models.Agent agent)
+        private void SendWelcome(Models.Entities.Agent agent)
         {
             _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
 
@@ -133,7 +134,7 @@ namespace Agience.SDK
                 {
                     { "type", "welcome" },
                     { "timestamp", _broker.Timestamp },
-                    { "agency", JsonSerializer.Serialize(_mapper.Map<Models.Agency>(this)) },
+                    { "agency", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Agency>(this)) },
                     { "representative_id", RepresentativeId },
                     { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
                     { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) }
@@ -141,9 +142,9 @@ namespace Agience.SDK
             });
         }
 
-        internal void ReceiveWelcome(Models.Agency agency,
+        internal void ReceiveWelcome(Models.Entities.Agency agency,
                                      string representativeId,
-                                     List<Models.Agent> agents,
+                                     List<Models.Entities.Agent> agents,
                                      Dictionary<string, DateTime> agentTimestamps,                                            
                                      DateTime timestamp)
         {
@@ -163,7 +164,7 @@ namespace Agience.SDK
 
         // TODO: Handle race conditions
         // Network Latency, Simultaneous Joins, etc.
-        private void ReceiveRepresentativeClaim(Models.Agent modelAgent, DateTime timestamp)
+        private void ReceiveRepresentativeClaim(Models.Entities.Agent modelAgent, DateTime timestamp)
         {
             _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
 
@@ -188,7 +189,7 @@ namespace Agience.SDK
         {
             if (agentId == null) { return null; }
 
-            return _agents.TryGetValue(agentId, out (Models.Agent, DateTime) agent) ? agent.Item1.Name : null;
+            return _agents.TryGetValue(agentId, out (Models.Entities.Agent, DateTime) agent) ? agent.Item1.Name : null;
         }
     }
 }

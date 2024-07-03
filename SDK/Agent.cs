@@ -9,10 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
 using Agience.SDK.Mappings;
 using QuikGraph;
+using Agience.SDK.Models.Messages;
 
 namespace Agience.SDK
 {
-    [AutoMap(typeof(Models.Agent), ReverseMap = true)]
+    [AutoMap(typeof(Models.Entities.Agent), ReverseMap = true)]
     public class Agent
     {
         // TODO: Implement layer processing. Check link for more info.
@@ -51,7 +52,7 @@ namespace Agience.SDK
             string? name,
             Authority authority,
             Broker broker,
-            Models.Agency modelAgency,
+            Models.Entities.Agency modelAgency,
             string? persona,
             IServiceProvider serviceProvider,
             KernelPluginCollection plugins)
@@ -128,7 +129,7 @@ namespace Agience.SDK
                 {
                     { "type", "join" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(this)) },
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Agent>(this)) },
                     { "random", new Random().NextInt64().ToString() }
                 }
             });
@@ -148,7 +149,7 @@ namespace Agience.SDK
                 {
                     { "type", "representative_claim" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(this)) },
+                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Agent>(this)) },
                 }
             });
         }
@@ -184,9 +185,9 @@ namespace Agience.SDK
                                                 //message.Data?["templates"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agency = JsonSerializer.Deserialize<Models.Agency>(message.Data?["agency"]!);
+                var agency = JsonSerializer.Deserialize<Models.Entities.Agency>(message.Data?["agency"]!);
                 var representativeId = message.Data?["representative_id"]!;
-                var agents = JsonSerializer.Deserialize<List<Models.Agent>>(message.Data?["agents"]!);
+                var agents = JsonSerializer.Deserialize<List<Models.Entities.Agent>>(message.Data?["agents"]!);
                 var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
 
                 if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)

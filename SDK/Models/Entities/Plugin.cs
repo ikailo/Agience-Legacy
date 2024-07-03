@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Agience.SDK.Models
+namespace Agience.SDK.Models.Entities
 {
     public class Plugin : AgienceEntity
     {
@@ -16,5 +16,5 @@ namespace Agience.SDK.Models
         [JsonPropertyName("visibility")]
         public Visibility Visibility { get; set; } = Visibility.Private;
 
-    }    
+    }
 }

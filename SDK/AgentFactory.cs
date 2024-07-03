@@ -18,7 +18,7 @@ namespace Agience.SDK
             _hostPlugins = hostPlugins;
         }
 
-        internal Agent CreateAgent(Models.Agent model)
+        internal Agent CreateAgent(Models.Entities.Agent model)
         {
             var serviceCollection = new ServiceCollection();
 
@@ -58,7 +58,7 @@ namespace Agience.SDK
             plugins.AddRange(_hostPlugins); 
             
 
-            return new Agent(model.Id, model.Name, _authority, _broker, new Models.Agency() { Id = model.AgencyId }, null, serviceProvider, plugins);
+            return new Agent(model.Id, model.Name, _authority, _broker, new Models.Entities.Agency() { Id = model.AgencyId }, null, serviceProvider, plugins);
         }
     }
 }

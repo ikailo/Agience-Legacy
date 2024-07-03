@@ -1,10 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Agience.SDK;
+﻿using Agience.SDK;
 using Agience.SDK.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
@@ -55,7 +54,7 @@ namespace Agience.Hosts._Console
             //    .AddAgiencePluginFromType<EmailPlugin>()
             //    .AddAgiencePluginFromType<AuthorEmailPlanner>();
 
-            // TODO: Add plugins from a local assembly directory (startup and runtime)        
+            // TODO: Add plugins from a local assembly directory (startup and runtime)
             // TODO: Add plugins initiated from Authority (startup and runtime)
 
             var app = appBuilder.Build();

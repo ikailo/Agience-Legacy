@@ -1,4 +1,4 @@
-﻿namespace Agience.SDK.Models
+﻿namespace Agience.SDK.Models.Entities
 {
     public enum Visibility
     {

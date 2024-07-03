@@ -1,4 +1,4 @@
-﻿namespace Agience.SDK
+﻿namespace Agience.SDK.Models.Messages
 {
     public enum BrokerMessageType
     {
@@ -11,7 +11,7 @@
     public class BrokerMessage
     {
         public BrokerMessageType Type { get; set; } = BrokerMessageType.UNKNOWN;
-        public string? Topic { get; set; } 
+        public string? Topic { get; set; }
         public string? SenderId => Topic?.Split('/')[0];
         public string? Destination => Topic?.Substring(Topic.IndexOf('/') + 1);
         //public string? Payload { get; set; }

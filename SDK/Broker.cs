@@ -8,6 +8,7 @@ using MQTTnet.Diagnostics;
 using Timer = System.Timers.Timer;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Agience.SDK.Models.Messages;
 
 namespace Agience.SDK
 {

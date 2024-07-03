@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System.Text.Json;
 using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
+using Agience.SDK.Models.Entities;
+using Agience.SDK.Models.Messages;
 
 namespace Agience.SDK
 {
@@ -12,7 +14,8 @@ namespace Agience.SDK
         private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
-        public event Func<Models.Host, Task>? HostConnected;
+        private readonly IAuthorityDataAdapter _authorityDataAdapter;
+        private readonly IHostDataAdapter _hostDataAdapter;
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -27,10 +30,20 @@ namespace Agience.SDK
 
         public Authority() { }
 
-        public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
+        public Authority(string authorityUri, Broker broker, IAuthorityDataAdapter authorityDataAdapter, ILogger<Authority>? logger = null)
         {
             _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            _authorityDataAdapter = authorityDataAdapter ?? throw new ArgumentNullException(nameof(authorityDataAdapter));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _mapper = AutoMapperConfig.GetMapper();
+        }
+
+        public Authority(string authorityUri, Broker broker, IHostDataAdapter hostDataAdapter, ILogger<Authority>? logger = null)
+        {
+            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
+            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            _hostDataAdapter = hostDataAdapter ?? throw new ArgumentNullException(nameof(hostDataAdapter));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
@@ -114,17 +127,31 @@ namespace Agience.SDK
                 message.Data?["type"] == "host_connect" &&
                 message.Data?["host"] != null)
             {
-                var host = JsonSerializer.Deserialize<Models.Host>(message.Data?["host"]!);
+                var host = JsonSerializer.Deserialize<Models.Entities.Host>(message.Data?["host"]!);
 
                 // TODO: Move to seperate method
-                if (host?.Id == message.SenderId && HostConnected != null)
+                if (host?.Id == message.SenderId)
                 {
-                    await HostConnected.Invoke(host);
+                    await OnHostConnected(host);
                 }
             }
         }
 
-        public void PublishAgentConnectEvent(Models.Agent agent)
+        private async Task OnHostConnected(Models.Entities.Host host)
+        {
+            if (_authorityDataAdapter == null) { throw new ArgumentNullException(nameof(_authorityDataAdapter)); }
+
+            _logger.LogInformation($"Received hostConnected from: {host.Name}");
+
+            // TODO: Respond with a host-welcome message. Include the host's name, plugins, and agents.
+
+            foreach (Plugin plugin in await _authorityDataAdapter.GetPluginsForHostIdAsync(host.Id!))
+            {
+                // TODO: PublishHostLoadPluginEvent(plugin);
+            }
+        }
+
+        private void PublishAgentConnectEvent(Models.Entities.Agent agent)
         {
             throw new NotImplementedException();
             /*
@@ -145,7 +172,7 @@ namespace Agience.SDK
             });*/
         }
 
-        public void PublishAgentDisconnectEvent(Models.Agent agent)
+        private void PublishAgentDisconnectEvent(Models.Entities.Agent agent)
         {
             throw new NotImplementedException();
             /*
@@ -166,28 +193,28 @@ namespace Agience.SDK
             }); */
         }
 
-        public string Topic(string senderId, string? hostId, string? agencyId, string? agentId)
+        internal string Topic(string senderId, string? hostId, string? agencyId, string? agentId)
         {
             var result = $"{(senderId != Id ? senderId : "-")}/{Id}/{hostId ?? "-"}/{agencyId ?? "-"}/{agentId ?? "-"}";
             return result;
         }
 
-        public string AuthorityTopic(string senderId)
+        internal string AuthorityTopic(string senderId)
         {
             return Topic(senderId, null, null, null);
         }
 
-        public string HostTopic(string senderId, string? hostId)
+        internal string HostTopic(string senderId, string? hostId)
         {
             return Topic(senderId, hostId, null, null);
         }
 
-        public string AgencyTopic(string senderId, string agencyId)
+        internal string AgencyTopic(string senderId, string agencyId)
         {
             return Topic(senderId, null, agencyId, null);
         }
 
-        public string AgentTopic(string senderId, string agentId)
+        internal string AgentTopic(string senderId, string agentId)
         {
             return Topic(senderId, null, null, agentId);
         }

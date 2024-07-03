@@ -3,20 +3,20 @@ using System.Reflection;
 
 namespace Agience.SDK.Mappings
 {
-    public static class AutoMapperConfig
+    internal static class AutoMapperConfig
     {
         private static IMapper? _mapper;
 
         // TODO: Determine if it makes sense to load this via DI
 
-        public static IMapper GetMapper()
+        internal static IMapper GetMapper()
         {
             if (_mapper == null)
             {
                 var config = new MapperConfiguration(cfg =>
                 {
                     cfg.AddMaps(Assembly.GetExecutingAssembly());
-                    cfg.AddProfile<MappingProfile>();
+                    //cfg.AddProfile<MappingProfile>();
                 });
                 _mapper = config.CreateMapper();
             }

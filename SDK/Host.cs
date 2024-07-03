@@ -1,4 +1,5 @@
 ﻿using Agience.SDK.Mappings;
+using Agience.SDK.Models.Messages;
 using AutoMapper;
 using Azure.Core;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ using System.Text.Json;
 
 namespace Agience.SDK
 {
-    [AutoMap(typeof(Models.Host), ReverseMap = true)]
+    [AutoMap(typeof(Models.Entities.Host), ReverseMap = true)]
     public class Host
     {
         public event Func<Agent, Task>? AgentConnected;
@@ -41,7 +42,7 @@ namespace Agience.SDK
             ILogger<Host> logger)
         {
             _id = !string.IsNullOrEmpty(hostId) ? hostId : throw new ArgumentNullException(nameof(hostId));
-            _hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided.
+            _hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided. // TODO: Authority should provide the name.
             _hostSecret = !string.IsNullOrEmpty(hostSecret) ? hostSecret : throw new ArgumentNullException(nameof(hostSecret));
             _authority = authority ?? throw new ArgumentNullException(nameof(authority));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
@@ -65,7 +66,7 @@ namespace Agience.SDK
                     _logger.LogError(ex, "Unable to Connect");
                     _logger.LogInformation("Retrying in 10 seconds");
 
-                    await Task.Delay(10 * 1000);
+                    await Task.Delay(10 * 1000); // TODO: With backoff
                 }
             }
 
@@ -89,7 +90,7 @@ namespace Agience.SDK
 
             await _broker.Connect(accessToken, _authority.BrokerUri!);
 
-            await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // All Hosts
+            await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // Hosts Broadcast
 
             await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
 
@@ -101,8 +102,7 @@ namespace Agience.SDK
                 {
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "host", JsonSerializer.Serialize(_mapper.Map<Host, Models.Host>(this)) }
-                    // TODO: Include a list of local plugins and services.
+                    { "host", JsonSerializer.Serialize(_mapper.Map<Host, Models.Entities.Host>(this)) }                    
                 }
             });
 
@@ -148,7 +148,7 @@ namespace Agience.SDK
                 message.Data?["agent"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Models.Agent>(message.Data?["agent"]!);
+                var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
                 // TODO: Collection of Plugins to Activate
 
                 if (agent == null) { return; } // Invalid Agent
@@ -157,7 +157,7 @@ namespace Agience.SDK
             }
         }
 
-        private async Task ReceiveAgentConnect(Models.Agent modelAgent, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
         {
             throw new NotImplementedException();
 

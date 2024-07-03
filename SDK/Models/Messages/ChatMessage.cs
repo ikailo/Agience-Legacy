@@ -1,4 +1,4 @@
-﻿namespace Agience.SDK
+﻿namespace Agience.SDK.Models.Messages
 {
     public class ChatMessage
     {
@@ -10,6 +10,6 @@
             AuthorRole = authorRole;
             Content = content;
         }
-      
+
     }
 }
