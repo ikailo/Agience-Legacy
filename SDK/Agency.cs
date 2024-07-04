@@ -27,7 +27,7 @@ namespace Agience.SDK
         {
             _authority = authority;
             _agent = agent;
-            _broker = broker;
+            _broker = broker;            
             _mapper = AutoMapperConfig.GetMapper();
         }
 

@@ -7,7 +7,7 @@ namespace Agience.SDK.Models.Entities
     public class Function : AgienceEntity
     {
         [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }

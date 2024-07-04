@@ -6,13 +6,13 @@ namespace Agience.SDK.Models.Entities
     public class Agent : AgienceEntity
     {
         [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
         [JsonPropertyName("agency_id")]
-        public string? AgencyId { get; set; }
+        public string AgencyId { get; set; } = string.Empty;
 
         [JsonPropertyName("agency")]
         public virtual Agency? Agency { get; set; }

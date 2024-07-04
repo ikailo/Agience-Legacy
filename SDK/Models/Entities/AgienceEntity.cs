@@ -5,7 +5,6 @@ namespace Agience.SDK.Models.Entities
 {
     public class AgienceEntity
     {
-        [Key]
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
     }
