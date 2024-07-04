@@ -13,9 +13,6 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("type")]
         public PluginType Type { get; set; } = PluginType.Curated;
 
-        //[JsonPropertyName("repository_url")]
-        //public string? RepositoryUrl { get; set; }
-
         [JsonPropertyName("visibility")]
         public Visibility Visibility { get; set; } = Visibility.Private;
 

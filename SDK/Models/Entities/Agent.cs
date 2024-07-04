@@ -14,8 +14,7 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("agency_id")]
         public string? AgencyId { get; set; }
 
-        [ForeignKey("AgencyId")]
-        [JsonIgnore]
+        [JsonPropertyName("agency")]
         public virtual Agency? Agency { get; set; }
      
     }

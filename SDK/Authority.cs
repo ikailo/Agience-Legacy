@@ -142,11 +142,11 @@ namespace Agience.SDK
             _logger.LogInformation($"Received hostConnected from: {host.Name}");
 
             // TODO: Respond with a host-welcome message. Include the host's name, plugins, and agents.
-
+            /*
             foreach (Plugin plugin in await _authorityDataAdapter.GetPluginsForHostIdAsync(host.Id!))
             {
                 // TODO: PublishHostLoadPluginEvent(plugin);
-            }
+            }*/
         }
 
         private void PublishAgentConnectEvent(Models.Entities.Agent agent)

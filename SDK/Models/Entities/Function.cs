@@ -30,7 +30,6 @@ namespace Agience.SDK.Models.Entities
 
     public enum TemplateFormat
     {
-        [JsonPropertyName("semantic-kernel")]
         SemanticKernel
     }
 }
