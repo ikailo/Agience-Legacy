@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Agience.SDK.Models.Entities
 {
@@ -15,6 +16,10 @@ namespace Agience.SDK.Models.Entities
 
         [JsonPropertyName("visibility")]
         public Visibility Visibility { get; set; } = Visibility.Private;
+
+        [NotMapped]
+        [JsonPropertyName("functions")]
+        public virtual List<Function> Functions { get; set; } = new List<Function>();
 
     }
 

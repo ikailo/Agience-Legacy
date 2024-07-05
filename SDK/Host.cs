@@ -1,7 +1,6 @@
 ﻿using Agience.SDK.Mappings;
 using Agience.SDK.Models.Messages;
 using AutoMapper;
-using Azure.Core;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -131,6 +130,7 @@ namespace Agience.SDK
         {
             if (message.SenderId == null || message.Data == null) { return; }
 
+            /*
             // Loading Plugins From External
             if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "load_plugins") //TODO: Review Message Data
@@ -140,7 +140,7 @@ namespace Agience.SDK
                 _pluginRuntimeLoader.SyncPlugins();
 
                 _logger.LogInformation("Agent Plugins Loaded.");
-            }
+            }*/
 
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
@@ -149,22 +149,17 @@ namespace Agience.SDK
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
-                // TODO: Collection of Plugins to Activate
-
-                if (agent == null) { return; } // Invalid Agent
 
                 await ReceiveAgentConnect(agent, timestamp);
             }
         }
 
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
-        {
-            throw new NotImplementedException();
-
-            /*
-            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null || modelAgent.Host?.Id != Id)
+        {   
+            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null)
             {
-                return; // Invalid Agent
+                _logger.LogError("Invalid Agent");
+                return;
             }
 
             var agent = _agentFactory.CreateAgent(modelAgent);
@@ -178,7 +173,7 @@ namespace Agience.SDK
             if (AgentConnected != null)
             {
                 await AgentConnected.Invoke(agent);
-            }*/
+            }
 
             // ***** Adding a short delay to accept incoming messages, set defaults, etc.
             // TODO: Improve this. Maybe not needed now that we're using SDK.

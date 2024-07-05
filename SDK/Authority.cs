@@ -6,6 +6,7 @@ using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
 using Agience.SDK.Models.Entities;
 using Agience.SDK.Models.Messages;
+using System.Data.Common;
 
 namespace Agience.SDK
 {
@@ -14,7 +15,7 @@ namespace Agience.SDK
         private const string BROKER_URI_KEY = "broker_uri";
         private const string OPENID_CONFIG_PATH = "/.well-known/openid-configuration";
 
-        private readonly IAuthorityDataAdapter _authorityDataAdapter;
+        private readonly IAuthorityDataAdapter? _authorityDataAdapter;
 
         public string Id => _authorityUri.Host;
         public string? BrokerUri { get; private set; }
@@ -141,12 +142,12 @@ namespace Agience.SDK
 
             _logger.LogInformation($"Received hostConnected from: {host.Name}");
 
-            // TODO: Respond with a host-welcome message. Include the host's name, plugins, and agents.
-            /*
-            foreach (Plugin plugin in await _authorityDataAdapter.GetPluginsForHostIdAsync(host.Id!))
+            // TODO: Publish Host Welcome Message
+
+            foreach (Models.Entities.Agent agent in await _authorityDataAdapter.GetAgentsForHostIdAsync(host.Id!))
             {
-                // TODO: PublishHostLoadPluginEvent(plugin);
-            }*/
+                PublishAgentConnectEvent(agent);
+            }
         }
 
         private void PublishAgentConnectEvent(Models.Entities.Agent agent)

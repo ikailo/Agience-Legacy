@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>3ff5e00b-91c8-4e50-8295-785456482cae</UserSecretsId>
-    <RootNamespace>Agience.Agents_Console</RootNamespace>
+    <RootNamespace>Agience.Host._Console</RootNamespace>
     <Configurations>Local;Staging;Release</Configurations>
   </PropertyGroup>
 
@@ -33,6 +33,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.15.1-alpha" />
   </ItemGroup>
 
   <ItemGroup>
