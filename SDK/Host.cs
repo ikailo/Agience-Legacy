@@ -93,6 +93,7 @@ namespace Agience.SDK
 
             await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
 
+            /*
             await _broker.PublishAsync(new BrokerMessage()
             {
                 Type = BrokerMessageType.EVENT,
@@ -103,7 +104,7 @@ namespace Agience.SDK
                     { "timestamp", _broker.Timestamp},
                     { "host", JsonSerializer.Serialize(_mapper.Map<Host, Models.Entities.Host>(this)) }                    
                 }
-            });
+            });*/
 
             IsConnected = true;
         }
