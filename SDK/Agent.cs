@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿#pragma warning disable SKEXP0001
+
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Collections.Concurrent;
@@ -7,10 +9,7 @@ using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using AutoMapper;
 using Agience.SDK.Mappings;
-using QuikGraph;
 using Agience.SDK.Models.Messages;
-using System.Threading;
-using System.Text;
 
 namespace Agience.SDK
 {
@@ -35,7 +34,7 @@ namespace Agience.SDK
         private readonly Authority _authority;
         private readonly Agency _agency;
         private readonly Broker _broker;
-        private readonly ILogger? _logger;
+        private readonly ILogger _logger;
         private readonly Kernel _kernel;
         private readonly IMapper _mapper;
 
@@ -51,6 +50,7 @@ namespace Agience.SDK
             string? persona,
             IServiceProvider serviceProvider,
             KernelPluginCollection plugins)
+
         {
             Id = id;
             Name = name;
@@ -223,7 +223,7 @@ namespace Agience.SDK
 
         public async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
-            _chatHistory.AddUserMessage(message);
+            _chatHistory.AddUserMessage(message);                       
 
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 

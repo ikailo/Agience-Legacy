@@ -2,7 +2,7 @@
 {
     public interface IAuthorityDataAdapter
     {
-        Task<IEnumerable<Agent>> GetAgentsForHostIdAsync(string hostId);
-        Task<IEnumerable<Plugin>> GetPluginsForHostIdAsync(string hostId);
+        Task<IEnumerable<Agent>> GetAgentsForHostIdNoTrackingAsync(string hostId);
+        Task<IEnumerable<Plugin>> GetPluginsForHostIdNoTrackingAsync(string hostId);
     }
 }

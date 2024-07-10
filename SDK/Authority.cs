@@ -140,13 +140,15 @@ namespace Agience.SDK
 
             // TODO: Publish Host Welcome Message
 
-            var plugins = await _authorityDataAdapter.GetPluginsForHostIdAsync(host.Id);
+            var plugins = await _authorityDataAdapter.GetPluginsForHostIdNoTrackingAsync(host.Id);
 
             _logger.LogInformation($"Found {plugins.Count()} Plugins");
+            _logger.LogDebug($"Plugins: {JsonSerializer.Serialize(plugins)}");
 
-            var agents = await _authorityDataAdapter.GetAgentsForHostIdAsync(host.Id);
+            var agents = await _authorityDataAdapter.GetAgentsForHostIdNoTrackingAsync(host.Id);
                         
             _logger.LogInformation($"Found {agents.Count()} Agents");
+            _logger.LogDebug($"Agents: {JsonSerializer.Serialize(agents)}");
 
             PublishHostWelcomeEvent(host, plugins, agents);            
         }
