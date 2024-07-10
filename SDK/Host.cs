@@ -15,7 +15,7 @@ namespace Agience.SDK
         public event Func<Agent, Task>? AgentConnected;
 
         public string Id => _id;
-        public string? Name { get; private set; }
+        public string? Name => _hostName;
         public bool IsConnected { get; private set; }
 
         private readonly string _id;
@@ -92,8 +92,7 @@ namespace Agience.SDK
             await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // Hosts Broadcast
 
             await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
-
-            /*
+            
             await _broker.PublishAsync(new BrokerMessage()
             {
                 Type = BrokerMessageType.EVENT,
@@ -102,9 +101,9 @@ namespace Agience.SDK
                 {
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "host", JsonSerializer.Serialize(_mapper.Map<Host, Models.Entities.Host>(this)) }                    
+                    { "host", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Host>(this)) }                    
                 }
-            });*/
+            });
 
             IsConnected = true;
         }
@@ -143,6 +142,27 @@ namespace Agience.SDK
                 _logger.LogInformation("Agent Plugins Loaded.");
             }*/
 
+            // Incoming Host Welcome Message
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "host_welcome" &&
+                message.Data?["host"] != null)
+            {
+                var host = JsonSerializer.Deserialize<Models.Entities.Host>(message.Data?["host"]!);
+                var plugins = JsonSerializer.Deserialize<IEnumerable<Models.Entities.Plugin>>(message.Data?["plugins"]!) ?? [];
+                var agents = JsonSerializer.Deserialize<IEnumerable<Models.Entities.Agent>>(message.Data?["agents"]!) ?? [];
+
+                if (host?.Id == null)
+                {
+                    _logger.LogError("Invalid Host");
+                }
+                else
+                {
+                    _logger.LogInformation($"Received Host Welcome Message from {host.Name}");
+
+                    await ReceiveHostWelcome(host, plugins, agents);
+                }
+            }
+            /*
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "agent_connect" &&
@@ -151,18 +171,33 @@ namespace Agience.SDK
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
 
-                await ReceiveAgentConnect(agent, timestamp);
+                if (agent?.Id == null || agent.Agency?.Id == null)
+                {
+                    _logger.LogError("Invalid Agent");                    
+                }
+                else
+                {
+                    await ReceiveAgentConnect(agent, timestamp);
+                }
+            }*/
+        }
+
+        private async Task ReceiveHostWelcome(Models.Entities.Host modelHost, IEnumerable<Models.Entities.Plugin> modelPlugins, IEnumerable<Models.Entities.Agent> modelAgents)
+        {
+            foreach(var modelPlugin in modelPlugins)
+            {
+                _agentFactory.AddHostPlugin(modelPlugin);
             }
+
+            foreach(var modelAgent in modelAgents)
+            {
+                await ReceiveAgentConnect(modelAgent, null);
+            }
+
         }
 
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
-        {   
-            if (modelAgent?.Id == null || modelAgent.Agency?.Id == null)
-            {
-                _logger.LogError("Invalid Agent");
-                return;
-            }
-
+        {
             var agent = _agentFactory.CreateAgent(modelAgent);
 
             await agent.Connect();

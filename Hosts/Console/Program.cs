@@ -6,11 +6,14 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Plugins.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 
 namespace Agience.Hosts._Console
 {
     internal class Program
     {
+        private static ILogger<Program>? _logger;
+
         internal static async Task Main(string[] args)
         {
             var appBuilder = Host.CreateApplicationBuilder(args);
@@ -35,33 +38,31 @@ namespace Agience.Hosts._Console
 
             // Add Agience Host
             appBuilder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost);
-
-            // TODO: Register local services and plugins.
-            // appBuilder.Services.AddSingleton<IConsoleService>(new ConsoleService());
-
+                        
             // TODO: Load services from Authority, specific to Agent.
             appBuilder.Services.AddSingleton<IChatCompletionService>(new OpenAIChatCompletionService("gpt-3.5-turbo", config.OpenAiApiKey));
-
-#pragma warning disable SKEXP0050
-            // TODO: Load plugins from Authority, specific to Host.
-            appBuilder.AddAgiencePluginFromType<TimePlugin>("time");
-#pragma warning restore SKEXP0050
-
-            // TODO: Add plugins from a local assembly directory (startup and runtime)
-            // TODO: Add plugins initiated from Authority (startup and runtime)
 
             appBuilder.Services.AddTransient<AgienceConsoleHost>();
 
             var app = appBuilder.Build();
+
+            _logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+#pragma warning disable SKEXP0050
+            app.Services.GetRequiredService<KernelPluginCollection>().AddFromType<TimePlugin>("time");
+#pragma warning restore SKEXP0050
+
+            // TODO: Add plugins from a local assembly directory (startup and runtime)
+            // TODO: Add plugins initiated from Authority (startup and runtime)
+            // TODO: Register local services and plugins.
+            // appBuilder.Services.AddSingleton<IConsoleService>(new ConsoleService());
 
             await app.Services.GetRequiredService<AgienceConsoleHost>().Run();
         }
 
         static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
         {
-            var logger = ((IHost)sender).Services.GetService(typeof(ILogger<Program>)) as ILogger<Program>;
-
-            logger?.LogError($"\n\n Unhandled Exception occurred: {e.ExceptionObject}");
+            _logger?.LogError($"\n\n Unhandled Exception occurred: {e.ExceptionObject}");
         }
     }
 }

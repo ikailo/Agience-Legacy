@@ -6,7 +6,7 @@ namespace Agience.SDK.Models.Entities
     public class Agent : AgienceEntity
     {
         [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }
@@ -22,7 +22,7 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("plugins")]
         public virtual List<Plugin> Plugins { get; set; } = new List<Plugin>();
 
-        [JsonIgnore]
+        [JsonPropertyName("agency")]
         public virtual Agency? Agency { get; set; }
 
         [JsonIgnore]

@@ -5,33 +5,29 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
 using Agience.SDK.Mappings;
 using QuikGraph;
 using Agience.SDK.Models.Messages;
+using System.Threading;
+using System.Text;
 
 namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Agent), ReverseMap = true)]
     public class Agent
     {
-        // TODO: Implement layer processing. Check link for more info.
+        // TODO: Implement layer processing. Agents should operate in a defined layer. Check link for more info.
         // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
         // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
 
-        // TODO: Agents should operate in a defined layer.
-
         private const int JOIN_WAIT = 5000;
-        public string? Id { get; set; }
-        public string? Name { get; set; }
+        public string Id { get; internal set; }
+        public string Name { get; internal set; }
         public bool IsConnected { get; private set; }
+        public Agency Agency => _agency;
         public Kernel Kernel => _kernel;
-        public Agency Agency { get; set; }
-        public Host? Host { get; set; }
         public string Timestamp => _broker.Timestamp;
-
-        //private readonly History _history = new(); // TODO: Make History ReadOnly for external access        
 
         private readonly ChatHistory _chatHistory;
         private readonly ConcurrentDictionary<string, Runner> _informationCallbacks = new();
@@ -41,15 +37,14 @@ namespace Agience.SDK
         private readonly Broker _broker;
         private readonly ILogger? _logger;
         private readonly Kernel _kernel;
-
         private readonly IMapper _mapper;
 
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
         internal Agent(
-            string? id,
-            string? name,
+            string id,
+            string name,
             Authority authority,
             Broker broker,
             Models.Entities.Agency modelAgency,
@@ -57,20 +52,16 @@ namespace Agience.SDK
             IServiceProvider serviceProvider,
             KernelPluginCollection plugins)
         {
-            _kernel = new Kernel(serviceProvider, plugins);
-
-            _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
-
-            //TODO: Part of the Architecture Review about the SDK and DI            
-            //Kernel.LoggerFactory.AddProvider()
-
-            _mapper = AutoMapperConfig.GetMapper();
-
             Id = id;
             Name = name;
 
             _authority = authority;
             _broker = broker;
+
+            _kernel = new Kernel(serviceProvider, plugins);
+
+            _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
+            _mapper = AutoMapperConfig.GetMapper();
 
             _agency = new Agency(authority, this, broker)
             {
@@ -230,20 +221,19 @@ namespace Agience.SDK
             }
         }
 
-        public async IAsyncEnumerable<ChatMessage> ProcessAsync(string message)
+        public async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
-            var chatHistory = new ChatHistory();
-            chatHistory.AddUserMessage(message);
+            _chatHistory.AddUserMessage(message);
 
-            var processResult = await ProcessAsync(chatHistory);
+            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
-            foreach (var content in processResult)
-            {
-                // TODO: This can miss messages that have multiple items. This is a quick implementation for now.
-                yield return new ChatMessage(content.Role.ToString(), content.Content ?? string.Empty);
-            }
+            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(_chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
+
+            _chatHistory.Add(chatMessageContent);
+
+            return chatMessageContent;
         }
-
+        /*
         internal async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
         {
             // TODO: Will need to summarize previous messages. This could get large.
@@ -258,6 +248,6 @@ namespace Agience.SDK
                 cancellationToken).ConfigureAwait(false);
 
             return chatMessageContent;
-        }
+        }*/
     }
 }

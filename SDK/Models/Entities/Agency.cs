@@ -9,9 +9,6 @@ namespace Agience.SDK.Models.Entities
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }
-
-        [JsonPropertyName("agents")]
-        public virtual List<Agent> Agents { get; set; } = new List<Agent>();
     }
 }
 

@@ -55,12 +55,4 @@ public static class HostBuilderExtensions
         appBuilder.Services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>()));
         return appBuilder;
     }
-
-    public static IHostApplicationBuilder AddAgiencePluginFromType<T>(this IHostApplicationBuilder appBuilder,
-        string? pluginName = null
-        )
-    {
-        appBuilder.Services.AddSingleton(x => x.GetRequiredService<KernelPluginCollection>().AddFromType<T>(pluginName));
-        return appBuilder;
-    }
 }

@@ -1,9 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Agience.SDK;
 using Host = Agience.SDK.Host;
-using Microsoft.SemanticKernel.Plugins.Core;
-using Microsoft.SemanticKernel;
 
 namespace Agience.Hosts._Console
 {
@@ -11,14 +8,13 @@ namespace Agience.Hosts._Console
     {
         private readonly Host _host;
         private readonly ILogger<AgienceConsoleHost> _logger;
-        private readonly IChatCompletionService _chatCompletionService;
-        private string? _contextAgentId;
+        private Agent? _contextAgent;
 
-        public AgienceConsoleHost(Host host, ILogger<AgienceConsoleHost> logger, IChatCompletionService chatCompletionService)
+        public AgienceConsoleHost(Host host, ILogger<AgienceConsoleHost> logger)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _chatCompletionService = chatCompletionService ?? throw new ArgumentNullException(nameof(chatCompletionService));
+
             _host.AgentConnected += _host_AgentConnected;
         }
 
@@ -32,11 +28,12 @@ namespace Agience.Hosts._Console
             _logger.LogInformation($"{agent.Name} Ready");
 
             // TODO: Read the input and set the context agent. For now, we will just use the first agent.
-            
-            if (_contextAgentId == null)
+
+            if (_contextAgent == null)
             {
-                _contextAgentId = agent.Id;
-                _logger.LogInformation($"* Switched context to {_host.GetAgentById(agent.Id)?.Name ?? "Unknown"} *");
+                _contextAgent = agent;
+
+                _logger.LogInformation($"* Switched context to {agent.Name ?? "Unknown"} *");
 
                 await RunConsole();
             }
@@ -46,18 +43,16 @@ namespace Agience.Hosts._Console
         {
             // TODO: Add a way to switch context agents
 
-            var contextAgent = _host.GetAgentById(_contextAgentId);
-            if (contextAgent == null) throw new InvalidOperationException("No context agent set");
+            if (_contextAgent == null) throw new InvalidOperationException("No context agent set");
 
             string? userInput;
             Console.Write("User > ");
 
             while ((userInput = Console.ReadLine()) != null)
             {
-                await foreach (var message in _host.GetAgentById(_contextAgentId)!.ProcessAsync(userInput))
-                {
-                    Console.WriteLine($"{message.AuthorRole} > {message.Content}");
-                }
+                var message = await _contextAgent.PromptAsync(userInput);
+                                
+                Console.WriteLine($"{message.Role} > { message.ToString()}");
 
                 Console.Write("User > ");
             }

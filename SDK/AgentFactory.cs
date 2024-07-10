@@ -17,26 +17,52 @@ namespace Agience.SDK
             _hostPlugins = hostPlugins;
         }
 
+        internal void AddHostPlugin(Models.Entities.Plugin plugin)
+        {
+            if (plugin.Type == Models.Entities.PluginType.Compiled)
+            {
+                // TODO: Load with plugin loader. For now, it was added hard coded to the host.
+            }
+
+            else if (plugin.Type == Models.Entities.PluginType.Curated)
+            {
+                var functions = new List<KernelFunction>();
+
+                foreach (var function in plugin.Functions)
+                {
+                    functions.Add(KernelFunctionFactory.CreateFromPrompt(function.Template!, null as PromptExecutionSettings, function.Name, function.Description, null, null));
+                }
+                _hostPlugins.AddFromFunctions(plugin.Name!, functions);
+            }
+        }
+
         internal Agent CreateAgent(Models.Entities.Agent agent)
         {
             // For now, we'll add all the services. Later it will need to be filtered.
-            var agentServices = _hostServices;                  
-
-            // Create a Plugin for the Agent that includes all the functions Host Functions defined in the agent's model.
-            var functions = new List<KernelFunction>();
-            
-            foreach (var plugin in agent.Plugins)
-            {
-                foreach (var function in plugin.Functions)
-                {
-                    // TODO: Will likely need to deduplicate functions.
-                    functions.Add(_hostPlugins.GetFunction(plugin.Name, function.Name));                    
-                }                
-            }
+            var agentServices = _hostServices;
 
             var agentPlugins = new KernelPluginCollection();
 
-            agentPlugins.AddFromFunctions(agent.Name, functions);
+            // TODO: Will likely need to deduplicate functions.
+
+            foreach (var plugin in agent.Plugins)
+            {
+                if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPlugins.TryGetPlugin(plugin.Name, out var hostPlugin))
+                {
+                    agentPlugins.Add(hostPlugin);
+                }
+
+                else if (plugin.Type == Models.Entities.PluginType.Curated)
+                {
+                    var functions = new List<KernelFunction>();
+
+                    foreach (var function in plugin.Functions)
+                    {
+                        functions.Add(_hostPlugins.GetFunction(plugin.Name, function.Name));
+                    }
+                    agentPlugins.AddFromFunctions(plugin.Name, functions);
+                }
+            }
 
             return new Agent(agent.Id, agent.Name, _authority, _broker, new Models.Entities.Agency() { Id = agent.AgencyId }, null, agentServices, agentPlugins);
         }

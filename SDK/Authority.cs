@@ -117,10 +117,7 @@ namespace Agience.SDK
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
-            if (message.SenderId == null ||
-                message.Data == null //|| 
-                                     //message.Payload.Format != DataFormat.STRUCTURED
-                ) { return; }
+            if (message.SenderId == null || message.Data == null) { return; }
 
             if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "host_connect" &&
@@ -128,7 +125,6 @@ namespace Agience.SDK
             {
                 var host = JsonSerializer.Deserialize<Models.Entities.Host>(message.Data?["host"]!);
 
-                // TODO: Move to seperate method
                 if (host?.Id == message.SenderId)
                 {
                     await OnHostConnected(host);
@@ -144,19 +140,46 @@ namespace Agience.SDK
 
             // TODO: Publish Host Welcome Message
 
-            foreach (Models.Entities.Agent agent in await _authorityDataAdapter.GetAgentsForHostIdAsync(host.Id!))
-            {
-                PublishAgentConnectEvent(agent);
-            }
+            var plugins = await _authorityDataAdapter.GetPluginsForHostIdAsync(host.Id);
+
+            _logger.LogInformation($"Found {plugins.Count()} Plugins");
+
+            var agents = await _authorityDataAdapter.GetAgentsForHostIdAsync(host.Id);
+                        
+            _logger.LogInformation($"Found {agents.Count()} Agents");
+
+            PublishHostWelcomeEvent(host, plugins, agents);            
         }
 
-        private void PublishAgentConnectEvent(Models.Entities.Agent agent)
+        private void PublishHostWelcomeEvent(Models.Entities.Host host, IEnumerable<Models.Entities.Plugin> plugins, IEnumerable<Models.Entities.Agent> agents)
         {
-            throw new NotImplementedException();
-            /*
+            if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
+
+            _logger.LogInformation($"Publishing Host Welcome Event: {host.Name}");
+
+            _broker.Publish(new BrokerMessage()
+            {
+                Type = BrokerMessageType.EVENT,
+                Topic = HostTopic(Id, host.Id),
+                Data = new Data
+                {
+                    { "type", "host_welcome" },
+                    { "timestamp", _broker.Timestamp},
+                    { "host", JsonSerializer.Serialize(host) },
+                    { "plugins", JsonSerializer.Serialize(plugins) },
+                    { "agents", JsonSerializer.Serialize(agents) }
+                }
+            });
+        }
+
+        /*
+        private void PublishAgentConnectEvent(Models.Entities.Agent agent)
+        {   
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
             if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
+
+            _logger.LogInformation($"Publishing Agent Connect Event: {agent.Name}");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -166,10 +189,10 @@ namespace Agience.SDK
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }                    
+                    
                 }
-            });*/
-        }
+            });
+        }*/
 
         private void PublishAgentDisconnectEvent(Models.Entities.Agent agent)
         {
