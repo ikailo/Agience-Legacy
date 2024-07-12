@@ -49,7 +49,7 @@ namespace Agience.Hosts._Console
             _logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 #pragma warning disable SKEXP0050
-            app.Services.GetRequiredService<KernelPluginCollection>().AddFromType<TimePlugin>("time");
+            app.Services.GetRequiredService<KernelPluginCollection>().AddFromType<TimePlugin>("msTime");
 #pragma warning restore SKEXP0050
 
             // TODO: Add plugins from a local assembly directory (startup and runtime)

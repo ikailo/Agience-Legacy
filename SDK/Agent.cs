@@ -232,22 +232,6 @@ namespace Agience.SDK
             _chatHistory.Add(chatMessageContent);
 
             return chatMessageContent;
-        }
-        /*
-        internal async Task<IReadOnlyList<ChatMessageContent>> ProcessAsync(IReadOnlyList<ChatMessageContent> messages, CancellationToken cancellationToken = default)
-        {
-            // TODO: Will need to summarize previous messages. This could get large.
-            _chatHistory.AddRange(messages);
-
-            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
-
-            var chatMessageContent = await chatCompletionService.GetChatMessageContentsAsync(
-                _chatHistory,
-                _promptExecutionSettings,
-                _kernel,
-                cancellationToken).ConfigureAwait(false);
-
-            return chatMessageContent;
-        }*/
+        }        
     }
 }
