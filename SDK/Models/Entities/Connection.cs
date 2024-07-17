@@ -10,14 +10,8 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
-        [JsonPropertyName("auth_uri")]
-        public string? AuthUri { get; set; }
-
-        [JsonPropertyName("token_uri")]
-        public string? TokenUri { get; set; }
-
-        [JsonPropertyName("resource_uri")]
-        public string? ResourceUri { get; set; }
+        [JsonPropertyName("plugin_id")] 
+        public string? PluginId { get; set; }
     }
 }
 

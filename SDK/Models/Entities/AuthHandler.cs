@@ -2,13 +2,10 @@
 
 namespace Agience.SDK.Models.Entities
 {
-    public class ManagedConnection : AgienceEntity
+    public class AuthHandler : AgienceEntity
     {
         [JsonPropertyName("manager_id")]
         public string? ManagerId { get; set; }
-
-        [JsonPropertyName("connection_id")]
-        public string? ConnectionId { get; set; }
 
         [JsonPropertyName("client_id")]
         public string? ClientId { get; set; }
@@ -18,6 +15,18 @@ namespace Agience.SDK.Models.Entities
 
         [JsonPropertyName("redirect_uri")]
         public string? RedirectUri { get; set; }
+
+        [JsonPropertyName("token_uri")]
+        public string? TokenUri { get; set; }
+
+        [JsonPropertyName("auth_uri")]
+        public string? AuthUri { get; set; }
+        
+        [JsonPropertyName("auth_type")]
+        public AuthorizationType? AuthType { get; set; }
+
+        [JsonPropertyName("visibility")]
+        public Visibility? Visibility { get; set; } = Entities.Visibility.Private;
     }
 }
 
