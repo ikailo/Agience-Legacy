@@ -4,8 +4,7 @@
     {
         Private,
         Shared,
-        Public,
-        //Global
+        Public
     }
 
     public enum AuthorizationType
@@ -13,5 +12,11 @@
         None,
         OAuth2,
         ApiKey
+    }
+
+    public enum PluginType
+    {   
+        Curated,
+        Compiled
     }
 }

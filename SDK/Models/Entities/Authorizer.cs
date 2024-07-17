@@ -2,8 +2,11 @@
 
 namespace Agience.SDK.Models.Entities
 {
-    public class AuthHandler : AgienceEntity
+    public class Authorizer : AgienceEntity
     {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
         [JsonPropertyName("manager_id")]
         public string? ManagerId { get; set; }
 

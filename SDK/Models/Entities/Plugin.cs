@@ -22,13 +22,4 @@ namespace Agience.SDK.Models.Entities
         public virtual List<Function> Functions { get; set; } = new List<Function>();
 
     }
-
-    public enum PluginType
-    {
-        [JsonPropertyName("curated")]
-        Curated,
-
-        [JsonPropertyName("compiled")]
-        Compiled
-    }
 }
