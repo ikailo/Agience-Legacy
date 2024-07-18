@@ -2,7 +2,7 @@
 
 namespace Agience.SDK.Models.Entities
 {
-    public class Connection : AgienceEntity
+    public class PluginConnection : AgienceEntity
     {
         [JsonPropertyName("name")]
         public string? Name { get; set; }
