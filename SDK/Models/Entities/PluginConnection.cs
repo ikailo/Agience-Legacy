@@ -10,8 +10,8 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
-        [JsonPropertyName("plugin_id")] 
-        public string? PluginId { get; set; }
+        [JsonPropertyName("plugin_id")]
+        public string PluginId { get; set; } = string.Empty;
     }
 }
 
