@@ -8,10 +8,10 @@ using Agience.SDK.Models.Messages;
 namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Agency), ReverseMap = true)]
-    public class Agency
+    public class Agency : Models.Entities.Agency
     {
-        public string? Id { get; set; }
-        public string? Name { get; set; }
+        //public string? Id { get; set; }
+        //public string? Name { get; set; }
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
