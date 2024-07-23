@@ -14,17 +14,27 @@ namespace Agience.SDK.Models.Entities
         public string? ClientId { get; set; }
 
         [JsonPropertyName("client_secret")]
-        public string? ClientSecret{ get; set; } // TODO: SECURITY: Use a key vault
+        public string? ClientSecret { get; set; } // TODO: SECURITY: Use a key vault
+
+        // ************************ //
+
+        // TODO: We'll generate a different Auth & Redirect URL for each authorizer type, considering we will collect different types of information for each.
 
         [JsonPropertyName("redirect_uri")]
-        public string? RedirectUri { get; set; }
+        public string RedirectUri => $"/manage/authorizer/{Id}/callback"; // TODO: Build the Redirect URI based on the type of authorizer, in a different class. Include the Authority part.
+
+        [JsonPropertyName("auth_uri")]
+        public string? AuthUri { get; set; }
+
+        // ************************ //
+
 
         [JsonPropertyName("token_uri")]
         public string? TokenUri { get; set; }
 
-        [JsonPropertyName("auth_uri")]
-        public string? AuthUri { get; set; }
-        
+        [JsonPropertyName("scope")]
+        public string? Scope { get; set; }
+
         [JsonPropertyName("auth_type")]
         public AuthorizationType? AuthType { get; set; }
 
