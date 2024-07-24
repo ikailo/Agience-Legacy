@@ -12,10 +12,8 @@ namespace Agience.SDK
         
         public Authorizer() { }
 
-        public string? GetAuthorizationUri(string authorityUri)
+        public string? GetAuthorizationUri(string authorityUri, string state)
         {
-            var state = HttpUtility.UrlEncode(""); // TODO: Build the State. Nonce, etc..
-
             if (AuthType == Models.Entities.AuthorizationType.None)
             {
                 return null;
@@ -26,7 +24,10 @@ namespace Agience.SDK
                 var redirectUri = HttpUtility.UrlEncode($"{authorityUri}{RedirectUri}");
                 var scope = HttpUtility.UrlEncode(Scope);                
 
-                return $"{AuthUri}?client_id={clientId}&redirect_uri={redirectUri}&response_type=code&scope={scope}&state={state}";
+                return $"{AuthUri}?client_id={clientId}&redirect_uri={redirectUri}&response_type=code&scope={scope}&state={state}&prompt=consent&access_type=offline";
+                
+                // TODO: access_type and prompt are for Google only. Need to differentiate between providers.
+
             }
             else if (AuthType == Models.Entities.AuthorizationType.ApiKey)
             {
@@ -34,13 +35,6 @@ namespace Agience.SDK
             }
 
             throw new InvalidOperationException("Unknown authorization type");            
-        }
-
-        public async Task Activate(string code, string state)
-        {   
-
-            // Activate the authorizer
-            throw new NotImplementedException();
         }
     }
 }
