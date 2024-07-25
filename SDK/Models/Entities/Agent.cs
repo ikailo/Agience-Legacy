@@ -21,10 +21,7 @@ namespace Agience.SDK.Models.Entities
         public virtual Agency? Agency { get; set; }
 
         [JsonPropertyName("cognition_function_id")]
-        public string CognitiveFunctionId { get; set; } = string.Empty;
-
-        [JsonIgnore]
-        public virtual Function? CognitiveFunction { get; set; }
+        public string? CognitiveFunctionId { get; set; }
 
         // ***************** //
 
