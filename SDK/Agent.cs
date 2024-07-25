@@ -223,7 +223,7 @@ namespace Agience.SDK
 
         public async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
-            _chatHistory.AddUserMessage(message);                       
+            _chatHistory.AddUserMessage(message);
 
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 

@@ -30,7 +30,7 @@ namespace Agience.SDK
 
                 foreach (var function in plugin.Functions)
                 {
-                    functions.Add(KernelFunctionFactory.CreateFromPrompt(function.Template!, null as PromptExecutionSettings, function.Name, function.Description, null, null));
+                    functions.Add(KernelFunctionFactory.CreateFromPrompt(function.Prompt!, null as PromptExecutionSettings, function.Name, function.Description, null, null));
                 }
                 _hostPlugins.AddFromFunctions(plugin.Name!, functions);
             }

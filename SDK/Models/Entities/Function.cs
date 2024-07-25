@@ -12,11 +12,11 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
-        [JsonPropertyName("template_format")]
-        public TemplateFormat TemplateFormat { get; set; } = TemplateFormat.SemanticKernel;
+        //[JsonPropertyName("template_format")]
+        //public TemplateFormat TemplateFormat { get; set; } = TemplateFormat.SemanticKernel;
 
-        [JsonPropertyName("template")]
-        public string? Template { get; set; }        
+        [JsonPropertyName("prompt")]
+        public string? Prompt { get; set; }        
 
         //[JsonPropertyName("input_variables")]
         //public List<InputVariable> InputVariables { get; set; } = [];
