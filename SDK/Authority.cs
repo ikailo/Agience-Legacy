@@ -6,7 +6,6 @@ using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
 using Agience.SDK.Models.Entities;
 using Agience.SDK.Models.Messages;
-using System.Data.Common;
 
 namespace Agience.SDK
 {
@@ -24,27 +23,32 @@ namespace Agience.SDK
         public string Timestamp => _broker.Timestamp;
 
         private readonly Uri _authorityUri; // Expect without trailing slash
+        private readonly Uri? _authorityUriOverride; // For internal connections
         private readonly Broker _broker;
         private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
         public Authority() { }
 
-        public Authority(string authorityUri, Broker broker, IAuthorityDataAdapter authorityDataAdapter, ILogger<Authority>? logger = null)
+        public Authority(string authorityUri, Broker broker, IAuthorityDataAdapter? authorityDataAdapter, ILogger<Authority> logger, string? authorityUriOverride = null, string? brokerUriOverride = null)
         {
             _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
+            _authorityUriOverride = authorityUriOverride == null ? null : new Uri(authorityUriOverride!);
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
-            _authorityDataAdapter = authorityDataAdapter ?? throw new ArgumentNullException(nameof(authorityDataAdapter));
+            _authorityDataAdapter = authorityDataAdapter;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            
             _mapper = AutoMapperConfig.GetMapper();
+            BrokerUri = brokerUriOverride;
         }
 
-        public Authority(string authorityUri, Broker broker, ILogger<Authority>? logger = null)
+        public Authority(string authorityUri, Broker broker, ILogger<Authority> logger, string? authorityUriOverride = null, string? brokerUriOverride = null)
+            : this(authorityUri, broker, null, logger, authorityUriOverride, brokerUriOverride)
         {
-            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
-            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _mapper = AutoMapperConfig.GetMapper();
+//            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
+//            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+//            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+//            _mapper = AutoMapperConfig.GetMapper();
         }
 
         internal async Task InitializeWithBackoff(double maxDelaySeconds = 16)
@@ -61,16 +65,39 @@ namespace Agience.SDK
             {
                 try
                 {
-                    _logger.LogInformation($"Initializing Authority: {_authorityUri.OriginalString}");
+                    var authorityUri = _authorityUriOverride ?? _authorityUri;
+
+                    _logger.LogInformation($"Initializing Authority: {authorityUri.OriginalString}");
 
                     var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
-                    $"{_authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
-                    new OpenIdConnectConfigurationRetriever());
+                        $"{authorityUri.OriginalString}{OPENID_CONFIG_PATH}",
+                        new OpenIdConnectConfigurationRetriever()
+                    );
 
                     var configuration = await configurationManager.GetConfigurationAsync();
+                    
+                    BrokerUri ??= configuration?.AdditionalData[BROKER_URI_KEY].ToString(); // Don't reset it if it's already set
 
-                    BrokerUri = configuration?.AdditionalData[BROKER_URI_KEY].ToString();
-                    TokenEndpoint = configuration?.TokenEndpoint;
+                    // TODO: Better way needed to handle overrides/internal endpoints
+
+                    if (_authorityUriOverride == null)
+                    {
+                        TokenEndpoint = configuration?.TokenEndpoint;
+                    }
+                    else if (configuration?.TokenEndpoint != null)
+                    {
+                        // Replace the host and port with the override
+                        TokenEndpoint = new UriBuilder(configuration?.TokenEndpoint!)
+                        {
+                            Host = _authorityUriOverride.Host,
+                            Port = _authorityUriOverride.Port
+
+                        }.Uri.ToString();
+                    }
+                    else
+                        {
+                        throw new Exception("TokenEndpoint not found in OpenIdConnectConfiguration");
+                    }
 
                     _logger.LogInformation($"Authority initialized.");
 
@@ -100,8 +127,12 @@ namespace Agience.SDK
                 var brokerUri = BrokerUri ?? throw new ArgumentNullException("BrokerUri");
 
                 await _broker.Connect(accessToken, brokerUri);
-                await _broker.Subscribe(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
-                IsConnected = true;
+
+                if (_broker.IsConnected)
+                {
+                    await _broker.Subscribe(AuthorityTopic("+"), async message => await _broker_ReceiveMessage(message));
+                    IsConnected = true;
+                }                
             }
         }
 

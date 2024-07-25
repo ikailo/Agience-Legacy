@@ -89,23 +89,32 @@ namespace Agience.SDK
 
             await _broker.Connect(accessToken, _authority.BrokerUri!);
 
-            await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // Hosts Broadcast
-
-            await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
-            
-            await _broker.PublishAsync(new BrokerMessage()
+            if (_broker.IsConnected)
             {
-                Type = BrokerMessageType.EVENT,
-                Topic = _authority.AuthorityTopic(Id!),
-                Data = new Data
+                await _broker.Subscribe(_authority.HostTopic("+", "0"), _broker_ReceiveMessage); // Hosts Broadcast
+
+                await _broker.Subscribe(_authority.HostTopic("+", Id), _broker_ReceiveMessage); // This Host
+
+                await _broker.PublishAsync(new BrokerMessage()
+                {
+                    Type = BrokerMessageType.EVENT,
+                    Topic = _authority.AuthorityTopic(Id!),
+                    Data = new Data
                 {
                     { "type", "host_connect" },
                     { "timestamp", _broker.Timestamp},
-                    { "host", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Host>(this)) }                    
+                    { "host", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Host>(this)) }
                 }
-            });
+                });
 
-            IsConnected = true;
+                IsConnected = true;
+            }
+            else
+            {
+                throw new Exception("Broker Connection Failed");
+            }
+
+
         }
 
         private async Task Disconnect()
@@ -184,12 +193,12 @@ namespace Agience.SDK
 
         private async Task ReceiveHostWelcome(Models.Entities.Host modelHost, IEnumerable<Models.Entities.Plugin> modelPlugins, IEnumerable<Models.Entities.Agent> modelAgents)
         {
-            foreach(var modelPlugin in modelPlugins)
+            foreach (var modelPlugin in modelPlugins)
             {
                 _agentFactory.AddHostPlugin(modelPlugin);
             }
 
-            foreach(var modelAgent in modelAgents)
+            foreach (var modelAgent in modelAgents)
             {
                 await ReceiveAgentConnect(modelAgent, null);
             }

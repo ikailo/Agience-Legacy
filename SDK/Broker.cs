@@ -80,7 +80,14 @@ namespace Agience.SDK
 
                 await _client.ConnectAsync(options);
 
-                _logger.LogInformation($"Broker Connected");
+                if (_client.IsConnected)
+                {
+                    _logger.LogInformation($"Broker Connected");
+                }
+                else
+                {
+                    _logger.LogInformation($"Broker Connection Failed");
+                }                
             }
         }
 
