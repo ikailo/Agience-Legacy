@@ -23,27 +23,27 @@ namespace Agience.SDK
         public string Timestamp => _broker.Timestamp;
 
         private readonly Uri _authorityUri; // Expect without trailing slash
-        private readonly Uri? _authorityUriOverride; // For internal connections
+        private readonly Uri? _authorityUriInternal; // For internal connections
         private readonly Broker _broker;
         private readonly ILogger<Authority> _logger;
         private readonly IMapper _mapper;
 
         public Authority() { }
 
-        public Authority(string authorityUri, Broker broker, IAuthorityDataAdapter? authorityDataAdapter, ILogger<Authority> logger, string? authorityUriOverride = null, string? brokerUriOverride = null)
+        public Authority(string authorityUri, Broker broker, IAuthorityDataAdapter? authorityDataAdapter, ILogger<Authority> logger, string? authorityUriInternal = null, string? brokerUriInternal = null)
         {
             _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
-            _authorityUriOverride = authorityUriOverride == null ? null : new Uri(authorityUriOverride!);
+            _authorityUriInternal = authorityUriInternal == null ? null : new Uri(authorityUriInternal!);
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
             _authorityDataAdapter = authorityDataAdapter;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
             _mapper = AutoMapperConfig.GetMapper();
-            BrokerUri = brokerUriOverride;
+            BrokerUri = brokerUriInternal;
         }
 
-        public Authority(string authorityUri, Broker broker, ILogger<Authority> logger, string? authorityUriOverride = null, string? brokerUriOverride = null)
-            : this(authorityUri, broker, null, logger, authorityUriOverride, brokerUriOverride)
+        public Authority(string authorityUri, Broker broker, ILogger<Authority> logger, string? authorityUriInternal = null, string? brokerUriInternal = null)
+            : this(authorityUri, broker, null, logger, authorityUriInternal, brokerUriInternal)
         {
 //            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
 //            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
@@ -65,7 +65,7 @@ namespace Agience.SDK
             {
                 try
                 {
-                    var authorityUri = _authorityUriOverride ?? _authorityUri;
+                    var authorityUri = _authorityUriInternal ?? _authorityUri;
 
                     _logger.LogInformation($"Initializing Authority: {authorityUri.OriginalString}");
 
@@ -80,7 +80,7 @@ namespace Agience.SDK
 
                     // TODO: Better way needed to handle overrides/internal endpoints
 
-                    if (_authorityUriOverride == null)
+                    if (_authorityUriInternal == null)
                     {
                         TokenEndpoint = configuration?.TokenEndpoint;
                     }
@@ -89,8 +89,8 @@ namespace Agience.SDK
                         // Replace the host and port with the override
                         TokenEndpoint = new UriBuilder(configuration?.TokenEndpoint!)
                         {
-                            Host = _authorityUriOverride.Host,
-                            Port = _authorityUriOverride.Port
+                            Host = _authorityUriInternal.Host,
+                            Port = _authorityUriInternal.Port
 
                         }.Uri.ToString();
                     }
