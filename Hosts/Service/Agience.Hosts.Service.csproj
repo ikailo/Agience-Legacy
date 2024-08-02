@@ -7,7 +7,7 @@
     <UserSecretsId>dotnet-Primary-8c050539-0c43-4e9f-928f-275eda333e72</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
-    <Configurations>Local;Staging;Release</Configurations>
+    <Configurations>Local;Preview;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,4 +19,11 @@
     <ProjectReference Include="..\..\Plugins\Primary\Agience.Plugins.Primary.csproj" />
     <ProjectReference Include="..\..\SDK\Agience.SDK.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.local.json">
+      <DependentUpon>appsettings.json</DependentUpon>
+    </None>
+  </ItemGroup>
+  
 </Project>
