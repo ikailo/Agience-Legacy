@@ -38,7 +38,7 @@ namespace Agience.SDK
         private readonly Kernel _kernel;
         private readonly IMapper _mapper;
 
-        private PromptExecutionSettings? _promptExecutionSettings;
+        //private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
         internal Agent(
@@ -48,8 +48,8 @@ namespace Agience.SDK
             Broker broker,
             Models.Entities.Agency modelAgency,
             string? persona,
-            IServiceProvider serviceProvider,
-            KernelPluginCollection plugins)
+            Kernel kernel
+            )
 
         {
             Id = id;
@@ -57,8 +57,7 @@ namespace Agience.SDK
 
             _authority = authority;
             _broker = broker;
-
-            _kernel = new Kernel(serviceProvider, plugins);
+            _kernel = kernel;
 
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
             _mapper = AutoMapperConfig.GetMapper();
@@ -73,10 +72,10 @@ namespace Agience.SDK
 
             _chatHistory = new();
 
-            _promptExecutionSettings = new OpenAIPromptExecutionSettings
-            {
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-            };
+            //_promptExecutionSettings = new OpenAIPromptExecutionSettings
+            //{
+            //    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+            //};
 
             _representativeClaimTimer.AutoReset = false;
             _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
@@ -145,6 +144,7 @@ namespace Agience.SDK
             });
         }
 
+        /*
         internal void SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
         {
             _logger?.LogDebug("SendInformationToAgent");
@@ -160,7 +160,7 @@ namespace Agience.SDK
                 Topic = _authority.AgentTopic(Id!, targetAgentId),
                 Information = information
             });
-        }
+        }*/
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
@@ -186,15 +186,15 @@ namespace Agience.SDK
                     _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, (DateTime)timestamp);
                 }
             }
-
+            /*
             // Incoming Agent Information message
             if (message.Type == BrokerMessageType.INFORMATION &&
                 message.Information != null)
             {
                 await ReceiveInformation(message.Information);
-            }
+            }*/
         }
-
+        /*
         private async Task ReceiveInformation(Information information)
         {
             _logger?.LogInformation($"ReceiveInformation {information.Id}");
@@ -219,16 +219,21 @@ namespace Agience.SDK
                 // Return the output to the input agent
                 SendInformationToAgent(information, information?.InputAgentId!);
             }
-        }
+        }*/
 
         public async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
             _chatHistory.AddUserMessage(message);
 
+            
+            // TODO: Call the Agent's Cognitive Function to process the message.
+                        
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
             var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(_chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
 
+                        
+            
             _chatHistory.Add(chatMessageContent);
 
             return chatMessageContent;

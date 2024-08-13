@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using Agience.SDK.Mappings;
-using Microsoft.Extensions.Logging;
 using Agience.SDK.Models.Entities;
 using Agience.SDK.Models.Messages;
 
@@ -40,15 +40,6 @@ namespace Agience.SDK
             
             _mapper = AutoMapperConfig.GetMapper();
             BrokerUri = brokerUriInternal;
-        }
-
-        public Authority(string authorityUri, Broker broker, ILogger<Authority> logger, string? authorityUriInternal = null, string? brokerUriInternal = null)
-            : this(authorityUri, broker, null, logger, authorityUriInternal, brokerUriInternal)
-        {
-//            _authorityUri = !string.IsNullOrEmpty(authorityUri) ? new Uri(authorityUri) : throw new ArgumentNullException(nameof(authorityUri));
-//            _broker = broker ?? throw new ArgumentNullException(nameof(broker));
-//            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-//            _mapper = AutoMapperConfig.GetMapper();
         }
 
         internal async Task InitializeWithBackoff(double maxDelaySeconds = 16)
@@ -158,28 +149,31 @@ namespace Agience.SDK
 
                 if (host?.Id == message.SenderId)
                 {
-                    await OnHostConnected(host);
+                    await OnHostConnected(host.Id);
                 }
             }
         }
 
-        private async Task OnHostConnected(Models.Entities.Host host)
+        private async Task OnHostConnected(string hostId)
         {
             if (_authorityDataAdapter == null) { throw new ArgumentNullException(nameof(_authorityDataAdapter)); }
 
-            _logger.LogInformation($"Received hostConnected from: {host.Name}");
+            _logger.LogInformation($"Received host_connect from: {hostId}");
 
-            // TODO: Publish Host Welcome Message
+            var host = await _authorityDataAdapter.GetHostByIdNoTrackingAsync(hostId);
 
-            var plugins = await _authorityDataAdapter.GetPluginsForHostIdNoTrackingAsync(host.Id);
+            _logger.LogInformation($"Found Host {host.Name}");
+            _logger.LogDebug($"Host: {JsonSerializer.Serialize(host)}");
+
+            var plugins = await _authorityDataAdapter.GetPluginsForHostIdNoTrackingAsync(hostId);
 
             _logger.LogInformation($"Found {plugins.Count()} Plugins");
             _logger.LogDebug($"Plugins: {JsonSerializer.Serialize(plugins)}");
 
-            var agents = await _authorityDataAdapter.GetAgentsForHostIdNoTrackingAsync(host.Id);
+            var agents = await _authorityDataAdapter.GetAgentsForHostIdNoTrackingAsync(hostId);
                         
             _logger.LogInformation($"Found {agents.Count()} Agents");
-            _logger.LogDebug($"Agents: {JsonSerializer.Serialize(agents)}");
+            _logger.LogDebug($"Agents: {JsonSerializer.Serialize(agents)}");            
 
             PublishHostWelcomeEvent(host, plugins, agents);            
         }

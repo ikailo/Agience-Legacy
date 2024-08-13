@@ -14,25 +14,25 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("agency_id")]
         public string AgencyId { get; set; } = string.Empty;
 
-        [JsonPropertyName("plugins")]
-        public virtual List<Plugin> Plugins { get; set; } = new List<Plugin>();
-
         [JsonPropertyName("agency")]
         public virtual Agency? Agency { get; set; }
 
-        [JsonPropertyName("cognition_function_id")]
+        [JsonPropertyName("plugins")]
+        public virtual List<Plugin> Plugins { get; set; } = new List<Plugin>();
+
+        [JsonPropertyName("cognitive_function_id")]
         public string? CognitiveFunctionId { get; set; }
 
+        [JsonPropertyName("cognitive_function")]
+        public Function? CognitiveFunction { get; set; }
+        
         // ***************** //
-
-        // Agents can be associated with a single Host, currently.
-        // TODO: In the future, an Agency will have mupltiple hosts and an Agent will be spread accross all of them.
+        // Currently, Agents can be associated only with a single Host.
+        // TODO: In the future, an Agency will have mupltiple Hosts and an Agent's Functions can be spread accross all of them.
         [JsonPropertyName("host_id")]
         public string? HostId { get; set; }
-
         [JsonIgnore]
         public virtual Host? Host { get; set; }
-
         // ***************** //
     }
 }

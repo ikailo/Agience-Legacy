@@ -12,9 +12,6 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
-        //[JsonPropertyName("template_format")]
-        //public TemplateFormat TemplateFormat { get; set; } = TemplateFormat.SemanticKernel;
-
         [JsonPropertyName("prompt")]
         public string? Prompt { get; set; }        
 
@@ -26,10 +23,5 @@ namespace Agience.SDK.Models.Entities
 
         //[JsonPropertyName("execution_settings")]
         //public Dictionary<string, PromptExecutionSettings> ExecutionSettings { get; set; } = [];
-    }
-
-    public enum TemplateFormat
-    {
-        SemanticKernel
     }
 }

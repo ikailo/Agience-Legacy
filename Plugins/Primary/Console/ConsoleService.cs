@@ -1,22 +1,26 @@
 ﻿namespace Agience.Plugins.Primary._Console
 {
-    internal class ConsoleService : IConsoleService
+    public class ConsoleService : IConsoleService
     {
         private readonly StreamReader _inputReader = new(Console.OpenStandardInput());
+        private static readonly object _writeLock = new object();
+        private static readonly object _readLock = new object();
 
         public Task<string?> ReadLineAsync()
         {
-            return _inputReader.ReadLineAsync();
+            lock (_readLock)
+            {
+                return _inputReader.ReadLineAsync();
+            }
         }
 
-        public void Write(string message)
+        public Task WriteLineAsync(string message)
         {
-            Console.Write(message);
-        }
-
-        public void WriteLine(string message)
-        {
-            Console.WriteLine(message);
+            lock (_writeLock)
+            {
+                Console.WriteLine(message);
+            }
+            return Task.CompletedTask;
         }
     }
 }

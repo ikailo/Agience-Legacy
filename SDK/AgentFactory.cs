@@ -1,4 +1,7 @@
-﻿using Microsoft.SemanticKernel;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Agience.SDK
 {
@@ -6,14 +9,12 @@ namespace Agience.SDK
     {
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly IServiceProvider _hostServices;
         private readonly KernelPluginCollection _hostPlugins;
 
-        internal AgentFactory(Authority authority, Broker broker, IServiceProvider hostServices, KernelPluginCollection hostPlugins)
+        internal AgentFactory(Authority authority, Broker broker, KernelPluginCollection hostPlugins)
         {
             _authority = authority;
             _broker = broker;
-            _hostServices = hostServices;
             _hostPlugins = hostPlugins;
         }
 
@@ -22,6 +23,8 @@ namespace Agience.SDK
             if (plugin.Type == Models.Entities.PluginType.Compiled)
             {
                 // TODO: Load with plugin loader. For now, it was added hard coded to the host.
+                // Microsoft Time - msTime
+                // OpenAI.ChatCompletion
             }
 
             else if (plugin.Type == Models.Entities.PluginType.Curated)
@@ -38,15 +41,12 @@ namespace Agience.SDK
 
         internal Agent CreateAgent(Models.Entities.Agent agent)
         {
-            // For now, we'll add all the services. Later it will need to be filtered.
-            var agentServices = _hostServices;
+            var persona = string.Empty; // TODO: Load persona from agent.
 
             var agentPlugins = new KernelPluginCollection();
 
-            // TODO: Will likely need to deduplicate functions.
-
             foreach (var plugin in agent.Plugins)
-            {
+            {   
                 if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPlugins.TryGetPlugin(plugin.Name, out var hostPlugin))
                 {
                     agentPlugins.Add(hostPlugin);
@@ -54,17 +54,38 @@ namespace Agience.SDK
 
                 else if (plugin.Type == Models.Entities.PluginType.Curated)
                 {
-                    var functions = new List<KernelFunction>();
+                    var agentFunctions = new List<KernelFunction>();
 
                     foreach (var function in plugin.Functions)
                     {
-                        functions.Add(_hostPlugins.GetFunction(plugin.Name, function.Name));
+                        if (_hostPlugins.TryGetFunction(plugin.Name, function.Name, out var hostFunction))
+                        {
+                            agentFunctions.Add(hostFunction);
+                        }                        
                     }
-                    agentPlugins.AddFromFunctions(plugin.Name, functions);
+                    agentPlugins.AddFromFunctions(plugin.Name, agentFunctions);
                 }
             }
 
-            return new Agent(agent.Id, agent.Name, _authority, _broker, new Models.Entities.Agency() { Id = agent.AgencyId }, null, agentServices, agentPlugins);
+            var agentServices = new ServiceCollection();
+
+            var apiKey = "";
+
+            
+
+            if (agent.CognitiveFunctionId != null)
+            {
+                var pluginName = "";
+                var functionName = "";
+
+                var cognitiveFunction = _hostPlugins.GetFunction(pluginName, functionName); // This function needs to be already loaded in the host plugins.
+
+                agentServices.AddScoped<IChatCompletionService>(x => new CognitiveFunctionChatCompletionService(cognitiveFunction));
+            }
+
+            var kernel = new Kernel(agentServices.BuildServiceProvider(), agentPlugins);
+
+            return new Agent(agent.Id, agent.Name, _authority, _broker, new Models.Entities.Agency() { Id = agent.AgencyId }, persona, kernel);
         }
     }
 }

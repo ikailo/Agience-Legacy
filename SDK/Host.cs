@@ -15,38 +15,38 @@ namespace Agience.SDK
         public event Func<Agent, Task>? AgentConnected;
 
         public string Id => _id;
-        public string? Name => _hostName;
+        //public string? Name => _hostName;
         public bool IsConnected { get; private set; }
 
         private readonly string _id;
-        private readonly string _hostName;
+        //private readonly string _hostName;
         private readonly string _hostSecret;
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly AgentFactory _agentFactory;
-        private readonly PluginRuntimeLoader _pluginRuntimeLoader;
+        //private readonly PluginRuntimeLoader _pluginRuntimeLoader;
         private readonly ILogger<Host> _logger;
 
         private readonly IMapper _mapper;
         private readonly Dictionary<string, Agent> _agents = new();
 
         internal Host(
-            string? hostName, // TODO: HostName should be provided by the Authority in the welcome message.
+            //string? hostName, // TODO: HostName should be provided by the Authority in the welcome message.
             string hostId,
             string hostSecret,
             Authority authority,
             Broker broker,
             AgentFactory agentFactory,
-            PluginRuntimeLoader pluginRuntimeLoader,
+           //PluginRuntimeLoader pluginRuntimeLoader,
             ILogger<Host> logger)
         {
             _id = !string.IsNullOrEmpty(hostId) ? hostId : throw new ArgumentNullException(nameof(hostId));
-            _hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided. // TODO: Authority should provide the name.
+            //_hostName = !string.IsNullOrEmpty(hostName) ? hostName : _id; // Fallback to Id if no name is provided. // TODO: Authority should provide the name.
             _hostSecret = !string.IsNullOrEmpty(hostSecret) ? hostSecret : throw new ArgumentNullException(nameof(hostSecret));
             _authority = authority ?? throw new ArgumentNullException(nameof(authority));
             _broker = broker ?? throw new ArgumentNullException(nameof(broker));
             _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
-            _pluginRuntimeLoader = pluginRuntimeLoader;
+           // _pluginRuntimeLoader = pluginRuntimeLoader;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mapper = AutoMapperConfig.GetMapper();
         }
@@ -207,6 +207,10 @@ namespace Agience.SDK
 
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
         {
+            // Agent instantiation is initiated from Authority. The Host does not have control.
+            // Returns an Agent configured with the plugins and functions.
+            // Agent has an Agency which connects them directly to other agents in the Agency.            
+
             var agent = _agentFactory.CreateAgent(modelAgent);
 
             await agent.Connect();
@@ -220,21 +224,13 @@ namespace Agience.SDK
                 await AgentConnected.Invoke(agent);
             }
 
-            // ***** Adding a short delay to accept incoming messages, set defaults, etc.
-            // TODO: Improve this. Maybe not needed now that we're using SDK.
-            // await Task.Delay(5000);
-            // *****
+            agent.Start();
 
             //  *******************************
             // TODO: Add remote plugins/functions (MQTT, GRPC, HTTP) that we want the Agent Kernels to consider local.
             // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.
             // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
             //  *******************************
-
-            // Agent instantiation is initiated from Authority. The Host does not have control.
-            // Returns an agent that has access to all the local & psuedo-local functions
-            // Agent has an Agency which connects them directly to other agents who are experts in their domain.            
-
         }
 
         private async Task<string?> GetAccessToken()
@@ -263,16 +259,6 @@ namespace Agience.SDK
 
                 return null;
             }
-        }
-
-        public Agent? GetAgentById(string? agentId)
-        {
-            return !string.IsNullOrEmpty(agentId) && _agents.TryGetValue(agentId!, out var agent) ? agent : null;
-        }
-
-        public Agent? GetAgentByAgencyId(string? agencyId)
-        {
-            return !string.IsNullOrEmpty(agencyId) ? _agents.Values.FirstOrDefault(agent => agent.Agency?.Id == agencyId) : null;
         }
 
         internal class TokenResponse

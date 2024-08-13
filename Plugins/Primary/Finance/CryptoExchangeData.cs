@@ -1,7 +1,6 @@
 ﻿//using Agience.SDK;
 //using Agience.SDK.Models;
 using Binance.Net.Clients;
-using CryptoExchange.Net.Interfaces;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
@@ -14,6 +13,7 @@ namespace Agience.Plugins.Primary.Finance
             [Description("The specific ticker to retrieve the Cryptocurrency price")] string ticker)
         {
             //Provider: https://github.com/JKorf/Binance.Net
+
             var restClient = new BinanceRestClient();
             var tickerResult = await restClient.SpotApi.ExchangeData.GetTickerAsync(ticker);
             if (tickerResult.Success)

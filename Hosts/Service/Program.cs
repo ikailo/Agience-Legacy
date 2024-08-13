@@ -1,50 +1,53 @@
-using Agience.SDK;
 using Agience.SDK.Extensions;
 
-namespace Agience.Hosts.Service;
-
-internal class Program
+namespace Agience.Hosts.Service
 {
-    private static SDK.Host? _host;
-    private static void Main(string[] args)
+    internal class Program
     {
-        AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionProcessor;
+        private static ILogger<Program>? _logger;
 
-        HostApplicationBuilder builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args);
+        internal static async Task Main(string[] args)
+        {
+            var host = CreateHostBuilder(args).Build();
 
-        builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
+            var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
-        builder.Configuration.AddUserSecrets<AppConfig>();
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                logger.LogError($"\n\n Unhandled Exception occurred: {e.ExceptionObject}");
+            };
 
-        var config = builder.Configuration.Get<AppConfig>();
+            try
+            {
+                await host.RunAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while running the application.");
+            }
+        }
 
-        if (string.IsNullOrEmpty(config?.HostName)) { throw new ArgumentNullException("HostName"); }
-        if (string.IsNullOrEmpty(config?.AuthorityUri)) { throw new ArgumentNullException("AuthorityUri"); }
-        if (string.IsNullOrEmpty(config?.HostId)) { throw new ArgumentNullException("HostId"); }
-        if (string.IsNullOrEmpty(config?.HostSecret)) { throw new ArgumentNullException("HostSecret"); }
+        private static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((context, config) =>
+                {
+                    config.AddUserSecrets<Program>();
+                })
+                .ConfigureServices((context, services) =>
+                {
+                    var config = context.Configuration.Get<AppConfig>() ?? new AppConfig();
 
-        var intermediateServiceProvider = builder.Services.BuildServiceProvider();
-        
-        builder.Services.AddHostedService<Worker>();
-        builder.AddAgienceHost(config.HostName, config.AuthorityUri, config.HostId, config.HostSecret);
-        
-        // TODO: Do these at runtime?
-        // .AddAgiencePlugin<ConsolePlugin>()
-          // .AddAgiencePlugin<EmailPlugin>()
-          // .AddAgiencePlugin<AuthorEmailPlanner>();
+                    if (string.IsNullOrWhiteSpace(config.AuthorityUri)) { throw new ArgumentNullException(nameof(config.AuthorityUri)); }
+                    if (string.IsNullOrWhiteSpace(config.HostId)) { throw new ArgumentNullException(nameof(config.HostId)); }
+                    if (string.IsNullOrWhiteSpace(config.HostSecret)) { throw new ArgumentNullException(nameof(config.HostSecret)); }
 
-        var app = builder.Build();
-        app.Run();
-    }
-
-    static void UnhandledExceptionProcessor(object sender, UnhandledExceptionEventArgs e)
-    {
-        //Any action here...
-        //Implement Logging here...
-
-        //Temp
-        Console.WriteLine("\n\n Unhandled Exception occurred: " + e.ExceptionObject.ToString());
+                    services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret);
+                    services.AddHostedService<Worker>();
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddConsole();
+                });
     }
 }
-
