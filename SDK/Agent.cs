@@ -219,7 +219,7 @@ namespace Agience.SDK
                 // Return the output to the input agent
                 SendInformationToAgent(information, information?.InputAgentId!);
             }
-        }*/
+        }
 
         public async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
@@ -237,6 +237,6 @@ namespace Agience.SDK
             _chatHistory.Add(chatMessageContent);
 
             return chatMessageContent;
-        }        
+        }*/        
     }
 }

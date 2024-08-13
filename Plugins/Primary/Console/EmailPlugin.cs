@@ -17,7 +17,7 @@ namespace Agience.Plugins.Primary._Console
             // Add logic to send an email using the recipientEmails, subject, and body
             // For now, we'll just print out a success message to the console
 
-            console.WriteLine($"* Sent Email *\r\nTo: {recipientEmails}\r\nSubject: {subject}\r\nBody: {body}\r\n* * *");
+            console.WriteLineAsync($"* Sent Email *\r\nTo: {recipientEmails}\r\nSubject: {subject}\r\nBody: {body}\r\n* * *");
 
             return Task.CompletedTask;
         }

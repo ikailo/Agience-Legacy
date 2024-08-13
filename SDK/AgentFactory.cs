@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Agience.SDK
 {
@@ -9,13 +8,17 @@ namespace Agience.SDK
     {
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly KernelPluginCollection _hostPlugins;
+        private readonly KernelPluginCollection _hostPlugins = new();
 
-        internal AgentFactory(Authority authority, Broker broker, KernelPluginCollection hostPlugins)
+        internal AgentFactory(Authority authority, Broker broker) //, KernelPluginCollection hostPlugins)
         {
             _authority = authority;
             _broker = broker;
-            _hostPlugins = hostPlugins;
+        }
+
+        internal void AddHostPluginFromType<T>(string pluginName) where T : class
+        {
+            _hostPlugins.AddFromType<T>(pluginName);
         }
 
         internal void AddHostPlugin(Models.Entities.Plugin plugin)
@@ -46,7 +49,7 @@ namespace Agience.SDK
             var agentPlugins = new KernelPluginCollection();
 
             foreach (var plugin in agent.Plugins)
-            {   
+            {
                 if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPlugins.TryGetPlugin(plugin.Name, out var hostPlugin))
                 {
                     agentPlugins.Add(hostPlugin);
@@ -61,7 +64,7 @@ namespace Agience.SDK
                         if (_hostPlugins.TryGetFunction(plugin.Name, function.Name, out var hostFunction))
                         {
                             agentFunctions.Add(hostFunction);
-                        }                        
+                        }
                     }
                     agentPlugins.AddFromFunctions(plugin.Name, agentFunctions);
                 }
@@ -71,7 +74,7 @@ namespace Agience.SDK
 
             var apiKey = "";
 
-            
+
 
             if (agent.CognitiveFunctionId != null)
             {

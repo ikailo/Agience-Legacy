@@ -1,6 +1,8 @@
-﻿namespace Agience.Plugins.Primary._Console
+﻿using Agience.Plugins.Primary._Console;
+
+namespace Agience.Hosts._Console
 {
-    public class ConsoleService : IConsoleService
+    internal class AgienceConsoleService : IConsoleService
     {
         private readonly StreamReader _inputReader = new(Console.OpenStandardInput());
         private static readonly object _writeLock = new object();

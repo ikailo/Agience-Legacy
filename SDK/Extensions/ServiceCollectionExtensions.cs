@@ -16,11 +16,10 @@ namespace Agience.SDK.Extensions
             string? authorityUriInternal = null,
             string? brokerUriInternal = null)
         {
-            services.AddSingleton(new KernelPluginCollection());
             //services.AddSingleton<PluginRuntimeLoader>();
             services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
             services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), null, x.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
-            services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<KernelPluginCollection>()));
+            services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>()));
             services.AddSingleton(x => new Host(hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), /*x.GetRequiredService<PluginRuntimeLoader>(),*/ x.GetRequiredService<ILogger<Host>>()));
         }
 

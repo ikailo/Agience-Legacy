@@ -9,5 +9,8 @@ namespace Agience.SDK.Models.Entities
 
         [JsonPropertyName("agents")]
         public virtual List<Agent> Agents { get; set; } = new List<Agent>();
+
+        [JsonPropertyName("visibility")]
+        public Visibility Visibility { get; set; } = Visibility.Private;
     }
 }

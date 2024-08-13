@@ -18,13 +18,24 @@ namespace Agience.Hosts._Console
 
             var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+            // ** Configure the Agience Host ** //
+
             var host = app.Services.GetRequiredService<SDK.Host>();
+
+#pragma warning disable SKEXP0050
+            // These plugins could/should be loaded dynamically.
+            host.AddPluginFromType<TimePlugin>("ms.time");
+            host.AddPluginFromType<ConsolePlugin>("agience.console");
+#pragma warning restore SKEXP0050
 
             host.AgentConnected += async (agent) =>
                 {
-                    await app.Services.GetRequiredService<IConsoleService>().WriteLineAsync($"{agent.Name} Ready");                                        
-                    await agent.PromptAsync("")
+                    logger.LogInformation($"{agent.Name} Connected");
+                    //await app.Services.GetRequiredService<AgienceConsoleService>().WriteLineAsync($"{agent.Name} Ready");                                        
+                    //await agent.PromptAsync("")
                 };
+
+            // ** Done configuring the Agience Host ** //
 
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
                 {
@@ -57,11 +68,10 @@ namespace Agience.Hosts._Console
                     if (string.IsNullOrWhiteSpace(config.HostSecret)) { throw new ArgumentNullException(nameof(config.HostSecret)); }
 
                     services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost);
-                    services.AddAgienceHostService<ConsoleService>();
+                    
+                    // Add services to support the plugins.
+                    services.AddSingleton<AgienceConsoleService>();
 
-                    // These plugins should be loaded dynamically.
-                    services.AddAgienceHostPlugin<TimePlugin>("ms.time");
-                    services.AddAgienceHostPlugin<ConsolePlugin>("agience.console");
                 })
                 .ConfigureLogging(logging =>
                 {
