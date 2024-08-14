@@ -19,7 +19,7 @@ public class CognitiveFunctionChatCompletionService : IChatCompletionService
         args["chatHistory"] = chatHistory;
         args["executionSettings"] = executionSettings;
 
-        // TODO: We need to ensure that the cognitive function will return a list of ChatMessageContent
+        // TODO: We need to ensure that the cognitive function will return a list of ChatMessageContent. This will break otherwise.
         
         return await _cognitiveFunction.InvokeAsync<IReadOnlyList<ChatMessageContent>>(kernel, args, cancellationToken) ?? new List<ChatMessageContent>();        
     }

@@ -2,7 +2,7 @@
 {
     public enum Visibility
     {
-        Private,        
+        Private,
         Public
     }
 
@@ -14,8 +14,14 @@
     }
 
     public enum PluginType
-    {   
+    {
         Curated,
         Compiled
+    }
+
+    public enum CompletionAction
+    {
+        Once,
+        Resetart        
     }
 }

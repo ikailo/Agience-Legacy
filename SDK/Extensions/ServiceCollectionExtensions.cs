@@ -19,7 +19,7 @@ namespace Agience.SDK.Extensions
             //services.AddSingleton<PluginRuntimeLoader>();
             services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
             services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), null, x.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
-            services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>()));
+            services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<AgentFactory>>()));
             services.AddSingleton(x => new Host(hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), /*x.GetRequiredService<PluginRuntimeLoader>(),*/ x.GetRequiredService<ILogger<Host>>()));
         }
 

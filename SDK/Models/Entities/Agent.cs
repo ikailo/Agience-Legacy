@@ -20,11 +20,14 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("plugins")]
         public virtual List<Plugin> Plugins { get; set; } = new List<Plugin>();
 
-        [JsonPropertyName("cognitive_function_id")]
-        public string? CognitiveFunctionId { get; set; }
+        [JsonPropertyName("cognitive_function_name")]
+        public string? CognitiveFunctionName { get; set; }
 
-        [JsonPropertyName("cognitive_function")]
-        public Function? CognitiveFunction { get; set; }
+        [JsonPropertyName("startup_function_name")]
+        public string? StartupFunctionName { get; set; }
+        
+        [JsonPropertyName("completion_action")]
+        public CompletionAction? CompletionAction { get; set; }
         
         // ***************** //
         // Currently, Agents can be associated only with a single Host.

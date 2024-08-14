@@ -5,12 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Agience.Plugins.Primary._Console;
 using Microsoft.SemanticKernel.Plugins.Core;
+using Microsoft.SemanticKernel;
 
 namespace Agience.Hosts._Console
 {
     internal class Program
     {
         private static ILogger<Program>? _logger;
+        private static string _contextAgentId = string.Empty;
 
         internal static async Task Main(string[] args)
         {
@@ -22,20 +24,25 @@ namespace Agience.Hosts._Console
 
             var host = app.Services.GetRequiredService<SDK.Host>();
 
+            host.Services.AddSingleton<IConsoleService, AgienceConsoleService>();
+
 #pragma warning disable SKEXP0050
-            // These plugins could/should be loaded dynamically.
-            host.AddPluginFromType<TimePlugin>("ms.time");
-            host.AddPluginFromType<ConsolePlugin>("agience.console");
+            // TODO: These plugins should be loaded dynamically during runtime.
+            host.AddPluginFromType<TimePlugin>("msTime");
+            host.AddPluginFromType<ConsolePlugin>("agienceConsole");
 #pragma warning restore SKEXP0050
 
             host.AgentConnected += async (agent) =>
                 {
-                    logger.LogInformation($"{agent.Name} Connected");
-                    //await app.Services.GetRequiredService<AgienceConsoleService>().WriteLineAsync($"{agent.Name} Ready");                                        
-                    //await agent.PromptAsync("")
-                };
+                    if (string.IsNullOrEmpty(_contextAgentId))
+                    {
+                        _contextAgentId = agent.Id;
 
-            // ** Done configuring the Agience Host ** //
+                        var args = new KernelArguments();
+                        args.Add("message", "input>");
+                        await agent.Kernel.InvokeAsync("agienceConsole", "InteractWithPerson", args);
+                    }
+                };
 
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
                 {
@@ -50,7 +57,7 @@ namespace Agience.Hosts._Console
             {
                 logger.LogError(ex, "An error occurred while running the application.");
             }
-        }        
+        }
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
 
@@ -68,10 +75,6 @@ namespace Agience.Hosts._Console
                     if (string.IsNullOrWhiteSpace(config.HostSecret)) { throw new ArgumentNullException(nameof(config.HostSecret)); }
 
                     services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost);
-                    
-                    // Add services to support the plugins.
-                    services.AddSingleton<AgienceConsoleService>();
-
                 })
                 .ConfigureLogging(logging =>
                 {

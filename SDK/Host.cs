@@ -1,6 +1,7 @@
 ﻿using Agience.SDK.Mappings;
 using Agience.SDK.Models.Messages;
 using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.Net.Http.Headers;
@@ -28,6 +29,8 @@ namespace Agience.SDK
 
         private readonly IMapper _mapper;
         private readonly Dictionary<string, Agent> _agents = new();
+
+        public ServiceCollection Services { get;  } = new();
 
         //private KernelPluginCollection _hostPlugins;
 
@@ -208,13 +211,22 @@ namespace Agience.SDK
             _agentFactory.AddHostPluginFromType<T>(name);
         }
 
+        /*
+        public void AddServiceFromType<T>() where T : class {
+            _agentFactory.AddHostServiceFromType<T>();
+        }
+        */
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
         {
             // Agent instantiation is initiated from Authority. The Host does not have control.
             // Returns an Agent configured with the plugins and functions.
             // Agent has an Agency which connects them directly to other agents in the Agency.
 
-            var agent = _agentFactory.CreateAgent(modelAgent);
+            // Build a new service provider for each agent
+            var agentServiceProvider = Services.BuildServiceProvider();
+
+
+            var agent = _agentFactory.CreateAgent(modelAgent, agentServiceProvider);
 
             await agent.Connect();
 

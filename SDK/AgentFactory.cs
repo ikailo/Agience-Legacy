@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
@@ -8,28 +10,46 @@ namespace Agience.SDK
     {
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly KernelPluginCollection _hostPlugins = new();
+        private readonly ILogger<AgentFactory> _logger;
+        private readonly Dictionary<string, Type> _hostPluginsCompiled = new();
+        private readonly Dictionary<string, KernelPlugin> _hostPluginsCurated = new();
 
-        internal AgentFactory(Authority authority, Broker broker) //, KernelPluginCollection hostPlugins)
+
+        internal AgentFactory(Authority authority, Broker broker, ILogger<AgentFactory> logger)
         {
             _authority = authority;
             _broker = broker;
+            _logger = logger;
         }
 
         internal void AddHostPluginFromType<T>(string pluginName) where T : class
         {
-            _hostPlugins.AddFromType<T>(pluginName);
+            _hostPluginsCompiled.Add(pluginName, typeof(T));
         }
 
         internal void AddHostPlugin(Models.Entities.Plugin plugin)
         {
-            if (plugin.Type == Models.Entities.PluginType.Compiled)
+            if (string.IsNullOrWhiteSpace(plugin.Name))
             {
-                // TODO: Load with plugin loader. For now, it was added hard coded to the host.
-                // Microsoft Time - msTime
-                // OpenAI.ChatCompletion
+                _logger.LogWarning("Plugin name is empty. Plugin will not be loaded.");
+                return;
             }
 
+            if (_hostPluginsCompiled.ContainsKey(plugin.Name) || _hostPluginsCurated.ContainsKey(plugin.Name))
+            {
+                _logger.LogWarning($"{plugin.Name} is already loaded. Plugin will not be loaded.");
+                return;
+            }
+
+            if (plugin.Type == Models.Entities.PluginType.Compiled)
+            {
+                var pluginType = Type.GetType(plugin.Name);
+
+                if (pluginType != null)
+                {
+                    _hostPluginsCompiled.Add(plugin.Name, pluginType);
+                }
+            }
             else if (plugin.Type == Models.Entities.PluginType.Curated)
             {
                 var functions = new List<KernelFunction>();
@@ -38,11 +58,11 @@ namespace Agience.SDK
                 {
                     functions.Add(KernelFunctionFactory.CreateFromPrompt(function.Prompt!, null as PromptExecutionSettings, function.Name, function.Description, null, null));
                 }
-                _hostPlugins.AddFromFunctions(plugin.Name!, functions);
+                _hostPluginsCurated.Add(plugin.Name, KernelPluginFactory.CreateFromFunctions(plugin.Name, functions));
             }
         }
 
-        internal Agent CreateAgent(Models.Entities.Agent agent)
+        internal Agent CreateAgent(Models.Entities.Agent agent, IServiceProvider serviceProvider)
         {
             var persona = string.Empty; // TODO: Load persona from agent.
 
@@ -50,43 +70,65 @@ namespace Agience.SDK
 
             foreach (var plugin in agent.Plugins)
             {
-                if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPlugins.TryGetPlugin(plugin.Name, out var hostPlugin))
+                if (string.IsNullOrWhiteSpace(plugin.Name))
                 {
-                    agentPlugins.Add(hostPlugin);
+                    _logger.LogWarning("Plugin name is empty.");
+                    continue;
                 }
 
-                else if (plugin.Type == Models.Entities.PluginType.Curated)
+                if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPluginsCompiled.TryGetValue(plugin.Name, out var pluginType))
                 {
-                    var agentFunctions = new List<KernelFunction>();
+                    // TODO: Here we can set parameters to the plugin constructor. Keys, Credentials?
+                    agentPlugins.Add(KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(serviceProvider, pluginType), plugin.Name));
+                }
+                else if (plugin.Type == Models.Entities.PluginType.Curated && _hostPluginsCurated.TryGetValue(plugin.Name, out var kernelPlugin))
+                {
+                    agentPlugins.Add(kernelPlugin);
+                }
+            }
 
-                    foreach (var function in plugin.Functions)
+            if (!string.IsNullOrWhiteSpace(agent.CognitiveFunctionName))
+            {
+                var (pluginName, functionName) = agent.CognitiveFunctionName.Split('.') switch
+                {
+                    var parts when parts.Length == 2 => (parts[0], parts[1]),
+                    _ => throw new InvalidOperationException($"Invalid CognitiveFunctionName format: {agent.CognitiveFunctionName}")
+                };
+
+                if (!agentPlugins.Contains(pluginName))
+                {
+                    KernelPlugin? kernelPlugin = null;
+
+                    if ( _hostPluginsCompiled.TryGetValue(pluginName, out var pluginType) || _hostPluginsCurated.TryGetValue(pluginName, out kernelPlugin))
                     {
-                        if (_hostPlugins.TryGetFunction(plugin.Name, function.Name, out var hostFunction))
+                        kernelPlugin ??= KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(serviceProvider, pluginType!), pluginName);
+
+                        if (kernelPlugin.TryGetFunction(functionName, out var kernelFunction))
                         {
-                            agentFunctions.Add(hostFunction);
+                            agentPlugins.AddFromFunctions(pluginName, new[] { kernelFunction });
                         }
                     }
-                    agentPlugins.AddFromFunctions(plugin.Name, agentFunctions);
+                    else
+                    {
+                        _logger.LogWarning($"Plugin {pluginName} not found. Cognitive function {agent.CognitiveFunctionName} will not be loaded.");
+                    }
                 }
+
+                var cognitiveFunction = agentPlugins.GetFunction(pluginName, functionName);
+
+                var serviceCollection = new ServiceCollection();
+                                
+                foreach (var serviceDescriptor in serviceProvider.GetRequiredService<IServiceCollection>())
+                {
+                    serviceCollection.Add(serviceDescriptor);
+                }
+
+                serviceCollection.AddScoped<IChatCompletionService>(sp => new CognitiveFunctionChatCompletionService(cognitiveFunction));
+                
+                serviceProvider = serviceCollection.BuildServiceProvider(); // Overwriting the serviceProvider to include the new service.
             }
 
-            var agentServices = new ServiceCollection();
-
-            var apiKey = "";
-
-
-
-            if (agent.CognitiveFunctionId != null)
-            {
-                var pluginName = "";
-                var functionName = "";
-
-                var cognitiveFunction = _hostPlugins.GetFunction(pluginName, functionName); // This function needs to be already loaded in the host plugins.
-
-                agentServices.AddScoped<IChatCompletionService>(x => new CognitiveFunctionChatCompletionService(cognitiveFunction));
-            }
-
-            var kernel = new Kernel(agentServices.BuildServiceProvider(), agentPlugins);
+            var kernel = new Kernel(serviceProvider, agentPlugins);
 
             return new Agent(agent.Id, agent.Name, _authority, _broker, new Models.Entities.Agency() { Id = agent.AgencyId }, persona, kernel);
         }
