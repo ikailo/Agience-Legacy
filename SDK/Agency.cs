@@ -19,14 +19,13 @@ namespace Agience.SDK
         private readonly ConcurrentDictionary<string, (Models.Entities.Agent, DateTime)> _agents = new();        
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly Agent _agent; // TODO: Will need to be a list of Agents
+        private readonly Dictionary<string, Agent> _localAgents = new();
         private readonly ILogger<Agency>? _logger;
         private readonly IMapper _mapper;
 
-        internal Agency(Authority authority, Agent agent, Broker broker)
+        internal Agency(Authority authority, Broker broker)
         {
-            _authority = authority;
-            _agent = agent;
+            _authority = authority;           
             _broker = broker;            
             _mapper = AutoMapperConfig.GetMapper();
         }
@@ -116,7 +115,7 @@ namespace Agience.SDK
                 _agents[modelAgent.Id!] = (modelAgent, timestamp);
             }
 
-            if (_agent.Id == RepresentativeId)
+            if (_localAgents.ContainsKey(RepresentativeId))
             {
                 SendWelcome(modelAgent);
             }
@@ -174,9 +173,9 @@ namespace Agience.SDK
                 _logger?.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
             }
 
-            if (_agent.Id == RepresentativeId)
+            if (_localAgents.ContainsKey(RepresentativeId))
             {
-                var repJoinTime = _agents[_agent.Id!].Item2;
+                var repJoinTime = _agents[RepresentativeId].Item2;
                 foreach (var agent in _agents.Values.Where(a => a.Item2 >= repJoinTime).Select(a => a.Item1))
                 {
                     SendWelcome(agent);
@@ -184,12 +183,21 @@ namespace Agience.SDK
             }
         }
 
-
         internal string? GetAgentName(string? agentId)
         {
             if (agentId == null) { return null; }
 
             return _agents.TryGetValue(agentId, out (Models.Entities.Agent, DateTime) agent) ? agent.Item1.Name : null;
+        }
+
+        internal void AddLocalAgent(Agent agent)
+        {
+            _localAgents.Add(agent.Id!, agent);
+        }
+
+        internal Agent? GetLocalAgent(string agentId)
+        {
+            return _localAgents.TryGetValue(agentId, out Agent? agent) ? agent : null;            
         }
     }
 }

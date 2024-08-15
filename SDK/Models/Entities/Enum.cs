@@ -2,26 +2,26 @@
 {
     public enum Visibility
     {
-        Private,
-        Public
+        Private = 0,
+        Public = 1
     }
 
     public enum AuthorizationType
     {
-        None,
-        OAuth2,
-        ApiKey
+        None = 0,
+        OAuth2 = 1,
+        ApiKey = 2
     }
 
     public enum PluginType
     {
-        Curated,
-        Compiled
+        Curated = 0,
+        Compiled = 1
     }
 
     public enum CompletionAction
     {
-        Once,
-        Resetart        
+        Idle = 0,
+        Restart = 1        
     }
 }

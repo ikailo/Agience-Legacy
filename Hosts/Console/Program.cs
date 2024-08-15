@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Agience.Plugins.Primary._Console;
 using Microsoft.SemanticKernel.Plugins.Core;
-using Microsoft.SemanticKernel;
 
 namespace Agience.Hosts._Console
 {
@@ -24,12 +23,13 @@ namespace Agience.Hosts._Console
 
             var host = app.Services.GetRequiredService<SDK.Host>();
 
-            host.Services.AddSingleton<IConsoleService, AgienceConsoleService>();
+            host.Services.AddSingleton<IConsoleService, AgienceConsolePluginService>();
 
 #pragma warning disable SKEXP0050
             // TODO: These plugins should be loaded dynamically during runtime.
             host.AddPluginFromType<TimePlugin>("msTime");
             host.AddPluginFromType<ConsolePlugin>("agienceConsole");
+            host.AddPluginFromType<ChatCompletionPlugin>("openAiChatCompletion");
 #pragma warning restore SKEXP0050
 
             host.AgentConnected += async (agent) =>
@@ -38,9 +38,10 @@ namespace Agience.Hosts._Console
                     {
                         _contextAgentId = agent.Id;
 
-                        var args = new KernelArguments();
-                        args.Add("message", "input>");
-                        await agent.Kernel.InvokeAsync("agienceConsole", "InteractWithPerson", args);
+                        //var args = new KernelArguments();
+                        //args.Add("message", "input>");
+                        //var result = await agent.Kernel.InvokeAsync("agienceConsole", "InteractWithPerson", args);
+                        //var foo = result;
                     }
                 };
 

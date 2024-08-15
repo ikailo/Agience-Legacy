@@ -125,13 +125,16 @@ namespace Agience.SDK
                 {
                     if (container.Callback != null)
                     {
-                        Task.Run(() => container.Callback(message))
-                        .ContinueWith(t =>
+                        Task.Run(async () =>
                         {
-                            if (t.IsFaulted)
+                            try
                             {
-                                // Rethrow the exception on the ThreadPool
-                                ThreadPool.QueueUserWorkItem(_ => { throw t.Exception; });
+                                await Task.Run(() => container.Callback(message));
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "An error occurred in the callback.");
+                                throw;
                             }
                         });
                     }

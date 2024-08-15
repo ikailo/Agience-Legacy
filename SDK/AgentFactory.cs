@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using Agience.SDK.Models.Entities;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using NuGet.Configuration;
 
 namespace Agience.SDK
 {
@@ -13,7 +14,7 @@ namespace Agience.SDK
         private readonly ILogger<AgentFactory> _logger;
         private readonly Dictionary<string, Type> _hostPluginsCompiled = new();
         private readonly Dictionary<string, KernelPlugin> _hostPluginsCurated = new();
-
+        private readonly Dictionary<string, Agency> _agencies = new();
 
         internal AgentFactory(Authority authority, Broker broker, ILogger<AgentFactory> logger)
         {
@@ -62,13 +63,15 @@ namespace Agience.SDK
             }
         }
 
-        internal Agent CreateAgent(Models.Entities.Agent agent, IServiceProvider serviceProvider)
+        internal Agent CreateAgent(Models.Entities.Agent modelAgent, IServiceCollection serviceCollection)
         {
             var persona = string.Empty; // TODO: Load persona from agent.
 
             var agentPlugins = new KernelPluginCollection();
 
-            foreach (var plugin in agent.Plugins)
+            using var tempServiceProvider = serviceCollection.BuildServiceProvider();
+
+            foreach (var plugin in modelAgent.Plugins)
             {
                 if (string.IsNullOrWhiteSpace(plugin.Name))
                 {
@@ -77,9 +80,9 @@ namespace Agience.SDK
                 }
 
                 if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPluginsCompiled.TryGetValue(plugin.Name, out var pluginType))
-                {
-                    // TODO: Here we can set parameters to the plugin constructor. Keys, Credentials?
-                    agentPlugins.Add(KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(serviceProvider, pluginType), plugin.Name));
+                {   
+                    var kernelPlugin = KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(tempServiceProvider, pluginType!), plugin.Name);
+                    agentPlugins.Add(kernelPlugin);
                 }
                 else if (plugin.Type == Models.Entities.PluginType.Curated && _hostPluginsCurated.TryGetValue(plugin.Name, out var kernelPlugin))
                 {
@@ -87,21 +90,26 @@ namespace Agience.SDK
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(agent.CognitiveFunctionName))
+            if (!string.IsNullOrWhiteSpace(modelAgent.ChatCompletionFunctionName))
             {
-                var (pluginName, functionName) = agent.CognitiveFunctionName.Split('.') switch
+                var (pluginName, functionName) = modelAgent.ChatCompletionFunctionName.Split('.') switch
                 {
                     var parts when parts.Length == 2 => (parts[0], parts[1]),
-                    _ => throw new InvalidOperationException($"Invalid CognitiveFunctionName format: {agent.CognitiveFunctionName}")
+                    _ => throw new InvalidOperationException($"Invalid ChatCompletionFunctionName format: {modelAgent.ChatCompletionFunctionName}")
                 };
+
+                if (functionName.EndsWith("Async"))
+                {
+                    functionName = functionName.Substring(0, functionName.Length - "Async".Length);
+                }
 
                 if (!agentPlugins.Contains(pluginName))
                 {
                     KernelPlugin? kernelPlugin = null;
 
-                    if ( _hostPluginsCompiled.TryGetValue(pluginName, out var pluginType) || _hostPluginsCurated.TryGetValue(pluginName, out kernelPlugin))
+                    if (_hostPluginsCompiled.TryGetValue(pluginName, out var pluginType) || _hostPluginsCurated.TryGetValue(pluginName, out kernelPlugin))
                     {
-                        kernelPlugin ??= KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(serviceProvider, pluginType!), pluginName);
+                        kernelPlugin ??= KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(tempServiceProvider, pluginType!), pluginName);
 
                         if (kernelPlugin.TryGetFunction(functionName, out var kernelFunction))
                         {
@@ -110,27 +118,41 @@ namespace Agience.SDK
                     }
                     else
                     {
-                        _logger.LogWarning($"Plugin {pluginName} not found. Cognitive function {agent.CognitiveFunctionName} will not be loaded.");
+                        _logger.LogWarning($"Plugin {pluginName} not found. Chat Completion function {modelAgent.ChatCompletionFunctionName} will not be loaded.");
                     }
                 }
 
-                var cognitiveFunction = agentPlugins.GetFunction(pluginName, functionName);
+                var chatCompletionFunction = agentPlugins.GetFunction(pluginName, functionName);
 
-                var serviceCollection = new ServiceCollection();
-                                
-                foreach (var serviceDescriptor in serviceProvider.GetRequiredService<IServiceCollection>())
-                {
-                    serviceCollection.Add(serviceDescriptor);
-                }
-
-                serviceCollection.AddScoped<IChatCompletionService>(sp => new CognitiveFunctionChatCompletionService(cognitiveFunction));
-                
-                serviceProvider = serviceCollection.BuildServiceProvider(); // Overwriting the serviceProvider to include the new service.
+                serviceCollection.AddScoped<IChatCompletionService>(sp => new AgienceChatCompletionService(chatCompletionFunction));
             }
 
-            var kernel = new Kernel(serviceProvider, agentPlugins);
+            var kernel = new Kernel(serviceCollection.BuildServiceProvider(), agentPlugins);
 
-            return new Agent(agent.Id, agent.Name, _authority, _broker, new Models.Entities.Agency() { Id = agent.AgencyId }, persona, kernel);
+            var agency = GetAgency(modelAgent.Agency);
+
+            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel);
+
+            agency.AddLocalAgent(agent);
+                        
+            return agent;
+        }
+
+        internal Agency GetAgency(Models.Entities.Agency modelAgency)
+        {
+            if (!_agencies.TryGetValue(modelAgency.Id, out var agency))
+            {
+                agency = new Agency(_authority, _broker)
+                {
+                    Id = modelAgency.Id,
+                    Name = modelAgency.Name
+                    // Could use AutoMapper here
+                };
+
+                _agencies[modelAgency.Id] = agency;
+            }
+
+            return _agencies[modelAgency.Id];
         }
     }
 }

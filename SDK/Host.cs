@@ -13,8 +13,9 @@ namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Host), ReverseMap = true)]
     public class Host
-    {
+    {   
         public event Func<Agent, Task>? AgentConnected;
+        public event Func<Agency, Task>? AgencyConnected;
 
         public string Id => _id;
         public bool IsConnected { get; private set; }
@@ -29,8 +30,9 @@ namespace Agience.SDK
 
         private readonly IMapper _mapper;
         private readonly Dictionary<string, Agent> _agents = new();
+        private readonly Dictionary<string, Agency> _agencies = new();
 
-        public ServiceCollection Services { get;  } = new();
+        public ServiceCollection Services { get; } = new();
 
         //private KernelPluginCollection _hostPlugins;
 
@@ -219,18 +221,28 @@ namespace Agience.SDK
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
         {
             // Agent instantiation is initiated from Authority. The Host does not have control.
-            // Returns an Agent configured with the plugins and functions.
+            // Creates an Agent configured with the plugins and functions.
             // Agent has an Agency which connects them directly to other agents in the Agency.
 
-            // Build a new service provider for each agent
-            var agentServiceProvider = Services.BuildServiceProvider();
+            var agent = _agentFactory.CreateAgent(modelAgent, Services);
+                        
+            if (!_agencies.ContainsKey(agent.Agency.Id))
+            {   
+                _agencies.Add(agent.Agency.Id, agent.Agency);
+                
+                await agent.Agency.Connect();
 
+                _logger.LogInformation($"{agent.Agency.Name} Connected");
+            }
 
-            var agent = _agentFactory.CreateAgent(modelAgent, agentServiceProvider);
+            if (AgencyConnected != null)
+            {
+                await AgencyConnected.Invoke(agent.Agency);
+            }
+                        
+            _agents[agent.Id!] = agent;
 
             await agent.Connect();
-
-            _agents.Add(agent.Id!, agent);
 
             _logger.LogInformation($"{agent.Name} Connected");
 
@@ -239,7 +251,9 @@ namespace Agience.SDK
                 await AgentConnected.Invoke(agent);
             }
 
-            //agent.Start();
+            var response = await agent.PromptAsync("Hello");
+
+           // agent.AutoStart();
 
             //  *******************************
             // TODO: Add remote plugins/functions (MQTT, GRPC, HTTP) that we want the Agent Kernels to consider local.

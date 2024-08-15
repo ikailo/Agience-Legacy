@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>3ff5e00b-91c8-4e50-8295-785456482cae</UserSecretsId>
-    <RootNamespace>Agience.Host._Console</RootNamespace>
+    <RootNamespace>Agience.Hosts._Console</RootNamespace>
     <Configurations>Local;Preview;Release</Configurations>
   </PropertyGroup>
 

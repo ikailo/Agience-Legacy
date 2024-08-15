@@ -1,28 +1,90 @@
 ﻿using Agience.Plugins.Primary._Console;
+using Agience.SDK;
+using Microsoft.Extensions.Logging;
 
 namespace Agience.Hosts._Console
 {
-    internal class AgienceConsoleService : IConsoleService
+    public class AgienceConsoleService
     {
-        private readonly StreamReader _inputReader = new(Console.OpenStandardInput());
-        private static readonly object _writeLock = new object();
-        private static readonly object _readLock = new object();
+        private readonly Host _host;
+        private readonly ILogger<AgienceConsoleService> _logger;
 
-        public Task<string?> ReadLineAsync()
+        private string _contextAgentId = string.Empty;
+        private string _contextAgencyId = string.Empty;
+
+        public AgienceConsoleService(Host host, ILogger<AgienceConsoleService> logger)
         {
-            lock (_readLock)
+            _host = host;
+            _logger = logger;
+
+            _host.AgentConnected += OnAgentConnected;
+            _host.AgencyConnected += OnAgencyConnected;
+        }
+
+        public async Task RunAsync()
+        {
+            while (true)
             {
-                return _inputReader.ReadLineAsync();
+                if (!string.IsNullOrEmpty(_contextAgentId))
+                {
+                    Console.Write($"[{_contextAgencyId} - {_contextAgentId}] > ");
+                }
+                else if (!string.IsNullOrEmpty(_contextAgencyId))
+                {
+                    Console.Write($"[{_contextAgencyId}] > ");
+                }
+                else
+                {
+                    Console.Write("> ");
+                }
+
+                string userInput = Console.ReadLine();
+
+                if (!string.IsNullOrEmpty(_contextAgentId))
+                {
+                    var agent = _host.GetAgentById(_contextAgentId);
+                    if (agent != null)
+                    {
+                        await agent.PromptAsync(userInput);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(_contextAgencyId))
+                {
+                    var agency = _host.GetAgencyById(_contextAgencyId);
+                    if (agency != null)
+                    {
+                        await agency.PromptAsync(userInput);
+                    }
+                }
             }
         }
 
-        public Task WriteLineAsync(string message)
+        private async Task OnAgentConnected(Agent agent)
         {
-            lock (_writeLock)
+            await ListenToAgentInteractions(agent);
+        }
+
+        private async Task OnAgencyConnected(Agency agency)
+        {
+            await ListenToAgencyInteractions(agency);
+        }
+
+        private async Task ListenToAgentInteractions(Agent agent)
+        {
+            await foreach (var interaction in agent.Interactions)
             {
-                Console.WriteLine(message);
+                Console.WriteLine($"\n[{agent.Id}] Response: {interaction}");
+                Console.Write("> ");
             }
-            return Task.CompletedTask;
+        }
+
+        private async Task ListenToAgencyInteractions(Agency agency)
+        {
+            await foreach (var interaction in agency.Interactions)
+            {
+                Console.WriteLine($"\n[{agency.Id}] Response: {interaction}");
+                Console.Write("> ");
+            }
         }
     }
 }

@@ -46,7 +46,7 @@ namespace Agience.SDK
             string name,
             Authority authority,
             Broker broker,
-            Models.Entities.Agency modelAgency,
+            Agency agency,
             string? persona,
             Kernel kernel
             )
@@ -62,11 +62,7 @@ namespace Agience.SDK
             _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
             _mapper = AutoMapperConfig.GetMapper();
 
-            _agency = new Agency(authority, this, broker)
-            {
-                Id = modelAgency.Id,
-                Name = modelAgency.Name
-            };
+            _agency = agency; 
 
             _persona = persona ?? string.Empty;
 
@@ -86,7 +82,6 @@ namespace Agience.SDK
             if (!IsConnected)
             {
                 await _broker.Subscribe(_authority.AgentTopic("+", Id!), _broker_ReceiveMessage);
-                await _agency.Connect();
                 IsConnected = true;
             }
             SendJoin();
@@ -102,7 +97,6 @@ namespace Agience.SDK
                 // TODO: Advise the Agency that this Agent is no longer available.
 
                 await _broker.Unsubscribe(_authority.AgentTopic("+", Id!));
-                await _agency.Disconnect();
                 IsConnected = false;
             }
         }
@@ -194,49 +188,62 @@ namespace Agience.SDK
                 await ReceiveInformation(message.Information);
             }*/
         }
-        /*
-        private async Task ReceiveInformation(Information information)
+
+        internal void AutoStart()
         {
-            _logger?.LogInformation($"ReceiveInformation {information.Id}");
-
-            if (information.InputAgentId == Id)
-            {
-
-                // This is returned information
-                if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
-                {
-                    //runner.ReceiveOutput(information);
-                    throw new NotImplementedException();
-                }
-            }
-
-            if (information.OutputAgentId == null)
-            {
-                // This is information that needs to be processed. Presumably Local. Dispatch it.
-                //await new Runner(this, information).DispatchAsync();
-                throw new NotImplementedException();
-
-                // Return the output to the input agent
-                SendInformationToAgent(information, information?.InputAgentId!);
-            }
+            throw new NotImplementedException();
         }
 
-        public async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
+        internal void Prompt()
+        {
+
+        }
+
+        internal void ReceiveFromAgency()
+        {
+            throw new NotImplementedException();
+        }
+
+
+        /*
+private async Task ReceiveInformation(Information information)
+{
+   _logger?.LogInformation($"ReceiveInformation {information.Id}");
+
+   if (information.InputAgentId == Id)
+   {
+
+       // This is returned information
+       if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
+       {
+           //runner.ReceiveOutput(information);
+           throw new NotImplementedException();
+       }
+   }
+
+   if (information.OutputAgentId == null)
+   {
+       // This is information that needs to be processed. Presumably Local. Dispatch it.
+       //await new Runner(this, information).DispatchAsync();
+       throw new NotImplementedException();
+
+       // Return the output to the input agent
+       SendInformationToAgent(information, information?.InputAgentId!);
+   }
+}
+        */
+
+        internal async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
             _chatHistory.AddUserMessage(message);
 
-            
-            // TODO: Call the Agent's Cognitive Function to process the message.
-                        
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
-            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(_chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
+            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(_chatHistory, null, _kernel, cancellationToken);
 
-                        
-            
             _chatHistory.Add(chatMessageContent);
 
             return chatMessageContent;
-        }*/        
+        }
     }
 }
