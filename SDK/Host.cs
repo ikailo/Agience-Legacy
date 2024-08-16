@@ -13,7 +13,7 @@ namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Host), ReverseMap = true)]
     public class Host
-    {   
+    {
         public event Func<Agent, Task>? AgentConnected;
         public event Func<Agency, Task>? AgencyConnected;
 
@@ -27,14 +27,12 @@ namespace Agience.SDK
         private readonly AgentFactory _agentFactory;
         //private readonly PluginRuntimeLoader _pluginRuntimeLoader;
         private readonly ILogger<Host> _logger;
-
         private readonly IMapper _mapper;
+
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, Agency> _agencies = new();
 
         public ServiceCollection Services { get; } = new();
-
-        //private KernelPluginCollection _hostPlugins;
 
         internal Host(
             string hostId,
@@ -55,13 +53,31 @@ namespace Agience.SDK
             _mapper = AutoMapperConfig.GetMapper();
         }
 
-        public async Task Run()
+        public async Task RunAsync()
         {
+            await StartAsync();
+
+            while (IsConnected)
+            {
+                await Task.Delay(100);
+            }
+        }
+
+        public async Task Stop()
+        {
+            _logger.LogInformation("Stopping Host");
+
+            await Disconnect();
+        }
+
+        public async Task StartAsync()
+        {
+            _logger.LogInformation("Starting Host");
+
             while (!IsConnected)
             {
                 try
-                {
-                    _logger.LogInformation("Connecting Host");
+                {   
                     await Connect();
                 }
                 catch (Exception ex)
@@ -72,19 +88,12 @@ namespace Agience.SDK
                     await Task.Delay(10 * 1000); // TODO: With backoff
                 }
             }
-
-            _logger.LogInformation("Host Connected");
-
-            do { await Task.Delay(10); } while (IsConnected);
-        }
-
-        public async Task Stop()
-        {
-            await Disconnect();
         }
 
         private async Task Connect()
         {
+            _logger.LogInformation("Connecting Host");
+
             await _authority.InitializeWithBackoff();
 
             var brokerUri = _authority.BrokerUri ?? throw new ArgumentNullException("BrokerUri");
@@ -118,7 +127,7 @@ namespace Agience.SDK
                 throw new Exception("Broker Connection Failed");
             }
 
-
+            _logger.LogInformation("Host Connected");
         }
 
         private async Task Disconnect()
@@ -213,11 +222,6 @@ namespace Agience.SDK
             _agentFactory.AddHostPluginFromType<T>(name);
         }
 
-        /*
-        public void AddServiceFromType<T>() where T : class {
-            _agentFactory.AddHostServiceFromType<T>();
-        }
-        */
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
         {
             // Agent instantiation is initiated from Authority. The Host does not have control.
@@ -225,11 +229,12 @@ namespace Agience.SDK
             // Agent has an Agency which connects them directly to other agents in the Agency.
 
             var agent = _agentFactory.CreateAgent(modelAgent, Services);
-                        
+
+            // Connect the Agency first
             if (!_agencies.ContainsKey(agent.Agency.Id))
-            {   
+            {
                 _agencies.Add(agent.Agency.Id, agent.Agency);
-                
+
                 await agent.Agency.Connect();
 
                 _logger.LogInformation($"{agent.Agency.Name} Connected");
@@ -239,7 +244,8 @@ namespace Agience.SDK
             {
                 await AgencyConnected.Invoke(agent.Agency);
             }
-                        
+
+            // Connect the Agent now
             _agents[agent.Id!] = agent;
 
             await agent.Connect();
@@ -251,9 +257,9 @@ namespace Agience.SDK
                 await AgentConnected.Invoke(agent);
             }
 
-            var response = await agent.PromptAsync("Hello");
+            //var response = await agent.PromptAsync("Hello");
 
-           // agent.AutoStart();
+            // agent.AutoStart();
 
             //  *******************************
             // TODO: Add remote plugins/functions (MQTT, GRPC, HTTP) that we want the Agent Kernels to consider local.

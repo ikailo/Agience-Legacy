@@ -20,7 +20,7 @@ namespace Agience.SDK
         public string? OutputTimestamp { get; internal set; }
 
 
-        public string? TemplateId { get; internal set; }
+        //public string? TemplateId { get; internal set; }
         public Data? Transformation { get; internal set; }
 
 
@@ -47,7 +47,7 @@ namespace Agience.SDK
                             Data? output,
                             string? outputAgentId,
                             string? outputTimestamp,
-                            string? templateId,
+                            //string? templateId,
                             Data? transformation                            
                             )
         {
@@ -60,7 +60,7 @@ namespace Agience.SDK
             OutputAgentId = outputAgentId;
             OutputTimestamp = outputTimestamp;
             Transformation = transformation;
-            TemplateId = templateId;
+            //TemplateId = templateId;
         }
     }
 }

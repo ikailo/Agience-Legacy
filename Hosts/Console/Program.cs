@@ -19,40 +19,30 @@ namespace Agience.Hosts._Console
 
             var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                logger.LogError($"Unhandled Exception occurred: {e.ExceptionObject}");
+            };
+
             // ** Configure the Agience Host ** //
 
-            var host = app.Services.GetRequiredService<SDK.Host>();
+            var agienceHost = app.Services.GetRequiredService<SDK.Host>();
 
-            host.Services.AddSingleton<IConsoleService, AgienceConsolePluginService>();
+            agienceHost.Services.AddSingleton<IConsoleService, AgienceConsolePluginService>();
 
 #pragma warning disable SKEXP0050
             // TODO: These plugins should be loaded dynamically during runtime.
-            host.AddPluginFromType<TimePlugin>("msTime");
-            host.AddPluginFromType<ConsolePlugin>("agienceConsole");
-            host.AddPluginFromType<ChatCompletionPlugin>("openAiChatCompletion");
+            agienceHost.AddPluginFromType<TimePlugin>("msTime");
+            agienceHost.AddPluginFromType<ConsolePlugin>("agienceConsole");
+            agienceHost.AddPluginFromType<ChatCompletionPlugin>("openAiChatCompletion");
 #pragma warning restore SKEXP0050
 
-            host.AgentConnected += async (agent) =>
-                {
-                    if (string.IsNullOrEmpty(_contextAgentId))
-                    {
-                        _contextAgentId = agent.Id;
-
-                        //var args = new KernelArguments();
-                        //args.Add("message", "input>");
-                        //var result = await agent.Kernel.InvokeAsync("agienceConsole", "InteractWithPerson", args);
-                        //var foo = result;
-                    }
-                };
-
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
-                {
-                    logger.LogError($"Unhandled Exception occurred: {e.ExceptionObject}");
-                };
+            // ** Start the Agience Host and Console ** //
 
             try
             {
-                await host.Run();
+                await agienceHost.StartAsync();
+                await app.Services.GetRequiredService<AgienceConsoleService>().RunAsync();
             }
             catch (Exception ex)
             {
@@ -75,7 +65,8 @@ namespace Agience.Hosts._Console
                     if (string.IsNullOrWhiteSpace(config.HostId)) { throw new ArgumentNullException(nameof(config.HostId)); }
                     if (string.IsNullOrWhiteSpace(config.HostSecret)) { throw new ArgumentNullException(nameof(config.HostSecret)); }
 
-                    services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost);
+                    services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost, null, null, config.OpenAiApiKey);
+                    services.AddSingleton<AgienceConsoleService>();
                 })
                 .ConfigureLogging(logging =>
                 {

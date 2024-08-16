@@ -173,12 +173,12 @@ namespace Agience.SDK
             var agents = await _authorityDataAdapter.GetAgentsForHostIdNoTrackingAsync(hostId);
                         
             _logger.LogInformation($"Found {agents.Count()} Agents");
-            _logger.LogDebug($"Agents: {JsonSerializer.Serialize(agents)}");            
+            _logger.LogDebug($"Agents: {JsonSerializer.Serialize(agents)}");
 
-            PublishHostWelcomeEvent(host, plugins, agents);            
+            SendHostWelcomeEvent(host, plugins, agents);            
         }
 
-        private void PublishHostWelcomeEvent(Models.Entities.Host host, IEnumerable<Models.Entities.Plugin> plugins, IEnumerable<Models.Entities.Agent> agents)
+        private void SendHostWelcomeEvent(Models.Entities.Host host, IEnumerable<Models.Entities.Plugin> plugins, IEnumerable<Models.Entities.Agent> agents)
         {
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 

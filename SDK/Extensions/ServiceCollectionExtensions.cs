@@ -1,7 +1,6 @@
 ﻿using Agience.SDK.Models.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
 
 namespace Agience.SDK.Extensions
 {
@@ -14,13 +13,15 @@ namespace Agience.SDK.Extensions
             string hostSecret,
             string? customNtpHost = null,
             string? authorityUriInternal = null,
-            string? brokerUriInternal = null)
+            string? brokerUriInternal = null, 
+            string? openAiApiKey = null // TODO: Remove this and use Authorizer / Credential Service instead
+            )
         {
             //services.AddSingleton<PluginRuntimeLoader>();
-            services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-            services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), null, x.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
-            services.AddSingleton(x => new AgentFactory(x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<ILogger<AgentFactory>>()));
-            services.AddSingleton(x => new Host(hostId, hostSecret, x.GetRequiredService<Authority>(), x.GetRequiredService<Broker>(), x.GetRequiredService<AgentFactory>(), /*x.GetRequiredService<PluginRuntimeLoader>(),*/ x.GetRequiredService<ILogger<Host>>()));
+            services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
+            services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), null, sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
+            services.AddSingleton(sp => new AgentFactory(sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<ILogger<AgentFactory>>(), openAiApiKey));
+            services.AddSingleton(sp => new Host(hostId, hostSecret, sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<AgentFactory>(), /*sp.GetRequiredService<PluginRuntimeLoader>(),*/ sp.GetRequiredService<ILogger<Host>>()));
         }
 
         public static void AddAgienceAuthority(
@@ -30,8 +31,8 @@ namespace Agience.SDK.Extensions
             string? authorityUriInternal = null,
             string? brokerUriInternal = null)
         {
-            services.AddSingleton(x => new Broker(x.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-            services.AddSingleton(x => new Authority(authorityUri, x.GetRequiredService<Broker>(), x.GetRequiredService<IAuthorityDataAdapter>(), x.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
+            services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
+            services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), sp.GetRequiredService<IAuthorityDataAdapter>(), sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
         }
     }
 }

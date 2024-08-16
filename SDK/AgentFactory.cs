@@ -1,9 +1,8 @@
-﻿using Agience.SDK.Models.Entities;
+﻿using Agience.SDK.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using NuGet.Configuration;
 
 namespace Agience.SDK
 {
@@ -12,15 +11,18 @@ namespace Agience.SDK
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly ILogger<AgentFactory> _logger;
+        private readonly string _openAiApiKey;
+
         private readonly Dictionary<string, Type> _hostPluginsCompiled = new();
         private readonly Dictionary<string, KernelPlugin> _hostPluginsCurated = new();
         private readonly Dictionary<string, Agency> _agencies = new();
 
-        internal AgentFactory(Authority authority, Broker broker, ILogger<AgentFactory> logger)
+        internal AgentFactory(Authority authority, Broker broker, ILogger<AgentFactory> logger, string? openAiApiKey = null)
         {
             _authority = authority;
             _broker = broker;
             _logger = logger;
+            _openAiApiKey = openAiApiKey ?? string.Empty;
         }
 
         internal void AddHostPluginFromType<T>(string pluginName) where T : class
@@ -127,22 +129,29 @@ namespace Agience.SDK
                 serviceCollection.AddScoped<IChatCompletionService>(sp => new AgienceChatCompletionService(chatCompletionFunction));
             }
 
+            if (!string.IsNullOrWhiteSpace(_openAiApiKey))
+            {
+                // HERE: Add OpenAI API key to the service collection.
+                serviceCollection.AddScoped(sp => new AgienceCredentialService(modelAgent.Id, _authority, _broker));
+            }
+            
+
             var kernel = new Kernel(serviceCollection.BuildServiceProvider(), agentPlugins);
 
-            var agency = GetAgency(modelAgent.Agency);
+            var agency = GetAgency(modelAgent.Agency, kernel.LoggerFactory.CreateLogger<Agency>());
 
-            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel);
+            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel, kernel.LoggerFactory.CreateLogger<Agent>());
 
             agency.AddLocalAgent(agent);
                         
             return agent;
         }
 
-        internal Agency GetAgency(Models.Entities.Agency modelAgency)
+        internal Agency GetAgency(Models.Entities.Agency modelAgency, ILogger<Agency> logger)
         {
             if (!_agencies.TryGetValue(modelAgency.Id, out var agency))
             {
-                agency = new Agency(_authority, _broker)
+                agency = new Agency(_authority, _broker, logger)
                 {
                     Id = modelAgency.Id,
                     Name = modelAgency.Name

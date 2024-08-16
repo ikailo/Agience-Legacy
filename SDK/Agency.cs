@@ -4,30 +4,39 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Agience.SDK.Models.Messages;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Agency), ReverseMap = true)]
     public class Agency : Models.Entities.Agency
     {
-        //public string? Id { get; set; }
-        //public string? Name { get; set; }
+        // TODO: Agent Orchestration via Agency. One such method: ACE Layer processing
+        // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
+        // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
+
+        public event Func<History, Task>? HistoryUpdated;
+
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
-        
-        private readonly ConcurrentDictionary<string, (Models.Entities.Agent, DateTime)> _agents = new();        
+
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly Dictionary<string, Agent> _localAgents = new();
-        private readonly ILogger<Agency>? _logger;
+        private readonly ILogger<Agency> _logger;
         private readonly IMapper _mapper;
 
-        internal Agency(Authority authority, Broker broker)
+        private readonly Dictionary<string, (Models.Entities.Agent, DateTime)> _agents = new();
+        private readonly Dictionary<string, Agent> _localAgents = new();
+        private readonly History _history; // TODO: History should be persistent. Where and how do we get historical data?
+
+        internal Agency(Authority authority, Broker broker, ILogger<Agency> logger)
         {
-            _authority = authority;           
-            _broker = broker;            
+            _authority = authority;
+            _broker = broker;
+            _logger = logger;
             _mapper = AutoMapperConfig.GetMapper();
+            _history = new History(null, Id); // TODO: use idProvider to get a unique id
         }
 
         internal async Task Connect()
@@ -100,7 +109,7 @@ namespace Agience.SDK
 
         private void ReceiveJoin(Models.Entities.Agent modelAgent, DateTime timestamp)
         {
-            _logger?.LogInformation($"ReceiveJoin {modelAgent.Name}");
+            _logger.LogInformation($"ReceiveJoin {modelAgent.Name}");
 
             // Add or update the Agent's timestamp
             if (_agents.TryGetValue(modelAgent.Id!, out (Models.Entities.Agent, DateTime) agent))
@@ -115,15 +124,15 @@ namespace Agience.SDK
                 _agents[modelAgent.Id!] = (modelAgent, timestamp);
             }
 
-            if (_localAgents.ContainsKey(RepresentativeId))
+            if (RepresentativeId != null && _localAgents.ContainsKey(RepresentativeId))
             {
-                SendWelcome(modelAgent);
+                SendAgentWelcome(modelAgent);
             }
         }
 
-        private void SendWelcome(Models.Entities.Agent agent)
+        private void SendAgentWelcome(Models.Entities.Agent agent)
         {
-            _logger?.LogInformation($"SendWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
+            _logger.LogInformation($"SendAgentWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -140,7 +149,7 @@ namespace Agience.SDK
                 }
             });
         }
-
+        /*
         internal void ReceiveWelcome(Models.Entities.Agency agency,
                                      string representativeId,
                                      List<Models.Entities.Agent> agents,
@@ -160,12 +169,13 @@ namespace Agience.SDK
                 _agents[agent.Id!] = (agent, agentTimestamps[agent.Id!]);
             }
         }
+        */
 
         // TODO: Handle race conditions
         // Network Latency, Simultaneous Joins, etc.
         private void ReceiveRepresentativeClaim(Models.Entities.Agent modelAgent, DateTime timestamp)
         {
-            _logger?.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");            
+            _logger.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");
 
             if (RepresentativeId != modelAgent.Id)
             {
@@ -173,12 +183,13 @@ namespace Agience.SDK
                 _logger?.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
             }
 
+
             if (_localAgents.ContainsKey(RepresentativeId))
             {
                 var repJoinTime = _agents[RepresentativeId].Item2;
                 foreach (var agent in _agents.Values.Where(a => a.Item2 >= repJoinTime).Select(a => a.Item1))
                 {
-                    SendWelcome(agent);
+                    SendAgentWelcome(agent);
                 }
             }
         }
@@ -197,7 +208,23 @@ namespace Agience.SDK
 
         internal Agent? GetLocalAgent(string agentId)
         {
-            return _localAgents.TryGetValue(agentId, out Agent? agent) ? agent : null;            
+            return _localAgents.TryGetValue(agentId, out Agent? agent) ? agent : null;
+        }
+
+        public void Inform(Information information)
+        {
+            _history.Add(information);
+            HistoryUpdated?.Invoke(_history);
+        }
+
+        public void Inform(string input, string? parentInformationId = null)
+        {
+            Inform(new Information()
+            {
+                Input = input,
+                InputTimestamp = _broker.Timestamp,
+                ParentInformationId = parentInformationId
+            });
         }
     }
 }

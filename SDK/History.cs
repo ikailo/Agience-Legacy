@@ -6,12 +6,12 @@ namespace Agience.SDK
     public class InformationVertex
     {
         public string? Id { get; internal set; }
-        public object? Input { get; internal set; }
+        public Data? Input { get; internal set; }
         public DateTime? InputTimestamp { get; internal set; }
-        public object? Output { get; internal set; } // Type?
+        public Data? Output { get; internal set; } // Type?
         public DateTime? OutputTimestamp { get; internal set; }
-        public object? Transformation { get; internal set; } // KernelFunction?
-        public string? TemplateId { get; internal set; } // TODO: This should be implict to the Transformation.
+        public Data? Transformation { get; internal set; } // KernelFunction?
+        //public string? TemplateId { get; internal set; } // TODO: This should be implict to the Transformation.
     }
 
     public class InformationEdge : Edge<InformationVertex>
@@ -21,10 +21,19 @@ namespace Agience.SDK
 
     public class History : BidirectionalGraph<InformationVertex, InformationEdge>
     {
+        public string? Id { get; internal set; }
+        public string? OwnerId { get; internal set; }
+
         private readonly ConcurrentDictionary<string, object> _vertexLocks = new ConcurrentDictionary<string, object>();
         //private readonly ConcurrentDictionary<string, InformationVertex> _verticesById = new ConcurrentDictionary<string, InformationVertex>();
 
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+
+        public History(string? id = null, string? ownerId = null)
+        {
+            Id = id;
+            OwnerId = ownerId;
+        }
 
         internal void Add(Information information)
         {
@@ -50,18 +59,16 @@ namespace Agience.SDK
                             Output = information.Output,
                             OutputTimestamp = DateTime.TryParse(information.OutputTimestamp!, out var outputTimestamp) ? outputTimestamp : null,
                             Transformation = information.Transformation,
-                            TemplateId = information.TemplateId
                         };
                         AddVertex(currentVertex);
                     }
-                    else // Information is expected to be immutable, so overwriting should be ok.
+                    else // Information builds in stages, but once the value is there it is immutable. Safe to overwrite.
                     {
                         currentVertex.Input = information.Input;
                         currentVertex.InputTimestamp = DateTime.TryParse(information.InputTimestamp!, out var inputTimestamp) ? inputTimestamp : null;
                         currentVertex.Output = information.Output;
                         currentVertex.OutputTimestamp = DateTime.TryParse(information.OutputTimestamp!, out var outputTimestamp) ? outputTimestamp : null;
                         currentVertex.Transformation = information.Transformation;
-                        currentVertex.TemplateId = information.TemplateId;
                     }
                 }
                 finally
@@ -93,7 +100,7 @@ namespace Agience.SDK
 
                     AddEdge(new InformationEdge(parentVertex, currentVertex));
 
-                    var foo = this;
+                    //var foo = this;
                 }
                 finally
                 {

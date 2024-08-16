@@ -18,7 +18,7 @@ namespace Agience.Hosts.Service
         {
             _logger.LogInformation("Starting Host");
 
-            await _host.Run();
+            await _host.RunAsync();
 
             _logger.LogInformation("Host Stopped");
         }

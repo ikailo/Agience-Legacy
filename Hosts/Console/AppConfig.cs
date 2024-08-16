@@ -5,5 +5,6 @@ namespace Agience.Hosts._Console
     internal class AppConfig : HostConfig
     {
         public string? CustomNtpHost { get; set; }
+        public string? OpenAiApiKey { get; set; }
     }
 }

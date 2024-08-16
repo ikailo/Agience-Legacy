@@ -6,7 +6,6 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using AutoMapper;
 using Agience.SDK.Mappings;
 using Agience.SDK.Models.Messages;
@@ -16,10 +15,6 @@ namespace Agience.SDK
     [AutoMap(typeof(Models.Entities.Agent), ReverseMap = true)]
     public class Agent
     {
-        // TODO: Implement layer processing. Agents should operate in a defined layer. Check link for more info.
-        // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
-        // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
-
         private const int JOIN_WAIT = 5000;
         public string Id { get; internal set; }
         public string Name { get; internal set; }
@@ -28,7 +23,7 @@ namespace Agience.SDK
         public Kernel Kernel => _kernel;
         public string Timestamp => _broker.Timestamp;
 
-        private readonly ChatHistory _chatHistory;
+        //private readonly ChatHistory _chatHistory;
         private readonly ConcurrentDictionary<string, Runner> _informationCallbacks = new();
         private readonly Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
         private readonly Authority _authority;
@@ -48,7 +43,8 @@ namespace Agience.SDK
             Broker broker,
             Agency agency,
             string? persona,
-            Kernel kernel
+            Kernel kernel,
+            ILogger<Agent> logger
             )
 
         {
@@ -57,16 +53,13 @@ namespace Agience.SDK
 
             _authority = authority;
             _broker = broker;
+            _agency = agency;
+            _persona = persona ?? string.Empty; // TODO: Get Agent's persona
             _kernel = kernel;
+            _logger = logger;
 
-            _logger = Kernel.LoggerFactory.CreateLogger<Agent>();
             _mapper = AutoMapperConfig.GetMapper();
-
-            _agency = agency; 
-
-            _persona = persona ?? string.Empty;
-
-            _chatHistory = new();
+            //_chatHistory = new();
 
             //_promptExecutionSettings = new OpenAIPromptExecutionSettings
             //{
@@ -159,7 +152,7 @@ namespace Agience.SDK
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null || (message.Data == null && message.Information == null)) { return; }
-
+            /*
             // Incoming Agency Welcome message
             if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "welcome" &&
@@ -180,7 +173,7 @@ namespace Agience.SDK
                     _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, (DateTime)timestamp);
                 }
             }
-            /*
+            
             // Incoming Agent Information message
             if (message.Type == BrokerMessageType.INFORMATION &&
                 message.Information != null)
@@ -233,17 +226,32 @@ private async Task ReceiveInformation(Information information)
 }
         */
 
-        internal async Task<ChatMessageContent> PromptAsync(string message, CancellationToken cancellationToken = default)
+        public async Task<string> PromptAsync(string message, CancellationToken cancellationToken = default)
         {
-            _chatHistory.AddUserMessage(message);
+            var chatHistory = new ChatHistory();
+
+            chatHistory.AddUserMessage(message);
 
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
-            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(_chatHistory, null, _kernel, cancellationToken);
+            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(chatHistory, null, _kernel, cancellationToken);
 
-            _chatHistory.Add(chatMessageContent);
+            if (chatMessageContent != null)
+            {
+                // TODO: Are we certain that the response is always the last item?  Could there be multiple responses?
+                var mimeType = chatMessageContent.Items.Last().MimeType;
 
-            return chatMessageContent;
+                if (mimeType == "text/plain")
+                {
+                    return (string)(chatMessageContent.Items.Last().InnerContent ?? string.Empty);
+                }
+                else
+                {
+                    throw new NotImplementedException("unsupported chat message content type");
+                }
+            }
+
+            return string.Empty;
         }
     }
 }
