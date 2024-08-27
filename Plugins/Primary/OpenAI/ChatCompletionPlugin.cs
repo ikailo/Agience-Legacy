@@ -29,11 +29,9 @@ namespace Agience.Plugins.Primary.OpenAI
             [Description("The Kernel containing services, plugins, and other state for use throughout the operation.")] Kernel? kernel = null,
             [Description("The CancellationToken to monitor for cancellation requests.")] CancellationToken cancellationToken = default
             )
-        {
-            // This doesn't need to be OpenAIChatCompletionService. It's just a callout to the LLM.
-            var chatCompletionService = new OpenAIChatCompletionService("gpt-3.5-turbo", _apiKey);
+        {            
+            var chatCompletionService = new OpenAIChatCompletionService("gpt-3.5-turbo", _apiKey); // TODO: Options
             return await chatCompletionService.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
         }
     }
 }
-

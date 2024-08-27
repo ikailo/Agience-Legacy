@@ -1,6 +1,4 @@
-﻿#pragma warning disable SKEXP0001
-
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Collections.Concurrent;

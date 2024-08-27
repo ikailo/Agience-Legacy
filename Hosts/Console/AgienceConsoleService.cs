@@ -1,7 +1,6 @@
 ﻿using Agience.SDK;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace Agience.Hosts._Console
 {
@@ -9,20 +8,17 @@ namespace Agience.Hosts._Console
     {
         private readonly Host _host;
         private readonly ILogger<AgienceConsoleService> _logger;
-
-        private string? _contextAgentId;
-        private string? _contextAgencyId;
-        private bool _scrollingMode = true;
-
+        private string? _currentAgentId;
+        private string? _currentAgencyId;
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, Agency> _agencies = new();
         private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _pendingAgentPrompts = new();
+        private bool _isScrollingEnabled = true;
 
         public AgienceConsoleService(Host host, ILogger<AgienceConsoleService> logger)
         {
             _host = host;
             _logger = logger;
-
             _host.AgentConnected += OnAgentConnected;
             _host.AgencyConnected += OnAgencyConnected;
         }
@@ -39,121 +35,105 @@ namespace Agience.Hosts._Console
                 {
                     ProcessCommand(input);
                 }
-                else if (!string.IsNullOrEmpty(_contextAgentId))
+                else
                 {
-                    if (_agents.TryGetValue(_contextAgentId, out var agent))
-                    {
-                        var promptTask = agent.PromptAsync(input);
-                        _pendingAgentPrompts[_contextAgentId] = new TaskCompletionSource<string>();
-
-                        _ = HandleAgentResponse(agent.Id, promptTask);
-                    }
-                }
-                else if (!string.IsNullOrEmpty(_contextAgencyId))
-                {
-                    if (_agencies.TryGetValue(_contextAgencyId, out var agency))
-                    {
-                        agency.Inform(input);
-                    }
+                    ProcessInput(input);
                 }
             }
         }
 
         private void DisplayPrompt()
         {
-            string notifications = GetNotifications();
+            string prompt = "> ";
 
-            if (!string.IsNullOrEmpty(_contextAgentId))
+            if (!string.IsNullOrEmpty(_currentAgentId) && _agents.TryGetValue(_currentAgentId, out var agent))
             {
-                Console.Write($"{notifications} \\{_contextAgencyId}\\{_contextAgentId}> ");
+                prompt = $"{GetNotifications()}\\{agent.Agency.Name}\\{agent.Name}> ";
             }
-            else if (!string.IsNullOrEmpty(_contextAgencyId))
+            else if (!string.IsNullOrEmpty(_currentAgencyId) && _agencies.TryGetValue(_currentAgencyId, out var agency))
             {
-                Console.Write($"{notifications} \\{_contextAgencyId}> ");
+                prompt = $"{GetNotifications()}\\{agency.Name}> ";
             }
-            else
-            {
-                Console.Write("> ");
-            }
+
+            Console.Write(prompt);
         }
 
         private string GetNotifications()
         {
-            // This is a placeholder for actual notification logic.
-            // It should return a string based on the current notification state.
-            return "[notif]";
+            // Placeholder: Replace with actual notification count retrieval logic
+            return "0";
         }
 
         private void ProcessCommand(string command)
         {
-            switch (command)
+            switch (command.ToLower())
             {
                 case "/scroll":
-                    _scrollingMode = true;
+                    _isScrollingEnabled = true;
                     break;
                 case "/notify":
-                    _scrollingMode = false;
+                    _isScrollingEnabled = false;
                     break;
-                //case "/debug on":
-                //    _logger.LogDebug("Debug logging enabled.");
-                //    break;
-                //case "/debug off":
-                //    _logger.LogDebug("Debug logging disabled.");
-                //    break;
                 default:
                     Console.WriteLine("Unknown command.");
                     break;
             }
         }
 
+        private void ProcessInput(string input)
+        {
+            if (!string.IsNullOrEmpty(_currentAgentId) && _agents.TryGetValue(_currentAgentId, out var agent))
+            {
+                var promptTask = agent.PromptAsync(input);
+                _pendingAgentPrompts[_currentAgentId] = new TaskCompletionSource<string>();
+                _ = HandleAgentResponse(agent.Id, promptTask);
+            }
+            else if (!string.IsNullOrEmpty(_currentAgencyId) && _agencies.TryGetValue(_currentAgencyId, out var agency))
+            {
+                agency.Inform(input);
+            }
+        }
+
         private async Task OnAgentConnected(Agent agent)
         {
             _agents[agent.Id] = agent;
-
-            // TEMP: Set the context to the first agent connected.
-            if (string.IsNullOrEmpty(_contextAgencyId))
+            if (string.IsNullOrEmpty(_currentAgencyId))
             {
-                _contextAgencyId = agent.Agency.Id;
+                _currentAgencyId = agent.Agency.Id;
+                _currentAgentId = agent.Id;
             }
-
-            if (string.IsNullOrEmpty(_contextAgentId))
-            {                
-                _contextAgentId = agent.Id;
-            }
+            DisplayPrompt();
         }
 
         private async Task OnAgencyConnected(Agency agency)
         {
             _agencies[agency.Id] = agency;
             agency.HistoryUpdated += OnAgencyHistoryUpdated;
+            DisplayPrompt();
         }
-
 
         private async Task OnAgencyHistoryUpdated(History history)
         {
-            if (_scrollingMode)
+            if (_isScrollingEnabled)
             {
                 Console.WriteLine($"\n[Agency {history.OwnerId}] History Updated.");
                 DisplayPrompt();
             }
             else
             {
-                _logger.LogInformation($"[Agency {history.OwnerId}] history updated.");
-                // Implement buffered notification logic here.
+                _logger.LogInformation($"[Agency {history.OwnerId}] History Updated.");
             }
         }
 
         private async Task HandleAgentResponse(string agentId, Task<string> promptTask)
         {
             string result = await promptTask;
-
             if (_pendingAgentPrompts.TryRemove(agentId, out var tcs))
             {
                 tcs.SetResult(result);
-
-                if (_scrollingMode)
+                if (_isScrollingEnabled)
                 {
-                    Console.WriteLine($"\n[Notification] Agent {agentId} responded: {result}");
+                    Console.WriteLine($"\n{GetNotifications()}\\{agentId}> {result}");
                     DisplayPrompt();
                 }
             }

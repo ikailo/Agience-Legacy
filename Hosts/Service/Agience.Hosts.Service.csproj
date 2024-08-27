@@ -7,7 +7,7 @@
     <UserSecretsId>dotnet-Primary-8c050539-0c43-4e9f-928f-275eda333e72</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
-    <Configurations>Local;Preview;Release</Configurations>
+    <Configurations>Local;Preview;Release;Development</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

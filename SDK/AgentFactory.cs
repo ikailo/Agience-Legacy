@@ -1,11 +1,9 @@
-﻿using Agience.SDK.Attributes;
-using Agience.SDK.Services;
+﻿using Agience.SDK.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using System.Reflection;
 
 namespace Agience.SDK
 {
@@ -173,7 +171,7 @@ namespace Agience.SDK
             
             if (connectionAttribute != null)
             {
-                // Could do some binding or injection here
+                // Could potentially do some binding or injection here
             }
             */
         }
