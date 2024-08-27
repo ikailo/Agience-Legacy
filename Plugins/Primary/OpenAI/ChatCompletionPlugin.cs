@@ -1,28 +1,39 @@
 ﻿using System.ComponentModel;
+using Agience.SDK.Services;
+using Agience.SDK.Attributes;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-public class ChatCompletionPlugin
+namespace Agience.Plugins.Primary.OpenAI
 {
-    
-    private readonly string _apiKey = string.Empty;
-
-    public ChatCompletionPlugin()
+    [PluginConnection(CONNECTION_NAME)]
+    public class ChatCompletionPlugin
     {
-        // TODO: Pass in the API key.
-    }
+        private const string CONNECTION_NAME = "OpenAI";
+        private const string HOST_CONNECTION_NAME = "HostOpenAiApiKey";
 
-    [KernelFunction, Description("Get multiple chat content choices for the prompt and settings.")]
-    public async Task<IReadOnlyList<ChatMessageContent>> GetChatMessageContentsAsync(
-        [Description("The chat history to complete.")] ChatHistory chatHistory,
-        [Description("The AI execution settings.")] OpenAIPromptExecutionSettings? executionSettings = null
-        )
-    {
-        // This doesn't need to be OpenAIChatCompletionService. It's just a callout to the LLM.
-        //var chatCompletionService = new OpenAIChatCompletionService("gpt-3.5-turbo", _apiKey);
-        //return await chatCompletionService.GetChatMessageContentsAsync(chatHistory, executionSettings);
+        private readonly string _apiKey;
 
-        throw new NotImplementedException();
+        public ChatCompletionPlugin(AgienceCredentialService credentialService)
+        {   
+            _apiKey = credentialService.GetCredential(CONNECTION_NAME) ?? 
+                credentialService.GetCredential(HOST_CONNECTION_NAME) ?? 
+                throw new ArgumentNullException("OpenAI API Key is missing.");
+        }
+
+        [KernelFunction, Description("Get multiple chat content choices for the prompt and settings.")]
+        public async Task<IReadOnlyList<ChatMessageContent>> GetChatMessageContentsAsync(
+            [Description("The chat history context.")] ChatHistory chatHistory,
+            [Description("The AI execution settings.")] OpenAIPromptExecutionSettings? executionSettings = null,
+            [Description("The Kernel containing services, plugins, and other state for use throughout the operation.")] Kernel? kernel = null,
+            [Description("The CancellationToken to monitor for cancellation requests.")] CancellationToken cancellationToken = default
+            )
+        {
+            // This doesn't need to be OpenAIChatCompletionService. It's just a callout to the LLM.
+            var chatCompletionService = new OpenAIChatCompletionService("gpt-3.5-turbo", _apiKey);
+            return await chatCompletionService.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
+        }
     }
 }
+

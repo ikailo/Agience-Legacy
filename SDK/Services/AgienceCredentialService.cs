@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Agience.SDK.Services
+﻿namespace Agience.SDK.Services
 {
-    internal class AgienceCredentialService
+    public class AgienceCredentialService
     {
         private readonly string _agentId;
         private readonly Authority _authority;
         private readonly Broker _broker;
+
+        private readonly Dictionary<string, string> _credentials = new();
 
         public AgienceCredentialService(
             string agentId, 
@@ -23,11 +19,20 @@ namespace Agience.SDK.Services
             _broker = broker;
         }
 
-        public async Task<string> GetCredentialAsync()
+        public string? GetCredential(string name)
         {
-            
-            return await _authority.GetCredentialAsync(_agentId);
+            if ( _credentials.ContainsKey(name)) {
+                return _credentials[name];
+            }
+
+            // TODO: Get credential from Authority or Authorizer
+
+            return null;
         }
 
+        internal void AddCredential(string name, string credential)
+        {
+            _credentials[name] = credential;            
+        }
     }
 }

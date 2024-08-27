@@ -151,13 +151,11 @@ namespace Agience.Hosts._Console
             {
                 tcs.SetResult(result);
 
-                if (!_scrollingMode)
+                if (_scrollingMode)
                 {
-                    // Notify the user of the agent response
                     Console.WriteLine($"\n[Notification] Agent {agentId} responded: {result}");
+                    DisplayPrompt();
                 }
-
-                DisplayPrompt();
             }
         }
     }

@@ -20,6 +20,8 @@ namespace Agience.SDK.Services
 
             args["chatHistory"] = chatHistory;
             args["executionSettings"] = executionSettings;
+            args["kernel"] = kernel;
+            args["cancellationToken"] = cancellationToken;
 
             // TODO: We need to ensure that the Chat Completion function will return a list of ChatMessageContent. This will break otherwise.
             // TODO: Support other formats for input/output of the ChatCompletionFunction.

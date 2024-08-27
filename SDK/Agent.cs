@@ -9,6 +9,7 @@ using Timer = System.Timers.Timer;
 using AutoMapper;
 using Agience.SDK.Mappings;
 using Agience.SDK.Models.Messages;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Agience.SDK
 {
@@ -33,7 +34,7 @@ namespace Agience.SDK
         private readonly Kernel _kernel;
         private readonly IMapper _mapper;
 
-        //private PromptExecutionSettings? _promptExecutionSettings;
+        private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
         internal Agent(
@@ -61,10 +62,10 @@ namespace Agience.SDK
             _mapper = AutoMapperConfig.GetMapper();
             //_chatHistory = new();
 
-            //_promptExecutionSettings = new OpenAIPromptExecutionSettings
-            //{
-            //    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-            //};
+            _promptExecutionSettings = new OpenAIPromptExecutionSettings
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+            };
 
             _representativeClaimTimer.AutoReset = false;
             _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
@@ -234,24 +235,9 @@ private async Task ReceiveInformation(Information information)
 
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
 
-            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(chatHistory, null, _kernel, cancellationToken);
+            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
 
-            if (chatMessageContent != null)
-            {
-                // TODO: Are we certain that the response is always the last item?  Could there be multiple responses?
-                var mimeType = chatMessageContent.Items.Last().MimeType;
-
-                if (mimeType == "text/plain")
-                {
-                    return (string)(chatMessageContent.Items.Last().InnerContent ?? string.Empty);
-                }
-                else
-                {
-                    throw new NotImplementedException("unsupported chat message content type");
-                }
-            }
-
-            return string.Empty;
+            return chatMessageContent.Items.Last().ToString() ?? string.Empty;
         }
     }
 }

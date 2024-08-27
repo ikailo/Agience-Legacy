@@ -224,9 +224,9 @@ namespace Agience.SDK
 
         private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
         {
-            // Agent instantiation is initiated from Authority. The Host does not have control.
             // Creates an Agent configured with the plugins and functions.
-            // Agent has an Agency which connects them directly to other agents in the Agency.
+            // Agent instantiation is initiated from Authority. The Host does not have control.
+            // Agent has an Agency which connects them directly to other Agents in the Agency.
 
             var agent = _agentFactory.CreateAgent(modelAgent, Services);
 

@@ -14,13 +14,13 @@ namespace Agience.SDK.Extensions
             string? customNtpHost = null,
             string? authorityUriInternal = null,
             string? brokerUriInternal = null, 
-            string? openAiApiKey = null // TODO: Remove this and use Authorizer / Credential Service instead
+            string? hostOpenAiApiKey = null
             )
         {
             //services.AddSingleton<PluginRuntimeLoader>();
             services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
             services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), null, sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
-            services.AddSingleton(sp => new AgentFactory(sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<ILogger<AgentFactory>>(), openAiApiKey));
+            services.AddSingleton(sp => new AgentFactory(sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<ILogger<AgentFactory>>(), hostOpenAiApiKey));
             services.AddSingleton(sp => new Host(hostId, hostSecret, sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<AgentFactory>(), /*sp.GetRequiredService<PluginRuntimeLoader>(),*/ sp.GetRequiredService<ILogger<Host>>()));
         }
 
