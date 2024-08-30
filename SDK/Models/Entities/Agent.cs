@@ -15,7 +15,7 @@ namespace Agience.SDK.Models.Entities
         public string AgencyId { get; set; } = string.Empty;
 
         [JsonPropertyName("agency")]
-        public virtual Agency Agency { get; set; } = default!;
+        public virtual Agency? Agency { get; set; }
 
         [JsonPropertyName("plugins")]
         public virtual List<Plugin> Plugins { get; set; } = new List<Plugin>();
