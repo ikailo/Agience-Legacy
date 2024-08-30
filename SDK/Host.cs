@@ -20,6 +20,9 @@ namespace Agience.SDK
         public string Id => _id;
         public bool IsConnected { get; private set; }
 
+        public IReadOnlyDictionary<string, Agent> Agents => _agents;
+        public IReadOnlyDictionary<string, Agency> Agencies => _agencies;
+
         private readonly string _id;
         private readonly string _hostSecret;
         private readonly Authority _authority;
@@ -148,6 +151,99 @@ namespace Agience.SDK
             }
         }
 
+        private async Task<string?> GetAccessToken()
+        {
+            var clientSecret = _hostSecret;
+            var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("tokenEndpoint");
+
+            // TODO: Use a shared HttpClient host
+            using (var httpClient = new HttpClient())
+            {
+                var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{clientSecret}"));
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
+
+                var parameters = new Dictionary<string, string>
+                {
+                    { "grant_type", "client_credentials" },
+                    { "scope", "connect" }
+                };
+
+                var httpResponse = await httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(parameters));
+
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    return (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token;
+                }
+
+                return null;
+            }
+        }
+
+        public void AddPluginFromType<T>(string name) where T : class
+        {
+            _agentFactory.AddHostPluginFromType<T>(name);
+        }
+
+        private async Task ReceiveHostWelcome(Models.Entities.Host modelHost, IEnumerable<Models.Entities.Plugin> modelPlugins, IEnumerable<Models.Entities.Agent> modelAgents)
+        {
+            foreach (var modelPlugin in modelPlugins)
+            {
+                _agentFactory.AddHostPlugin(modelPlugin);
+            }
+
+            foreach (var modelAgent in modelAgents)
+            {
+                await ReceiveAgentConnect(modelAgent, null);
+            }
+        }
+
+        private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
+        {
+            // Creates an Agent configured with the plugins and functions.
+            // Agent instantiation is initiated from Authority. The Host does not have control.
+            // Agent has an Agency which connects them directly to other Agents in the Agency.
+
+            var agent = _agentFactory.CreateAgent(modelAgent, Services);
+
+            // Connect the Agency first
+            if (!_agencies.ContainsKey(agent.Agency.Id))
+            {
+                _agencies.Add(agent.Agency.Id, agent.Agency);
+
+                await agent.Agency.Connect();
+
+                _logger.LogInformation($"{agent.Agency.Name} Connected");
+            }
+
+            if (AgencyConnected != null)
+            {
+                await AgencyConnected.Invoke(agent.Agency);
+            }
+
+            // Connect the Agent now
+            _agents[agent.Id!] = agent;
+
+            await agent.Connect();
+
+            _logger.LogInformation($"{agent.Name} Connected");
+
+            if (AgentConnected != null)
+            {
+                await AgentConnected.Invoke(agent);
+            }
+
+            //var response = await agent.PromptAsync("Hello");
+
+            // agent.AutoStart();
+
+            //  *******************************
+            // TODO: Add remote plugins/functions (MQTT, GRPC, HTTP) that we want the Agent Kernels to consider local.
+            // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.
+            // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
+            //  *******************************
+        }
+
+
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
             if (message.SenderId == null || message.Data == null) { return; }
@@ -202,98 +298,6 @@ namespace Agience.SDK
                     await ReceiveAgentConnect(agent, timestamp);
                 }
             }*/
-        }
-
-        private async Task ReceiveHostWelcome(Models.Entities.Host modelHost, IEnumerable<Models.Entities.Plugin> modelPlugins, IEnumerable<Models.Entities.Agent> modelAgents)
-        {
-            foreach (var modelPlugin in modelPlugins)
-            {
-                _agentFactory.AddHostPlugin(modelPlugin);
-            }
-
-            foreach (var modelAgent in modelAgents)
-            {
-                await ReceiveAgentConnect(modelAgent, null);
-            }
-        }
-
-        public void AddPluginFromType<T>(string name) where T : class
-        {
-            _agentFactory.AddHostPluginFromType<T>(name);
-        }
-
-        private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
-        {
-            // Creates an Agent configured with the plugins and functions.
-            // Agent instantiation is initiated from Authority. The Host does not have control.
-            // Agent has an Agency which connects them directly to other Agents in the Agency.
-
-            var agent = _agentFactory.CreateAgent(modelAgent, Services);
-
-            // Connect the Agency first
-            if (!_agencies.ContainsKey(agent.Agency.Id))
-            {
-                _agencies.Add(agent.Agency.Id, agent.Agency);
-
-                await agent.Agency.Connect();
-
-                _logger.LogInformation($"{agent.Agency.Name} Connected");
-            }
-
-            if (AgencyConnected != null)
-            {
-                await AgencyConnected.Invoke(agent.Agency);
-            }
-
-            // Connect the Agent now
-            _agents[agent.Id!] = agent;
-
-            await agent.Connect();
-
-            _logger.LogInformation($"{agent.Name} Connected");
-
-            if (AgentConnected != null)
-            {
-                await AgentConnected.Invoke(agent);
-            }
-
-            //var response = await agent.PromptAsync("Hello");
-
-            // agent.AutoStart();
-
-            //  *******************************
-            // TODO: Add remote plugins/functions (MQTT, GRPC, HTTP) that we want the Agent Kernels to consider local.
-            // TODO: Probably this should be done in the Functions themselves, so it can be dynamic and lazy initialized.
-            // _host.ImportPluginFromGrpcFile("path-to.proto", "plugin-name");
-            //  *******************************
-        }
-
-        private async Task<string?> GetAccessToken()
-        {
-            var clientSecret = _hostSecret;
-            var tokenEndpoint = _authority.TokenEndpoint ?? throw new ArgumentNullException("tokenEndpoint");
-
-            // TODO: Use a shared HttpClient host
-            using (var httpClient = new HttpClient())
-            {
-                var basicAuthHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Id}:{clientSecret}"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
-
-                var parameters = new Dictionary<string, string>
-                {
-                    { "grant_type", "client_credentials" },
-                    { "scope", "connect" }
-                };
-
-                var httpResponse = await httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(parameters));
-
-                if (httpResponse.IsSuccessStatusCode)
-                {
-                    return (await httpResponse.Content.ReadFromJsonAsync<TokenResponse>())?.access_token;
-                }
-
-                return null;
-            }
         }
 
         internal class TokenResponse

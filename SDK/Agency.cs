@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Agience.SDK.Models.Messages;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel;
+using Microsoft.VisualBasic;
 
 namespace Agience.SDK
 {
@@ -15,7 +17,7 @@ namespace Agience.SDK
         // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
         // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
 
-        public event Func<History, Task>? HistoryUpdated;
+        public event Func<IEnumerable<ChatMessageContent>, Task>? HistoryUpdated;
 
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
@@ -28,7 +30,9 @@ namespace Agience.SDK
 
         private readonly Dictionary<string, (Models.Entities.Agent, DateTime)> _agents = new();
         private readonly Dictionary<string, Agent> _localAgents = new();
-        private readonly History _history; // TODO: History should be persistent. Where and how do we get historical data?
+        //private readonly History _history; // TODO: History should be persistent. Where and how do we get historical data?
+
+        private readonly ChatHistory _history = new();
 
         internal Agency(Authority authority, Broker broker, ILogger<Agency> logger)
         {
@@ -36,7 +40,7 @@ namespace Agience.SDK
             _broker = broker;
             _logger = logger;
             _mapper = AutoMapperConfig.GetMapper();
-            _history = new History(null, Id); // TODO: use idProvider to get a unique id
+            //_history = new History(null, Id); // TODO: use idProvider to get a unique id
         }
 
         internal async Task Connect()
@@ -210,21 +214,17 @@ namespace Agience.SDK
         {
             return _localAgents.TryGetValue(agentId, out Agent? agent) ? agent : null;
         }
-
-        public void Inform(Information information)
+                
+        public async Task InformAsync(string message)
         {
-            _history.Add(information);
-            HistoryUpdated?.Invoke(_history);
+            var chatMessage = new ChatMessageContent(AuthorRole.User, message);
+            _history.Add(chatMessage);
+            HistoryUpdated?.Invoke([chatMessage]);
         }
 
-        public void Inform(string input, string? parentInformationId = null)
+        public async Task<IEnumerable<ChatMessageContent>> GetHistory()
         {
-            Inform(new Information()
-            {
-                Input = input,
-                InputTimestamp = _broker.Timestamp,
-                ParentInformationId = parentInformationId
-            });
+            return _history;
         }
     }
 }

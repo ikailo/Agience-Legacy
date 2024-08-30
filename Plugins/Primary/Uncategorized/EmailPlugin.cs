@@ -1,5 +1,4 @@
-﻿using Agience.Plugins.Primary._Console;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
 namespace Agience.Plugins.Primary.Uncategorized

@@ -13,8 +13,7 @@ namespace Agience.Plugins.Primary.Interaction
             _interactionService = interactionService;
             _console = console;
 
-            // Subscribe to agency history updates
-            _interactionService.OnAgencyHistoryUpdated += HandleAgencyHistoryUpdated;
+            _interactionService.OnAgencyChatHistoryUpdated += HandleAgencyChatHistoryUpdated; ;
         }
 
         [KernelFunction, Description("Prompt an agent and get a response.")]
@@ -37,16 +36,15 @@ namespace Agience.Plugins.Primary.Interaction
 
         [KernelFunction, Description("Get the history of interactions with an agency.")]
         [return: Description("A list of history entries.")]
-        public async Task<IEnumerable<string>> GetAgencyHistory(
+        public async Task<IEnumerable<ChatMessageContent>> GetAgencyHistory(
             [Description("The ID of the agency whose history to retrieve.")] string agencyId)
         {
-            return await Task.FromResult(_interactionService.GetAgencyHistoryAsync(agencyId));
+            return await _interactionService.GetAgencyChatHistoryAsync(agencyId);
         }
 
-        private async void HandleAgencyHistoryUpdated(string agencyId, string message)
+        private async Task HandleAgencyChatHistoryUpdated(string agencyId, IEnumerable<ChatMessageContent> message)
         {
-            // Handle the event when the agency history is updated
-            await _console.WriteLineAsync($"[Agency {agencyId}]: {message}");
+            throw new NotImplementedException();
         }
     }
 }

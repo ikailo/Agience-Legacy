@@ -66,7 +66,7 @@ namespace Agience.Hosts._Console
                     if (string.IsNullOrWhiteSpace(config.HostId)) { throw new ArgumentNullException(nameof(config.HostId)); }
                     if (string.IsNullOrWhiteSpace(config.HostSecret)) { throw new ArgumentNullException(nameof(config.HostSecret)); }
 
-                    services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost, null, null, config.OpenAiApiKey);
+                    services.AddAgienceHost(config.AuthorityUri, config.HostId, config.HostSecret, config.CustomNtpHost, null, null, config.HostOpenAiApiKey);
                     services.AddSingleton<AgienceConsoleService>();
                 })
                 .ConfigureLogging(logging =>

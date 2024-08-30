@@ -1,5 +1,6 @@
 ﻿using Agience.SDK;
 using Microsoft.Extensions.Logging;
+using MQTTnet.Internal;
 using System.Collections.Concurrent;
 
 namespace Agience.Hosts._Console
@@ -29,20 +30,25 @@ namespace Agience.Hosts._Console
             {
                 DisplayPrompt();
 
-                string input = Console.ReadLine();
+                var input = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    continue;
+                }
 
                 if (input.StartsWith("/"))
                 {
-                    ProcessCommand(input);
+                    await ProcessCommand(input);
                 }
                 else
                 {
-                    ProcessInput(input);
+                    await ProcessInput(input);
                 }
             }
         }
 
-        private void DisplayPrompt()
+        private async Task DisplayPrompt()
         {
             string prompt = "> ";
 
@@ -64,7 +70,7 @@ namespace Agience.Hosts._Console
             return "0";
         }
 
-        private void ProcessCommand(string command)
+        private async Task ProcessCommand(string command)
         {
             switch (command.ToLower())
             {
@@ -80,7 +86,7 @@ namespace Agience.Hosts._Console
             }
         }
 
-        private void ProcessInput(string input)
+        private async Task ProcessInput(string input)
         {
             if (!string.IsNullOrEmpty(_currentAgentId) && _agents.TryGetValue(_currentAgentId, out var agent))
             {
@@ -90,7 +96,7 @@ namespace Agience.Hosts._Console
             }
             else if (!string.IsNullOrEmpty(_currentAgencyId) && _agencies.TryGetValue(_currentAgencyId, out var agency))
             {
-                agency.Inform(input);
+                await agency.InformAsync(input);
             }
         }
 
@@ -102,14 +108,14 @@ namespace Agience.Hosts._Console
                 _currentAgencyId = agent.Agency.Id;
                 _currentAgentId = agent.Id;
             }
-            DisplayPrompt();
+            await DisplayPrompt();
         }
 
         private async Task OnAgencyConnected(Agency agency)
         {
             _agencies[agency.Id] = agency;
             agency.HistoryUpdated += OnAgencyHistoryUpdated;
-            DisplayPrompt();
+            await DisplayPrompt();
         }
 
         private async Task OnAgencyHistoryUpdated(History history)
@@ -117,7 +123,7 @@ namespace Agience.Hosts._Console
             if (_isScrollingEnabled)
             {
                 Console.WriteLine($"\n[Agency {history.OwnerId}] History Updated.");
-                DisplayPrompt();
+                await DisplayPrompt();
             }
             else
             {
@@ -134,7 +140,7 @@ namespace Agience.Hosts._Console
                 if (_isScrollingEnabled)
                 {
                     Console.WriteLine($"\n{GetNotifications()}\\{agentId}> {result}");
-                    DisplayPrompt();
+                    await DisplayPrompt();
                 }
             }
         }
