@@ -1,7 +1,7 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.SDK.Plugins
+namespace Agience.Plugins.Primary.Uncategorized
 {
     public class Context //: Template
     {

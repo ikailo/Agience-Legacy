@@ -1,11 +1,11 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.SDK.Plugins
+namespace Agience.Plugins.Primary.Uncategorized
 {
     public class History
     {
-        
+
         //public override string[]? InputKeys => new string[] {"startTimestamp","endTimestamp"};
         //public override string[]? OutputKeys => new string[] {"information_items"};
         /*

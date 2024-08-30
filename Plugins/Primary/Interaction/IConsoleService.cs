@@ -1,4 +1,4 @@
-﻿namespace Agience.Plugins.Primary._Console
+﻿namespace Agience.Plugins.Primary.Interaction
 {
     public interface IConsoleService
     {

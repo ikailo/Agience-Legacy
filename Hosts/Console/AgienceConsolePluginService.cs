@@ -1,4 +1,4 @@
-﻿using Agience.Plugins.Primary._Console;
+﻿using Agience.Plugins.Primary.Interaction;
 
 namespace Agience.Hosts._Console
 {

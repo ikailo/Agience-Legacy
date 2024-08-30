@@ -1,9 +1,9 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.SDK.Plugins
+namespace Agience.Plugins.Primary.Uncategorized
 {
-    public class Echo 
+    public class Echo
     {
         /*
         [KernelFunction, Description("Echo the input.")]

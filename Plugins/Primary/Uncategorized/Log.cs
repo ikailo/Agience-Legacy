@@ -1,10 +1,10 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.SDK.Plugins
+namespace Agience.Plugins.Primary.Uncategorized
 {
-    public class Log 
-    {   
+    public class Log
+    {
         //public override string[] InputKeys => new[] { "timestamp", "agent_id", "agent_name", "level", "message" };
         /*
         [KernelFunction, Description("Write entries to the Agency log.")]

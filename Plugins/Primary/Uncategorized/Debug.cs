@@ -1,10 +1,10 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.SDK.Plugins
+namespace Agience.Plugins.Primary.Uncategorized
 {
-    public class Debug 
-    {   
+    public class Debug
+    {
         //public override string[] InputKeys => new string[] { "template_id", "input_string" };
         /*
 

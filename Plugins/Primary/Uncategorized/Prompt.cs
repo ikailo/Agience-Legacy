@@ -1,9 +1,9 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.SDK.Plugins
+namespace Agience.Plugins.Primary.Uncategorized
 {
-    public class Prompt 
+    public class Prompt
     {/*
         [KernelFunction, Description("Receive a prompt from the User. Respond with a default message indicating the data has not been processed.")]
         public Task<Data?> Process(Runner runner, Data? input = null)

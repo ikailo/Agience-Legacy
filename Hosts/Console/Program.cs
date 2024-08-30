@@ -3,9 +3,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Agience.Plugins.Primary._Console;
 using Agience.Plugins.Primary.OpenAI;
 using Microsoft.SemanticKernel.Plugins.Core;
+using Agience.Plugins.Primary.Interaction;
 
 namespace Agience.Hosts._Console
 {

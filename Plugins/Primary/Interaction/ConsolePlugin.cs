@@ -1,13 +1,14 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace Agience.Plugins.Primary._Console
+namespace Agience.Plugins.Primary.Interaction
 {
     public sealed class ConsolePlugin
     {
         private readonly IConsoleService _console;
 
-        public ConsolePlugin(IConsoleService console) {
+        public ConsolePlugin(IConsoleService console)
+        {
 
             _console = console;
         }
@@ -16,7 +17,7 @@ namespace Agience.Plugins.Primary._Console
         public async Task ShowMessageToPerson(
             [Description("The message to show to the person.")] string message
             )
-        {            
+        {
             await _console.WriteLineAsync(message);
         }
 
@@ -31,7 +32,7 @@ namespace Agience.Plugins.Primary._Console
         [return: Description("The person's response.")]
         public async Task<string> InteractWithPerson(
             [Description("The message to show to the person.")] string message)
-        {   
+        {
             // TODO: Here we can invoke directly, or invoke through the kernel. Going directly is faster, but going through the kernel could have benefits.
             await ShowMessageToPerson(message);
             return await GetInputFromPerson();
