@@ -11,6 +11,12 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
+        [JsonPropertyName("persona")]
+        public string? Persona { get; set; }
+
+        [JsonPropertyName("is_enabled")]
+        public bool IsEnabled { get; set; } = true;
+
         [JsonPropertyName("agency_id")]
         public string AgencyId { get; set; } = string.Empty;
 
@@ -29,12 +35,7 @@ namespace Agience.SDK.Models.Entities
         [JsonPropertyName("auto_start_function_completion_action")]
         public CompletionAction? AutoStartFunctionCompletionAction { get; set; }
                 
-        //[JsonPropertyName("prompt_function_name")]        
-        //public string? PromptFunctionName { get; set; }
-
-        //[JsonPropertyName("agency_subscribe_function_name")]
-        //public string? AgencySubscribeFunctionName { get; set; }
-
+        
         // ***************** //
         // Currently, Agents can be associated only with a single Host.
         // TODO: In the future, an Agency will have mupltiple Hosts and an Agent's Functions can be spread accross all of them.

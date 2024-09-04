@@ -16,8 +16,8 @@ namespace Agience.SDK
     {
         internal event Func<Task> Disconnected
         {
-            add => _client.DisconnectedAsync += async (args) => await value();
-            remove => _client.DisconnectedAsync -= async (args) => await value();
+            add => _mqttClient.DisconnectedAsync += async (args) => await value();
+            remove => _mqttClient.DisconnectedAsync -= async (args) => await value();
         }
 
         NtpClient? _ntpClient;
@@ -38,12 +38,12 @@ namespace Agience.SDK
 
         private Timer _ntpTimer = new Timer(TimeSpan.FromDays(1).TotalMilliseconds); // Synchronize daily
 
-        public bool IsConnected => _client.IsConnected;
+        public bool IsConnected => _mqttClient.IsConnected;
 
         private const string MESSAGE_TYPE_KEY = "message.type";
         private const string TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss.fff";
 
-        private readonly IMqttClient _client;
+        private readonly IMqttClient _mqttClient;
         private readonly Dictionary<string, List<CallbackContainer>> _callbacks = new();
 
         private readonly ILogger<Broker> _logger;        
@@ -52,8 +52,8 @@ namespace Agience.SDK
         {
             _logger = logger;
             _customNtpHost = customNtpHost;
-            _client = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
-            _client.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
+            _mqttClient = new MqttFactory().CreateMqttClient(new MqttNetLogger() { IsEnabled = true });
+            _mqttClient.ApplicationMessageReceivedAsync += _client_ApplicationMessageReceivedAsync;
         }
 
         internal async Task Connect(string token, string brokerUri)
@@ -62,7 +62,7 @@ namespace Agience.SDK
 
             _logger.LogInformation($"Broker Connected Status: {IsConnected}");
 
-            if (!_client.IsConnected)
+            if (!_mqttClient.IsConnected)
             {
                 _logger.LogInformation($"Connecting to {brokerUri}");
 
@@ -78,9 +78,9 @@ namespace Agience.SDK
                     .WithCleanStart()
                     .Build();
 
-                await _client.ConnectAsync(options);
+                await _mqttClient.ConnectAsync(options);
 
-                if (_client.IsConnected)
+                if (_mqttClient.IsConnected)
                 {
                     _logger.LogInformation($"Broker Connected");
                 }
@@ -145,7 +145,7 @@ namespace Agience.SDK
 
         internal async Task Subscribe(string topic, Func<BrokerMessage, Task> callback)
         {
-            if (!_client.IsConnected) throw new InvalidOperationException("Not Connected");
+            if (!_mqttClient.IsConnected) throw new InvalidOperationException("Not Connected");
 
             var callbackTopic = topic.Substring(topic.IndexOf('/') + 1); // Remove the SenderId segment
 
@@ -160,14 +160,14 @@ namespace Agience.SDK
                 .WithTopicFilter(topic, MqttQualityOfServiceLevel.AtMostOnce)
                 .Build();
 
-            await _client.SubscribeAsync(options);
+            await _mqttClient.SubscribeAsync(options);
         }
 
         internal async Task Disconnect()
         {
-            if (_client.IsConnected)
+            if (_mqttClient.IsConnected)
             {
-                await _client.TryDisconnectAsync();
+                await _mqttClient.TryDisconnectAsync();
             }
         }
 
@@ -177,7 +177,7 @@ namespace Agience.SDK
 
             _callbacks.Remove(callbackTopic);
 
-            await _client.UnsubscribeAsync(callbackTopic);
+            await _mqttClient.UnsubscribeAsync(callbackTopic);
         }
 
         internal void Publish(BrokerMessage message)
@@ -193,7 +193,7 @@ namespace Agience.SDK
 
         internal async Task PublishAsync(BrokerMessage message)
         {
-            if (_client.IsConnected)
+            if (_mqttClient.IsConnected)
             {
                 string payload = string.Empty;
 
@@ -215,7 +215,7 @@ namespace Agience.SDK
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                     .Build();
 
-                await _client.PublishAsync(mqMessage);
+                await _mqttClient.PublishAsync(mqMessage);
             }
         }
 
@@ -287,7 +287,7 @@ namespace Agience.SDK
 
     internal class CallbackContainer
     {
-        public Guid Id { get; } = Guid.NewGuid(); // Unique identifier for the callback
+        //public Guid Id { get; } = Guid.NewGuid(); // Unique identifier for the callback
         public Func<BrokerMessage, Task> Callback { get; set; }
         public CallbackContainer(Func<BrokerMessage, Task> callback)
         {

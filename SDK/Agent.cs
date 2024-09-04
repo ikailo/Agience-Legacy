@@ -2,7 +2,6 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Collections.Concurrent;
-using System.Text.Json;
 using Timer = System.Timers.Timer;
 using AutoMapper;
 using Agience.SDK.Mappings;
@@ -12,13 +11,13 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Agent), ReverseMap = true)]
-    public class Agent
+    public class Agent : Models.Entities.Agent
     {
         private const int JOIN_WAIT = 5000;
-        public string Id { get; internal set; }
-        public string Name { get; internal set; }
+        //public new string Id { get; internal set; }
+        //public string Name { get; internal set; }
         public bool IsConnected { get; private set; }
-        public Agency Agency => _agency;
+        public new Agency Agency => _agency;
         public Kernel Kernel => _kernel;
         public string Timestamp => _broker.Timestamp;
 
@@ -41,7 +40,7 @@ namespace Agience.SDK
             Authority authority,
             Broker broker,
             Agency agency,
-            string? persona,
+            string persona,
             Kernel kernel,
             ILogger<Agent> logger
             )
@@ -53,7 +52,7 @@ namespace Agience.SDK
             _authority = authority;
             _broker = broker;
             _agency = agency;
-            _persona = persona ?? string.Empty; // TODO: Get Agent's persona
+            _persona = persona;
             _kernel = kernel;
             _logger = logger;
 
@@ -71,13 +70,22 @@ namespace Agience.SDK
 
         internal async Task Connect()
         {
+            if (!IsEnabled) { return; } // TODO: Log or handle this
+
             if (!IsConnected)
             {
                 await _broker.Subscribe(_authority.AgentTopic("+", Id!), _broker_ReceiveMessage);
+                
+                SendJoin();
+                _representativeClaimTimer.Start();
+                
                 IsConnected = true;
             }
-            SendJoin();
-            _representativeClaimTimer.Start();
+        }
+
+        private async Task _broker_ReceiveMessage(BrokerMessage message)
+        {
+            throw new NotImplementedException();
         }
 
         internal async Task Disconnect()
@@ -86,8 +94,8 @@ namespace Agience.SDK
 
             if (IsConnected)
             {
-                // TODO: Advise the Agency that this Agent is no longer available.
-
+                SendRepresentativeAbandon();
+                SendLeave();
                 await _broker.Unsubscribe(_authority.AgentTopic("+", Id!));
                 IsConnected = false;
             }
@@ -105,8 +113,24 @@ namespace Agience.SDK
                 {
                     { "type", "join" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Agent>(this)) },
-                    { "random", new Random().NextInt64().ToString() }
+                    { "agent_id" , Id }
+                }
+            });
+        }
+
+        private void SendLeave()
+        {
+            _logger?.LogDebug("SendLeave");
+
+            _broker.Publish(new BrokerMessage()
+            {
+                Type = BrokerMessageType.EVENT,
+                Topic = _authority.AgencyTopic(Id!, _agency.Id!),
+                Data = new Data
+                {
+                    { "type", "leave" },
+                    { "timestamp", _broker.Timestamp},
+                    { "agent_id", Id }
                 }
             });
         }
@@ -125,105 +149,29 @@ namespace Agience.SDK
                 {
                     { "type", "representative_claim" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Agent>(this)) },
+                    { "agent_id", Id },
                 }
             });
         }
 
-        /*
-        internal void SendInformationToAgent(Information information, string targetAgentId, Runner? runner = null)
+        private void SendRepresentativeAbandon()
         {
-            _logger?.LogDebug("SendInformationToAgent");
+            if (_agency.RepresentativeId != Id) { return; } // Only the current representative can abandon
 
-            if (runner != null)
-            {
-                _informationCallbacks[information.Id!] = runner;
-            }
+            _logger?.LogDebug("SendRepresentativeAbandon");
 
             _broker.Publish(new BrokerMessage()
             {
-                Type = BrokerMessageType.INFORMATION,
-                Topic = _authority.AgentTopic(Id!, targetAgentId),
-                Information = information
-            });
-        }*/
-
-        private async Task _broker_ReceiveMessage(BrokerMessage message)
-        {
-            if (message.SenderId == null || (message.Data == null && message.Information == null)) { return; }
-            /*
-            // Incoming Agency Welcome message
-            if (message.Type == BrokerMessageType.EVENT &&
-                message.Data?["type"] == "welcome" &&
-                message.Data?["agency"] != null &&
-                message.Data?["representative_id"] != null &&
-                message.Data?["timestamp"] != null &&
-                message.Data?["agents"] != null)// &&
-                                                //message.Data?["templates"] != null)
-            {
-                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agency = JsonSerializer.Deserialize<Models.Entities.Agency>(message.Data?["agency"]!);
-                var representativeId = message.Data?["representative_id"]!;
-                var agents = JsonSerializer.Deserialize<List<Models.Entities.Agent>>(message.Data?["agents"]!);
-                var agentTimestamps = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(message.Data?["agent_timestamps"]!);
-
-                if (agency?.Id == message.SenderId && agency.Id == _agency.Id && agents != null && agentTimestamps != null)
+                Type = BrokerMessageType.EVENT,
+                Topic = _authority.AgencyTopic(Id!, _agency.Id!),
+                Data = new Data
                 {
-                    _agency.ReceiveWelcome(agency, representativeId, agents, agentTimestamps, (DateTime)timestamp);
+                    { "type", "representative_abandon" },
+                    { "timestamp", _broker.Timestamp},
+                    { "agent_id", Id },
                 }
-            }
-            
-            // Incoming Agent Information message
-            if (message.Type == BrokerMessageType.INFORMATION &&
-                message.Information != null)
-            {
-                await ReceiveInformation(message.Information);
-            }*/
+            });
         }
-
-        internal void AutoStart()
-        {
-            throw new NotImplementedException();
-        }
-
-        internal void Prompt()
-        {
-
-        }
-
-        internal void ReceiveFromAgency()
-        {
-            throw new NotImplementedException();
-        }
-
-
-        /*
-private async Task ReceiveInformation(Information information)
-{
-   _logger?.LogInformation($"ReceiveInformation {information.Id}");
-
-   if (information.InputAgentId == Id)
-   {
-
-       // This is returned information
-       if (_informationCallbacks.TryRemove(information.Id!, out Runner? runner))
-       {
-           //runner.ReceiveOutput(information);
-           throw new NotImplementedException();
-       }
-   }
-
-   if (information.OutputAgentId == null)
-   {
-       // This is information that needs to be processed. Presumably Local. Dispatch it.
-       //await new Runner(this, information).DispatchAsync();
-       throw new NotImplementedException();
-
-       // Return the output to the input agent
-       SendInformationToAgent(information, information?.InputAgentId!);
-   }
-}
-        */
 
         public async Task<string> PromptAsync(string message, CancellationToken cancellationToken = default)
         {

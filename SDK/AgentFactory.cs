@@ -68,7 +68,7 @@ namespace Agience.SDK
 
         internal Agent CreateAgent(Models.Entities.Agent modelAgent, IServiceCollection hostServiceCollection)
         {
-            var persona = string.Empty; // TODO: Load persona from agent.
+            var persona = modelAgent.Persona ?? string.Empty;
 
             var agentPlugins = new KernelPluginCollection();
 

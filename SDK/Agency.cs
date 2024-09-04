@@ -1,12 +1,10 @@
 ﻿using AutoMapper;
 using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 using System.Text.Json;
 using Agience.SDK.Models.Messages;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
-using Microsoft.VisualBasic;
 
 namespace Agience.SDK
 {
@@ -27,12 +25,13 @@ namespace Agience.SDK
         private readonly Broker _broker;
         private readonly ILogger<Agency> _logger;
         private readonly IMapper _mapper;
+        
+        private readonly Dictionary<string, DateTime> _agentJoinTimestamps = new();
+        private readonly Dictionary<string, Agent> _agents = new();
+        private readonly List<string> _localAgentIds = new();        
 
-        private readonly Dictionary<string, (Models.Entities.Agent, DateTime)> _agents = new();
-        private readonly Dictionary<string, Agent> _localAgents = new();
-        //private readonly History _history; // TODO: History should be persistent. Where and how do we get historical data?
-
-        private readonly ChatHistory _history = new();
+        private readonly ChatHistory _history = new(); // TODO: History should be persistent.
+        //private readonly History _history; // TODO: Use History instead of ChatHistory
 
         internal Agency(Authority authority, Broker broker, ILogger<Agency> logger)
         {
@@ -72,71 +71,47 @@ namespace Agience.SDK
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
+                var agentId = message.Data?["agent_id"];
 
-                if (agent?.Id == message.SenderId && timestamp != null)
+                if (agentId == message.SenderId && timestamp != null)
                 {
-                    ReceiveJoin(agent, (DateTime)timestamp);
+                    ReceiveJoin(agentId, (DateTime)timestamp);
                 }
             }
 
             // Incoming Representative Claim message
             if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "representative_claim" &&
-                message.Data?["agent"] != null &&
+                message.Data?["agent_id"] != null &&
                 message.Data?["timestamp"] != null)
             {
                 var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
+                var agentId = message.Data?["agent_id"];
 
-                if (agent?.Id == message.SenderId && timestamp != null)
+                if (agentId == message.SenderId && timestamp != null)
                 {
-                    ReceiveRepresentativeClaim(agent, (DateTime)timestamp);
+                    ReceiveRepresentativeClaim(agentId, timestamp);
                 }
             }
-
-            /*
-            // Incoming Context message // TODO: Should be History, not context
-            if (message.Type == MessageType.EVENT &&
-                message.Data?["type"] == "context" &&
-                message.Data?["timestamp"] != null &&
-                message.Data?["context"] != null)
-            {
-                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
-                var context = message.Data?["context"]!;
-
-                ReceiveContext(context, timestamp);
-            }*/
-
             return Task.CompletedTask;
         }
 
-        private void ReceiveJoin(Models.Entities.Agent modelAgent, DateTime timestamp)
+        private void ReceiveJoin(string agentId, DateTime timestamp)
         {
-            _logger.LogInformation($"ReceiveJoin {modelAgent.Name}");
+            _logger.LogInformation($"ReceiveJoin {_agents[agentId].Name}");
 
-            // Add or update the Agent's timestamp
-            if (_agents.TryGetValue(modelAgent.Id!, out (Models.Entities.Agent, DateTime) agent))
-            {
-                if (timestamp > agent.Item2)
-                {
-                    agent.Item2 = timestamp;
-                }
-            }
-            else
-            {
-                _agents[modelAgent.Id!] = (modelAgent, timestamp);
-            }
+            _agentJoinTimestamps[agentId] = timestamp;            
 
-            if (RepresentativeId != null && _localAgents.ContainsKey(RepresentativeId))
+            if (RepresentativeId != null && _localAgentIds.Contains(RepresentativeId))
             {
-                SendAgentWelcome(modelAgent);
+                //SendAgentWelcome(agentId);
             }
         }
 
-        private void SendAgentWelcome(Models.Entities.Agent agent)
+        /*
+        private void SendAgentWelcome(string agentId)
         {
-            _logger.LogInformation($"SendAgentWelcome to {agent.Name} with {_agents.Values.Count} Agents.");
+            _logger.LogInformation($"SendAgentWelcome to {_agents[agentId].Name} with {_agents.Values.Count} Agents.");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -148,11 +123,12 @@ namespace Agience.SDK
                     { "timestamp", _broker.Timestamp },
                     { "agency", JsonSerializer.Serialize(_mapper.Map<Models.Entities.Agency>(this)) },
                     { "representative_id", RepresentativeId },
-                    { "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
-                    { "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) }
+                    //{ "agents", JsonSerializer.Serialize(_agents.Values.Select(a => a.Item1).ToList()) },
+                    //{ "agent_timestamps", JsonSerializer.Serialize(_agents.ToDictionary(a => a.Key, a => a.Value.Item2)) }
                 }
             });
-        }
+        }*/
+
         /*
         internal void ReceiveWelcome(Models.Entities.Agency agency,
                                      string representativeId,
@@ -177,42 +153,41 @@ namespace Agience.SDK
 
         // TODO: Handle race conditions
         // Network Latency, Simultaneous Joins, etc.
-        private void ReceiveRepresentativeClaim(Models.Entities.Agent modelAgent, DateTime timestamp)
+        private void ReceiveRepresentativeClaim(string agentId, DateTime? timestamp)
         {
-            _logger.LogInformation($"ReceiveRepresentativeClaim from {modelAgent.Name}");
+            _logger.LogInformation($"ReceiveRepresentativeClaim from {_agents[agentId].Name}");
 
-            if (RepresentativeId != modelAgent.Id)
+            if (RepresentativeId != agentId)
             {
-                RepresentativeId = modelAgent.Id;
+                RepresentativeId = agentId;
                 _logger?.LogInformation($"Set Representative {GetAgentName(RepresentativeId)}");
             }
 
-
-            if (_localAgents.ContainsKey(RepresentativeId))
+            /*
+            if (_localAgentIds.Contains(RepresentativeId))
             {
-                var repJoinTime = _agents[RepresentativeId].Item2;
-                foreach (var agent in _agents.Values.Where(a => a.Item2 >= repJoinTime).Select(a => a.Item1))
+                var repJoinTime = _agentJoinTimestamps[RepresentativeId];
+                foreach (var agent in _agentJoinTimestamps.Where(a => a.Value >= repJoinTime))
                 {
-                    SendAgentWelcome(agent);
+                    SendAgentWelcome(agent.Value);
                 }
-            }
+            }*/
         }
 
-        internal string? GetAgentName(string? agentId)
+        internal string? GetAgentName(string agentId)
         {
-            if (agentId == null) { return null; }
-
-            return _agents.TryGetValue(agentId, out (Models.Entities.Agent, DateTime) agent) ? agent.Item1.Name : null;
+            return _agents.TryGetValue(agentId, out Agent? agent) ? agent.Name : null;
         }
 
         internal void AddLocalAgent(Agent agent)
         {
-            _localAgents.Add(agent.Id!, agent);
+            _agents[agent.Id] = agent;
+            _localAgentIds.Add(agent.Id);
         }
 
         internal Agent? GetLocalAgent(string agentId)
         {
-            return _localAgents.TryGetValue(agentId, out Agent? agent) ? agent : null;
+            return _localAgentIds.Contains(agentId) ? _agents[agentId] : null;
         }
                 
         public async Task InformAsync(string message)

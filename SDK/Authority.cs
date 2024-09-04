@@ -198,48 +198,51 @@ namespace Agience.SDK
                 }
             });
         }
-
-        /*
-        private void PublishAgentConnectEvent(Models.Entities.Agent agent)
+        
+        private async Task SendAgentConnectEvent(Models.Entities.Agent agent)
         {   
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
-            if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
+            if (_authorityDataAdapter == null) { throw new InvalidOperationException("AuthorityDataAdapter is missing"); }
 
-            _logger.LogInformation($"Publishing Agent Connect Event: {agent.Name}");
+            var hostId = await _authorityDataAdapter.GetHostIdForAgentIdNoTrackingAsync(agent.Id);
+
+            _logger.LogInformation($"Sending Agent Connect Event: {agent.Name}");
+            _logger.LogDebug($"Agent: {JsonSerializer.Serialize(agent)}");
+            _logger.LogDebug($"Agency: {JsonSerializer.Serialize(agent.Agency)}");
 
             _broker.Publish(new BrokerMessage()
             {
                 Type = BrokerMessageType.EVENT,
-                Topic = HostTopic(Id, agent.Host.Id),
+                Topic = HostTopic(Id, hostId),
                 Data = new Data
                 {
                     { "type", "agent_connect" },
                     { "timestamp", _broker.Timestamp},
-                    
+                    { "agent", JsonSerializer.Serialize(agent) }
                 }
             });
-        }*/
+        }
 
-        private void PublishAgentDisconnectEvent(Models.Entities.Agent agent)
+        private async Task SendAgentDisconnectEvent(Models.Entities.Agent agent)
         {
-            throw new NotImplementedException();
-            /*
             if (!IsConnected) { throw new InvalidOperationException("Not Connected"); }
 
-            if (agent.Host?.Id == null) { throw new ArgumentNullException(nameof(agent.Host.Id)); }
+            if (_authorityDataAdapter == null) { throw new InvalidOperationException("AuthorityDataAdapter is missing"); }
+
+            var hostId = await _authorityDataAdapter.GetHostIdForAgentIdNoTrackingAsync(agent.Id);
 
             _broker!.Publish(new BrokerMessage()
             {
                 Type = BrokerMessageType.EVENT,
-                Topic = HostTopic(Id, agent.Host.Id),
+                Topic = HostTopic(Id, hostId),
                 Data = new Data
                 {
                     { "type", "agent_disconnect" },
                     { "timestamp", _broker.Timestamp},
-                    { "agent", JsonSerializer.Serialize(_mapper.Map<Models.Agent>(agent)) }
+                    { "agent_id", agent.Id }
                 }
-            }); */
+            });
         }
 
         internal string Topic(string senderId, string? hostId, string? agencyId, string? agentId)
@@ -266,6 +269,29 @@ namespace Agience.SDK
         internal string AgentTopic(string senderId, string agentId)
         {
             return Topic(senderId, null, null, agentId);
+        }
+
+        public async Task AgentCreated(Models.Entities.Agent agent)
+        {
+            if (agent.IsEnabled)
+            {
+                await SendAgentConnectEvent(agent);
+            }
+        }
+
+        public async Task AgentUpdated(Models.Entities.Agent agent)
+        {
+            await SendAgentDisconnectEvent(agent);
+
+            if (agent.IsEnabled)
+            {
+                await SendAgentConnectEvent(agent);
+            }
+        }
+
+        public async Task AgentDeleted(Models.Entities.Agent agent)
+        {
+            await SendAgentDisconnectEvent(agent);
         }
     }
 }

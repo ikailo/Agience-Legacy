@@ -13,7 +13,7 @@ namespace Agience.Plugins.Primary.Interaction
             _interactionService = interactionService;
             _console = console;
 
-            _interactionService.OnAgencyChatHistoryUpdated += HandleAgencyChatHistoryUpdated; ;
+            _interactionService.AgencyChatHistoryUpdated += HandleAgencyChatHistoryUpdated; ;
         }
 
         [KernelFunction, Description("Prompt an agent and get a response.")]

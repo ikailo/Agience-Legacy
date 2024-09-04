@@ -1,4 +1,5 @@
 ﻿using Agience.SDK.Mappings;
+using Agience.SDK.Models.Entities;
 using Agience.SDK.Models.Messages;
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,8 @@ namespace Agience.SDK
     {
         public event Func<Agent, Task>? AgentConnected;
         public event Func<Agency, Task>? AgencyConnected;
+        public event Func<string, Task>? AgentDisconnected;
+        public event Func<string, Task>? AgencyDisconnected;
 
         public string Id => _id;
         public bool IsConnected { get; private set; }
@@ -80,7 +83,7 @@ namespace Agience.SDK
             while (!IsConnected)
             {
                 try
-                {   
+                {
                     await Connect();
                 }
                 catch (Exception ex)
@@ -193,11 +196,11 @@ namespace Agience.SDK
 
             foreach (var modelAgent in modelAgents)
             {
-                await ReceiveAgentConnect(modelAgent, null);
+                await ReceiveAgentConnect(modelAgent);
             }
         }
 
-        private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent, DateTime? timestamp)
+        private async Task ReceiveAgentConnect(Models.Entities.Agent modelAgent)
         {
             // Creates an Agent configured with the plugins and functions.
             // Agent instantiation is initiated from Authority. The Host does not have control.
@@ -243,6 +246,34 @@ namespace Agience.SDK
             //  *******************************
         }
 
+        private async Task ReceiveAgentDisconnect(string agentId)
+        {
+            var agent = _agents[agentId];
+
+            await agent.Disconnect();
+
+            _logger.LogInformation($"{agent.Name} Disconnected");
+
+            if (AgentDisconnected != null)
+            {
+                await AgentDisconnected.Invoke(agentId);
+            }
+
+            // Disconnect the Agency if no more of its local Agents are connected
+            if (_agents.Values.All(a => a.Agency.Id != agent.Agency.Id) && _agencies.ContainsKey(agent.Agency.Id))
+            {
+                await agent.Agency.Disconnect();
+                _agencies.Remove(agentId);
+
+                _logger.LogInformation($"{agent.Agency.Name} Disconnected");
+            }
+
+            if (AgencyDisconnected != null)
+            {
+                await AgencyDisconnected.Invoke(agent.Agency.Id);
+            }
+        }
+
 
         private async Task _broker_ReceiveMessage(BrokerMessage message)
         {
@@ -280,24 +311,41 @@ namespace Agience.SDK
                     await ReceiveHostWelcome(host, plugins, agents);
                 }
             }
-            /*
+
             // Incoming Agent Connect Message
             if (message.Type == BrokerMessageType.EVENT &&
                 message.Data?["type"] == "agent_connect" &&
                 message.Data?["agent"] != null)
             {
-                var timestamp = DateTime.TryParse(message.Data?["timestamp"], out DateTime result) ? (DateTime?)result : null;
                 var agent = JsonSerializer.Deserialize<Models.Entities.Agent>(message.Data?["agent"]!);
 
-                if (agent?.Id == null || agent.Agency?.Id == null)
+                _logger.LogInformation($"ReceiveAgentConnect for {agent?.Id}");
+
+                if (string.IsNullOrWhiteSpace(agent?.Id))
                 {
-                    _logger.LogError("Invalid Agent");                    
+                    _logger.LogError("Invalid Agent");
+                    return;
                 }
-                else
+
+                if (string.IsNullOrWhiteSpace(agent.Agency?.Id))
                 {
-                    await ReceiveAgentConnect(agent, timestamp);
+                    _logger.LogError("Agent has an invalid Agency");
+                    return;
                 }
-            }*/
+
+                await ReceiveAgentConnect(agent);
+
+            }
+
+            // Incoming Agent Disconnect Message
+            if (message.Type == BrokerMessageType.EVENT &&
+                message.Data?["type"] == "agent_disconnect" &&
+                message.Data?["agent_id"] != null)
+            {
+                var agentId = message.Data?["agent_id"];
+
+                await ReceiveAgentDisconnect(agentId);
+            }
         }
 
         internal class TokenResponse

@@ -114,7 +114,7 @@ namespace Agience.Hosts._Console
         private async Task OnAgencyConnected(Agency agency)
         {
             _agencies[agency.Id] = agency;
-            agency.HistoryUpdated += OnAgencyHistoryUpdated;
+            //agency.HistoryUpdated += OnAgencyHistoryUpdated;
             await DisplayPrompt();
         }
 
