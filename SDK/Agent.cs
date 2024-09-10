@@ -14,8 +14,6 @@ namespace Agience.SDK
     public class Agent : Models.Entities.Agent
     {
         private const int JOIN_WAIT = 5000;
-        //public new string Id { get; internal set; }
-        //public string Name { get; internal set; }
         public bool IsConnected { get; private set; }
         public new Agency Agency => _agency;
         public Kernel Kernel => _kernel;
@@ -55,6 +53,7 @@ namespace Agience.SDK
             _persona = persona;
             _kernel = kernel;
             _logger = logger;
+            //_logger = new AgienceLogger(logger, null, id);
 
             _mapper = AutoMapperConfig.GetMapper();
             //_chatHistory = new();
@@ -75,10 +74,10 @@ namespace Agience.SDK
             if (!IsConnected)
             {
                 await _broker.Subscribe(_authority.AgentTopic("+", Id!), _broker_ReceiveMessage);
-                
+
                 SendJoin();
                 _representativeClaimTimer.Start();
-                
+
                 IsConnected = true;
             }
         }
@@ -103,7 +102,7 @@ namespace Agience.SDK
 
         private void SendJoin()
         {
-            _logger?.LogDebug("SendJoin");
+            _logger.LogDebug("SendJoin");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -120,7 +119,7 @@ namespace Agience.SDK
 
         private void SendLeave()
         {
-            _logger?.LogDebug("SendLeave");
+            _logger.LogDebug("SendLeave");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -139,7 +138,7 @@ namespace Agience.SDK
         {
             if (_agency.RepresentativeId != null) { return; } // Was set by another agent
 
-            _logger?.LogDebug("SendRepresentativeClaim");
+            _logger.LogDebug("SendRepresentativeClaim");
 
             _broker.Publish(new BrokerMessage()
             {
@@ -158,8 +157,8 @@ namespace Agience.SDK
         {
             if (_agency.RepresentativeId != Id) { return; } // Only the current representative can abandon
 
-            _logger?.LogDebug("SendRepresentativeAbandon");
-
+            _logger.LogDebug("SendRepresentativeAbandon");
+            
             _broker.Publish(new BrokerMessage()
             {
                 Type = BrokerMessageType.EVENT,
