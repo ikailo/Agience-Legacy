@@ -17,8 +17,13 @@ namespace Agience.SDK
     {
         public event Func<Agent, Task>? AgentConnected;
         public event Func<Agency, Task>? AgencyConnected;
+
         public event Func<string, Task>? AgentDisconnected;
         public event Func<string, Task>? AgencyDisconnected;
+
+        public Func<string, string, Task>? AgentLogEntryReceived;
+        public Func<string, string, Task>? AgencyLogEntryReceived;
+
 
         public string Id => _id;
         public bool IsConnected { get; private set; }
@@ -39,7 +44,7 @@ namespace Agience.SDK
         private readonly Dictionary<string, Agency> _agencies = new();
 
         public ServiceCollection Services { get; } = new();
-
+        
         internal Host(
             string hostId,
             string hostSecret,

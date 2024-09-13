@@ -30,7 +30,7 @@ namespace Agience.Plugins.Primary.OpenAI
             [Description("The CancellationToken to monitor for cancellation requests.")] CancellationToken cancellationToken = default
             )
         {            
-            var chatCompletionService = new OpenAIChatCompletionService("gpt-3.5-turbo", _apiKey); // TODO: Options
+            var chatCompletionService = new OpenAIChatCompletionService("gpt-3.5-turbo", _apiKey, null, null, kernel?.LoggerFactory); // TODO: Options
             return await chatCompletionService.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
         }
     }

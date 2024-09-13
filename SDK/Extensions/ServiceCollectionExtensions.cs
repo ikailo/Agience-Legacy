@@ -34,5 +34,23 @@ namespace Agience.SDK.Extensions
             services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
             services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), sp.GetRequiredService<IAuthorityDataAdapter>(), sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
         }
+        
+        public static IServiceCollection AddAgienceLogger(this IServiceCollection services)
+        {
+            services.AddSingleton<AgienceLoggerProvider>();
+            
+            services.AddSingleton(sp =>
+            {
+                return (AgienceLogger)sp.GetRequiredService<AgienceLoggerProvider>().CreateLogger(nameof(AgienceLogger));
+
+            });
+            /*
+            services.AddLogging(builder =>
+            {
+                builder.AddProvider(services.BuildServiceProvider().GetRequiredService<AgienceLoggerProvider>());
+            });*/
+
+            return services;
+        }        
     }
 }

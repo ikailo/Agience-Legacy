@@ -73,7 +73,7 @@ namespace Agience.SDK
             var agentPlugins = new KernelPluginCollection();
 
             var kernelServiceCollection = new ServiceCollection();
-                        
+
             foreach (var serviceDescriptor in hostServiceCollection)
             {
                 kernelServiceCollection.Add(serviceDescriptor);
@@ -143,15 +143,38 @@ namespace Agience.SDK
                 var chatCompletionFunction = agentPlugins.GetFunction(pluginName, functionName);
 
                 kernelServiceCollection.AddScoped<IChatCompletionService>(sp => new AgienceChatCompletionService(chatCompletionFunction));
+
+
+
+                // Add AgienceLoggerProvider with AgentId
+                //kernelServiceCollection.AddSingleton<AgienceLoggerProvider>();
+                kernelServiceCollection.AddSingleton<ILogger>(sp =>
+                {
+                    var loggerProvider = sp.GetRequiredService<AgienceLoggerProvider>();
+                    var logger = loggerProvider.CreateLogger("Agent");
+                    logger.BeginScope(new Dictionary<string, object> { { "AgentId", modelAgent.Id } });
+                    return logger;
+                });
+
+                // Configure logging
+                kernelServiceCollection.AddLogging(builder =>
+                {
+                    builder.Services.AddSingleton<ILoggerProvider>(sp => sp.GetRequiredService<AgienceLoggerProvider>());
+                });
+
             }
 
             var kernel = new Kernel(kernelServiceCollection.BuildServiceProvider(), agentPlugins);
+
             var agency = GetAgency(modelAgent.Agency, kernel.LoggerFactory.CreateLogger<Agency>());
-            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel, kernel.LoggerFactory.CreateLogger<Agent>());
 
+            var agentLogger = kernel.LoggerFactory.CreateLogger<Agent>();
+
+
+            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel, agentLogger);
             agency.AddLocalAgent(agent);
-
             return agent;
+
         }
 
         private KernelPlugin CreateKernelPlugin(IServiceProvider serviceProvider, Type pluginType, string pluginName, AgienceCredentialService credentialService)
