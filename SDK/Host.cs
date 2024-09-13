@@ -211,7 +211,7 @@ namespace Agience.SDK
             // Agent instantiation is initiated from Authority. The Host does not have control.
             // Agent has an Agency which connects them directly to other Agents in the Agency.
 
-            var agent = _agentFactory.CreateAgent(modelAgent, Services);
+            var agent = _agentFactory.CreateAgent(modelAgent);
 
             // Connect the Agency first
             if (!_agencies.ContainsKey(agent.Agency.Id))

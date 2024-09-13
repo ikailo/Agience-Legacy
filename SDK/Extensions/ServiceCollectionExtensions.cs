@@ -20,7 +20,7 @@ namespace Agience.SDK.Extensions
             //services.AddSingleton<PluginRuntimeLoader>();
             services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
             services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), null, sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
-            services.AddSingleton(sp => new AgentFactory(sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<ILogger<AgentFactory>>(), hostOpenAiApiKey));
+            services.AddSingleton(sp => new AgentFactory(sp, sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<ILogger<AgentFactory>>(), hostOpenAiApiKey));
             services.AddSingleton(sp => new Host(hostId, hostSecret, sp.GetRequiredService<Authority>(), sp.GetRequiredService<Broker>(), sp.GetRequiredService<AgentFactory>(), /*sp.GetRequiredService<PluginRuntimeLoader>(),*/ sp.GetRequiredService<ILogger<Host>>()));
         }
 
@@ -34,23 +34,7 @@ namespace Agience.SDK.Extensions
             services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
             services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), sp.GetRequiredService<IAuthorityDataAdapter>(), sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
         }
-        
-        public static IServiceCollection AddAgienceLogger(this IServiceCollection services)
-        {
-            services.AddSingleton<AgienceLoggerProvider>();
-            
-            services.AddSingleton(sp =>
-            {
-                return (AgienceLogger)sp.GetRequiredService<AgienceLoggerProvider>().CreateLogger(nameof(AgienceLogger));
 
-            });
-            /*
-            services.AddLogging(builder =>
-            {
-                builder.AddProvider(services.BuildServiceProvider().GetRequiredService<AgienceLoggerProvider>());
-            });*/
 
-            return services;
-        }        
     }
 }

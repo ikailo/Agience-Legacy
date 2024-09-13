@@ -11,7 +11,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 namespace Agience.SDK
 {
     [AutoMap(typeof(Models.Entities.Agent), ReverseMap = true)]
-    public class Agent : Models.Entities.Agent
+    public class Agent : Models.Entities.Agent, IDisposable
     {
         private const int JOIN_WAIT = 5000;
         public bool IsConnected { get; private set; }
@@ -28,6 +28,7 @@ namespace Agience.SDK
         private readonly ILogger _logger;
         private readonly Kernel _kernel;
         private readonly IMapper _mapper;
+        private bool _disposed;
 
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
@@ -183,6 +184,18 @@ namespace Agience.SDK
             var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
 
             return chatMessageContent.Items.Last().ToString() ?? string.Empty;
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                if (_logger is IDisposable disposableLogger)
+                {
+                    disposableLogger.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
 }

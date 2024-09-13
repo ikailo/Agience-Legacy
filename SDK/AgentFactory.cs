@@ -1,4 +1,5 @@
-﻿using Agience.SDK.Services;
+﻿using Agience.SDK.Logging;
+using Agience.SDK.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -7,19 +8,26 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Agience.SDK
 {
-    internal class AgentFactory
+    internal class AgentFactory : IDisposable
     {
+        private readonly IServiceProvider _mainServiceProvider;
+        private readonly ILogger<AgentFactory> _logger;
         private readonly Authority _authority;
         private readonly Broker _broker;
-        private readonly ILogger<AgentFactory> _logger;
         private readonly string _hostOpenAiApiKey;
-
         private readonly Dictionary<string, Type> _hostPluginsCompiled = new();
         private readonly Dictionary<string, KernelPlugin> _hostPluginsCurated = new();
         private readonly Dictionary<string, Agency> _agencies = new();
+        private readonly List<Agent> _agents = new();
 
-        internal AgentFactory(Authority authority, Broker broker, ILogger<AgentFactory> logger, string? hostOpenAiApiKey = null)
+        internal AgentFactory(
+            IServiceProvider mainServiceProvider,
+            Authority authority,
+            Broker broker,
+            ILogger<AgentFactory> logger,
+            string? hostOpenAiApiKey = null)
         {
+            _mainServiceProvider = mainServiceProvider;
             _authority = authority;
             _broker = broker;
             _logger = logger;
@@ -56,37 +64,49 @@ namespace Agience.SDK
             }
             else if (plugin.Type == Models.Entities.PluginType.Curated)
             {
-                var functions = new List<KernelFunction>();
-
-                foreach (var function in plugin.Functions)
-                {
-                    functions.Add(KernelFunctionFactory.CreateFromPrompt(function.Prompt!, null as PromptExecutionSettings, function.Name, function.Description, null, null));
-                }
-                _hostPluginsCurated.Add(plugin.Name, KernelPluginFactory.CreateFromFunctions(plugin.Name, functions));
+                _hostPluginsCurated.Add(plugin.Name, CreateKernelPluginCurated(plugin));
             }
         }
 
-        internal Agent CreateAgent(Models.Entities.Agent modelAgent, IServiceCollection hostServiceCollection)
+        internal Agent CreateAgent(Models.Entities.Agent modelAgent)
         {
-            var persona = modelAgent.Persona ?? string.Empty;
+            _logger.LogInformation("Creating agent {AgentId}", modelAgent.Id);
 
+            var persona = modelAgent.Persona ?? string.Empty;
             var agentPlugins = new KernelPluginCollection();
 
+            // Create a new ServiceCollection for the Kernel
             var kernelServiceCollection = new ServiceCollection();
 
-            foreach (var serviceDescriptor in hostServiceCollection)
+            // Add shared services from the main service provider
+            var loggerProvider = _mainServiceProvider.GetRequiredService<ILoggerProvider>();
+            kernelServiceCollection.AddSingleton(loggerProvider);
+
+            // Add logging
+            kernelServiceCollection.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.AddProvider(loggerProvider);
+            });
+
+            /*
+            foreach (var serviceDescriptor in _mainServiceProvider)
             {
                 kernelServiceCollection.Add(serviceDescriptor);
             }
+            */
 
-            using var tempServiceProvider = kernelServiceCollection.BuildServiceProvider();
-
+            // Add or override services specific to this Kernel
+            // For example, add credential services
             var credentialService = new AgienceCredentialService(modelAgent.Id, _authority, _broker);
-
             if (!string.IsNullOrWhiteSpace(_hostOpenAiApiKey))
             {
                 credentialService.AddCredential("HostOpenAiApiKey", _hostOpenAiApiKey);
             }
+            kernelServiceCollection.AddSingleton(credentialService);
+
+
+            using var tempServiceProvider = kernelServiceCollection.BuildServiceProvider();
 
             foreach (var plugin in modelAgent.Plugins)
             {
@@ -98,13 +118,18 @@ namespace Agience.SDK
 
                 if (plugin.Type == Models.Entities.PluginType.Compiled && _hostPluginsCompiled.TryGetValue(plugin.Name, out var pluginType))
                 {
-                    var kernelPlugin = CreateKernelPlugin(tempServiceProvider, pluginType, plugin.Name, credentialService);
+                    var kernelPluginCompiled = CreateKernelPluginCompiled(tempServiceProvider, pluginType, plugin.Name, credentialService);
 
-                    agentPlugins.Add(kernelPlugin);
+                    agentPlugins.Add(kernelPluginCompiled);
                 }
-                else if (plugin.Type == Models.Entities.PluginType.Curated && _hostPluginsCurated.TryGetValue(plugin.Name, out var kernelPlugin))
+                else if (plugin.Type == Models.Entities.PluginType.Curated && _hostPluginsCurated.TryGetValue(plugin.Name, out var kernelPluginCurated))
                 {
-                    agentPlugins.Add(kernelPlugin);
+                    agentPlugins.Add(kernelPluginCurated);
+                }
+                else if (plugin.Type == Models.Entities.PluginType.Curated)
+                {
+                    // We can still load the plugin if it's curated and not found in the host plugins
+                    agentPlugins.Add(CreateKernelPluginCurated(plugin));
                 }
             }
 
@@ -121,72 +146,71 @@ namespace Agience.SDK
                     functionName = functionName.Substring(0, functionName.Length - "Async".Length);
                 }
 
-                if (!agentPlugins.Contains(pluginName))
+                var chatCompletionPlugins = new KernelPluginCollection();
+
+                KernelPlugin? kernelPlugin = null;
+
+                if (_hostPluginsCompiled.TryGetValue(pluginName, out var pluginType) || _hostPluginsCurated.TryGetValue(pluginName, out kernelPlugin))
                 {
-                    KernelPlugin? kernelPlugin = null;
+                    kernelPlugin = CreateKernelPluginCompiled(tempServiceProvider, pluginType!, pluginName, credentialService);
 
-                    if (_hostPluginsCompiled.TryGetValue(pluginName, out var pluginType) || _hostPluginsCurated.TryGetValue(pluginName, out kernelPlugin))
+                    if (kernelPlugin.TryGetFunction(functionName, out var kernelFunction))
                     {
-                        kernelPlugin = CreateKernelPlugin(tempServiceProvider, pluginType!, pluginName, credentialService);
-
-                        if (kernelPlugin.TryGetFunction(functionName, out var kernelFunction))
-                        {
-                            agentPlugins.AddFromFunctions(pluginName, new[] { kernelFunction });
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning($"Plugin {pluginName} not found. Chat Completion function {modelAgent.ChatCompletionFunctionName} will not be loaded.");
+                        chatCompletionPlugins.AddFromFunctions(pluginName, new[] { kernelFunction });
                     }
                 }
+                else
+                {
+                    _logger.LogWarning($"Plugin {pluginName} not found. Chat Completion function {modelAgent.ChatCompletionFunctionName} will not be loaded.");
+                }
 
-                var chatCompletionFunction = agentPlugins.GetFunction(pluginName, functionName);
+                var chatCompletionFunction = chatCompletionPlugins.GetFunction(pluginName, functionName);
 
                 kernelServiceCollection.AddScoped<IChatCompletionService>(sp => new AgienceChatCompletionService(chatCompletionFunction));
 
 
-
-                // Add AgienceLoggerProvider with AgentId
-                //kernelServiceCollection.AddSingleton<AgienceLoggerProvider>();
-                kernelServiceCollection.AddSingleton<ILogger>(sp =>
-                {
-                    var loggerProvider = sp.GetRequiredService<AgienceLoggerProvider>();
-                    var logger = loggerProvider.CreateLogger("Agent");
-                    logger.BeginScope(new Dictionary<string, object> { { "AgentId", modelAgent.Id } });
-                    return logger;
-                });
-
-                // Configure logging
-                kernelServiceCollection.AddLogging(builder =>
-                {
-                    builder.Services.AddSingleton<ILoggerProvider>(sp => sp.GetRequiredService<AgienceLoggerProvider>());
-                });
-
             }
 
-            var kernel = new Kernel(kernelServiceCollection.BuildServiceProvider(), agentPlugins);
+            // Build the kernel's service provider
+            var kernelServiceProvider = kernelServiceCollection.BuildServiceProvider();
 
-            var agency = GetAgency(modelAgent.Agency, kernel.LoggerFactory.CreateLogger<Agency>());
+            // Create the Kernel
+            var kernel = new Kernel(kernelServiceProvider, agentPlugins);
 
-            var agentLogger = kernel.LoggerFactory.CreateLogger<Agent>();
+            // Get the base logger
+            var loggerFactory = kernelServiceProvider.GetRequiredService<ILoggerFactory>();
+            var baseLogger = loggerFactory.CreateLogger<Agent>();
 
+            // Create the scoped logger with AgentId
+            var agentLogger = new AgentScopedLogger<Agent>(baseLogger, modelAgent.Id);
 
+            // Get the agency
+            var agency = GetAgency(modelAgent.Agency, loggerFactory.CreateLogger<Agency>());
+
+            // Create the agent
             var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel, agentLogger);
-            agency.AddLocalAgent(agent);
-            return agent;
 
+            agency.AddLocalAgent(agent);
+            _agents.Add(agent);
+
+            return agent;
         }
 
-        private KernelPlugin CreateKernelPlugin(IServiceProvider serviceProvider, Type pluginType, string pluginName, AgienceCredentialService credentialService)
+        public void Dispose()
+        {
+            foreach (var agent in _agents)
+            {
+                agent.Dispose();
+            }
+        }
+
+        private KernelPlugin CreateKernelPluginCompiled(IServiceProvider serviceProvider, Type pluginType, string pluginName, AgienceCredentialService credentialService)
         {
 
-            if (pluginType.GetConstructor([typeof(AgienceCredentialService)]) != null)
             {
-                return KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(serviceProvider, pluginType, credentialService), pluginName);
-            }
-            else
-            {
-                return KernelPluginFactory.CreateFromObject(ActivatorUtilities.CreateInstance(serviceProvider, pluginType), pluginName);
+                var pluginInstance = ActivatorUtilities.CreateInstance(serviceProvider, pluginType);
+
+                return KernelPluginFactory.CreateFromObject(pluginInstance, pluginName);
             }
 
             /*
@@ -197,6 +221,17 @@ namespace Agience.SDK
                 // Could potentially do some binding or injection here
             }
             */
+        }
+
+        private KernelPlugin CreateKernelPluginCurated(Models.Entities.Plugin plugin)
+        {
+            var functions = new List<KernelFunction>();
+
+            foreach (var function in plugin.Functions)
+            {
+                functions.Add(KernelFunctionFactory.CreateFromPrompt(function.Prompt!, null as PromptExecutionSettings, function.Name, function.Description, null, null));
+            }
+            return KernelPluginFactory.CreateFromFunctions(plugin.Name, functions);
         }
 
         internal Agency GetAgency(Models.Entities.Agency modelAgency, ILogger<Agency> logger)
