@@ -182,7 +182,7 @@ namespace Agience.SDK
             var baseLogger = loggerFactory.CreateLogger<Agent>();
 
             // Create the scoped logger with AgentId
-            var agentLogger = new AgentScopedLogger<Agent>(baseLogger, modelAgent.Id);
+            var agentLogger = new AgienceLogger<Agent>(baseLogger, modelAgent.Id);
 
             // Get the agency
             var agency = GetAgency(modelAgent.Agency, loggerFactory.CreateLogger<Agency>());

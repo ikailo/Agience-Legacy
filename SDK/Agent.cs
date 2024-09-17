@@ -7,6 +7,7 @@ using AutoMapper;
 using Agience.SDK.Mappings;
 using Agience.SDK.Models.Messages;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Agience.SDK.Logging;
 
 namespace Agience.SDK
 {
@@ -53,8 +54,8 @@ namespace Agience.SDK
             _agency = agency;
             _persona = persona;
             _kernel = kernel;
-            _logger = logger;
-            //_logger = new AgienceLogger(logger, null, id);
+            //_logger = logger;
+            _logger = new AgienceLogger<Agent>(logger, Id);
 
             _mapper = AutoMapperConfig.GetMapper();
             //_chatHistory = new();

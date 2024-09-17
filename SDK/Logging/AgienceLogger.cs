@@ -2,26 +2,32 @@
 
 namespace Agience.SDK.Logging
 {
-    public class AgienceLogger : ILogger
+    public class AgienceLogger<T> : ILogger<T>, IDisposable
     {
-        private readonly string _categoryName;
+        private readonly ILogger<T> _innerLogger;
+        private readonly IDisposable _scope;
         private readonly AsyncLocal<Scope?> _currentScope = new();
 
-        public AgienceLogger(string categoryName)
+        public AgienceLogger(ILogger<T> innerLogger, string agentId)
         {
-            _categoryName = categoryName;
+            _innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
+            _scope = _innerLogger.BeginScope(new Dictionary<string, object> { { "AgentId", agentId } }) ?? throw new InvalidOperationException("Failed to create scope.");
         }
 
         public Func<string, string, Task>? AgentLogEntryReceived { get; set; }
         public Func<string, string, Task>? AgencyLogEntryReceived { get; set; }
 
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull
+        IDisposable ILogger.BeginScope<TState>(TState state)
         {
+            if (state == null) throw new ArgumentNullException(nameof(state));
             var scope = new Scope(this, state);
             return scope;
         }
 
-        public bool IsEnabled(LogLevel logLevel) => true;
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return _innerLogger.IsEnabled(logLevel);
+        }
 
         public void Log<TState>(
             LogLevel logLevel,
@@ -46,16 +52,22 @@ namespace Agience.SDK.Logging
             }
 
             // Log the message
-            Console.WriteLine($"{logLevel}: {_categoryName} - {logMessage} {(agentId != null ? $"AgentId: {agentId}" : "")}");
+            _innerLogger.Log(logLevel, eventId, state, exception, formatter);
+            Console.WriteLine($"{logLevel}: {typeof(T).Name} - {logMessage} {(agentId != null ? $"AgentId: {agentId}" : "")}");
+        }
+
+        public void Dispose()
+        {
+            _scope.Dispose();
         }
 
         private class Scope : IDisposable
         {
-            private readonly AgienceLogger _logger;
+            private readonly AgienceLogger<T> _logger;
             public Scope? Parent { get; }
             private readonly IDictionary<string, object> _state;
 
-            public Scope(AgienceLogger logger, object state)
+            public Scope(AgienceLogger<T> logger, object state)
             {
                 _logger = logger;
                 Parent = _logger._currentScope.Value;

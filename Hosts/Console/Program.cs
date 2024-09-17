@@ -29,9 +29,12 @@ namespace Agience.Hosts._Console
 
             var agienceHost = app.Services.GetRequiredService<SDK.Host>();
 
-            agienceHost.Services.AddSingleton<IConsoleService, AgienceConsolePluginService>();
+            //agienceHost.Services.AddSingleton<IConsoleService, AgienceConsolePluginService>();
 
 #pragma warning disable SKEXP0050
+
+            
+
             // TODO: These plugins should be loaded dynamically during runtime.
             agienceHost.AddPluginFromType<TimePlugin>("msTime");
             agienceHost.AddPluginFromType<ConsolePlugin>("agienceConsole");
