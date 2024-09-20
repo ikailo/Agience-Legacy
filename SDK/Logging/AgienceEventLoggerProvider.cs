@@ -1,5 +1,5 @@
-﻿using Agience.SDK.Models.Entities;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Agience.SDK.Logging
@@ -7,8 +7,7 @@ namespace Agience.SDK.Logging
     public class AgienceEventLoggerProvider : ILoggerProvider
     {
         private readonly IServiceProvider _serviceProvider;
-
-        public event EventHandler<AgienceEventLogArgs>? LogEntryReceived;
+        private readonly List<ILogger> _createdLoggers = new();
 
         public AgienceEventLoggerProvider(IServiceProvider serviceProvider)
         {
@@ -17,82 +16,49 @@ namespace Agience.SDK.Logging
 
         public ILogger CreateLogger(string categoryName)
         {
-            throw new NotImplementedException();
+            return NullLogger.Instance;
         }
 
         public ILogger CreateLogger(string categoryName, string agencyId, string? agentId)
         {
-            var logger = new AgienceEventLogger(agencyId, (typeof(Agency).FullName ?? typeof(Agency).Name) == categoryName ? null : agentId);
-
-            var handler = _serviceProvider.GetService<IAgienceEventLogHandler>();
-
-            logger.LogEntryReceived += (sender, e) => handler?.OnLogEntryReceived(sender, e);
-
-            return logger;
+            return CreateLoggerInternal(typeof(object), agencyId, agentId);
         }
 
         public ILogger<T> CreateLogger<T>(string agencyId, string? agentId)
         {
-            var logger = new AgienceEventLogger<T>(agencyId, typeof(T) == typeof(Agency) ? null : agentId);
+            return (ILogger<T>)CreateLoggerInternal(typeof(T), agencyId, agentId);            
+        }
 
-            var handler = _serviceProvider.GetService<IAgienceEventLogHandler>();
+        private ILogger CreateLoggerInternal(Type loggerType, string agencyId, string? agentId)
+        {
+            ILogger logger = loggerType != typeof(object)
+                ? (ILogger)(Activator.CreateInstance(typeof(AgienceEventLogger<>).MakeGenericType(loggerType), agencyId, agentId)
+                    ?? throw new InvalidOperationException("Failed to create logger instance."))
+                : new AgienceEventLogger(agencyId, agentId);
 
-            logger.LogEntryReceived += (sender, e) => handler?.OnLogEntryReceived(sender, e);
+            foreach (var handler in _serviceProvider.GetServices<IAgienceEventLogHandler>())
+            {
+                if (logger is AgienceEventLogger agienceEventLogger)
+                {
+                    agienceEventLogger.LogEntryReceived += (sender, e) => handler.OnLogEntryReceived(sender, e);
+                }
+            }
+
+            _createdLoggers.Add(logger);
 
             return logger;
         }
 
-        public void Dispose() { }
-    }
-
-
-
-    /*
-    public class AgienceLoggerProvider : ILoggerProvider
-    {   
-        private readonly ConcurrentDictionary<string, AgienceLogger<Agent>> _agentLoggers = new();
-        private readonly ConcurrentDictionary<string, AgienceLogger<Agency>> _agencyLoggers = new();
-
-        public event Func<AgienceLogEventArgs, Task>? LogEntryReceived;
-
-        public AgienceLoggerProvider()
-        {
-        }
-
-        public ILogger<T> CreateLogger<T>(AgienceLoggerFactory loggerFactory)
-        {
-            if (typeof(T) == typeof(Agency))
-            {
-                var agencyLogger = loggerFactory.CreateLogger<Agency>();
-                agencyLogger.LogEntryReceived += async (args) => await (LogEntryReceived?.Invoke(args) ?? Task.CompletedTask);
-                return (ILogger<T>)new AgienceLogger<Agency>(agencyLogger, loggerFactory.AgencyId);
-            }
-            else if (typeof(T) == typeof(Agent))
-            {
-                var agentLogger = loggerFactory.CreateLogger<Agent>();
-                agentLogger.LogEntryReceived += async (args) => await (LogEntryReceived?.Invoke(args) ?? Task.CompletedTask);
-                return (ILogger<T>)new AgienceLogger<Agent>(agentLogger, loggerFactory.AgencyId, loggerFactory.AgentId);
-            }
-            else
-            {
-                throw new InvalidOperationException($"Unsupported Type for AgienceLogger: {typeof(T).FullName ?? typeof(T).Name}");
-            }
-        }
-
         public void Dispose()
         {
-            _agentLoggers.Values.ToList().ForEach(l => l.Dispose());
-            _agencyLoggers.Values.ToList().ForEach(l => l.Dispose());
+            foreach (var logger in _createdLoggers)
+            {
+                if (logger is IDisposable disposableLogger)
+                {
+                    disposableLogger.Dispose();
+                }
+            }
+            _createdLoggers.Clear();
         }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal async Task OnLogEntryReceived(AgienceLogEventArgs args)
-        {
-            await (LogEntryReceived?.Invoke(args) ?? Task.CompletedTask);
-        }
-}*/
+    }
 }

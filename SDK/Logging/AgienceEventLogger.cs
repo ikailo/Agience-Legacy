@@ -1,7 +1,22 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Agience.SDK.Logging
 {
+    public class AgienceEventLogger<T> : AgienceEventLoggerBase, ILogger<T>
+    {
+        public AgienceEventLogger(string agencyId, string? agentId = null)
+            : base(agencyId, agentId) { }
+    }
+
+    public class AgienceEventLogger : AgienceEventLoggerBase
+    {
+        public AgienceEventLogger(string agencyId, string? agentId = null)
+            : base(agencyId, agentId) { }
+    }
+
     public abstract class AgienceEventLoggerBase : ILogger
     {
         public event EventHandler<AgienceEventLogArgs>? LogEntryReceived;
@@ -17,7 +32,10 @@ namespace Agience.SDK.Logging
 
         IDisposable? ILogger.BeginScope<TState>(TState state) => null;
 
-        public bool IsEnabled(LogLevel logLevel) => true;
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return logLevel >= LogLevel.Information;
+        }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
@@ -34,22 +52,6 @@ namespace Agience.SDK.Logging
                 Exception = exception,
                 Formatter = (s, e) => formatter((TState)s, e),
             });
-        }
-    }
-
-    public class AgienceEventLogger<T> : AgienceEventLoggerBase, ILogger<T>
-    {
-        public AgienceEventLogger(string agencyId, string? agentId = null)
-            : base(agencyId, agentId)
-        {
-        }
-    }
-
-    public class AgienceEventLogger : AgienceEventLoggerBase
-    {
-        public AgienceEventLogger(string agencyId, string? agentId = null)
-            : base(agencyId, agentId)
-        {
         }
     }
 }

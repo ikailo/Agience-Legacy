@@ -1,75 +1,53 @@
-﻿using Agience.SDK.Models.Entities;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace Agience.SDK.Logging
 {
     public class AgienceEventLoggerFactory : ILoggerFactory
     {
-        private readonly ILoggerFactory _innerFactory;
-        private List<ILoggerProvider> _providers = new();
+        private readonly List<ILoggerProvider> _providers = new();
+        private readonly string _agencyId;
+        private readonly string? _agentId;
 
-        public AgienceEventLoggerFactory(ILoggerFactory innerFactory, AgienceEventLoggerProvider provider)
+        public AgienceEventLoggerFactory(string agencyId, string? agentId)
         {
-            _innerFactory = innerFactory;
-            _providers.Add(provider);
+            _agencyId = agencyId;
+            _agentId = agentId;
         }
 
         public ILogger CreateLogger(string categoryName)
         {
-            var loggers = new List<ILogger>();
-            foreach (var provider in _providers)
-            {
-                if (provider is AgienceEventLoggerProvider agienceEventLoggerProvider)
-                {
-                    loggers.Add(agienceEventLoggerProvider.CreateLogger(categoryName, "foo", "bar"));
-                }
-                else
-                {
-                    // TODO: Create a scope to store the agencyId and agentId
-                    loggers.Add(provider.CreateLogger(categoryName));
-                }
-            }
-
-            return new CompositeLogger(loggers);
+            string? agentId = IsAgencyLogger(categoryName) ? null : _agentId;
+            return CreateScopedLogger<ILogger>(categoryName, agentId);
         }
-        /*
-        public ILogger CreateLogger(string categoryName, string agencyId, string? agentId)
-        {
-            var loggers = new List<ILogger>();
-            foreach (var provider in _providers)
-            {   
-                if (provider is AgienceEventLoggerProvider agienceEventLoggerProvider)
-                {
-                    loggers.Add(agienceEventLoggerProvider.CreateLogger(categoryName, agencyId, agentId));
-                }
-                else
-                {
-                    // TODO: Create a scope to store the agencyId and agentId
-                    loggers.Add(provider.CreateLogger(categoryName));
-                }
-            }
 
-            return new CompositeLogger(loggers);
-        }*/
-
-        public ILogger<T> CreateLogger<T>(string agencyId, string? agentId)
+        public ILogger<T> CreateLogger<T>()
         {
-            var loggers = new List<ILogger>();
-            foreach (var provider in _providers)
+            string? agentId = typeof(T) == typeof(Agency) ? null : _agentId;
+            return CreateScopedLogger<ILogger<T>>(typeof(T).FullName ?? typeof(T).Name, agentId);
+        }
+
+        private TLogger CreateScopedLogger<TLogger>(string categoryName, string? agentId) where TLogger : ILogger
+        {
+            var loggers = _providers.Select<ILoggerProvider, ILogger>(provider =>
+                provider is AgienceEventLoggerProvider agienceProvider
+                    ? agienceProvider.CreateLogger<TLogger>(_agencyId, agentId)
+                    : (TLogger)provider.CreateLogger(categoryName)
+            ).ToList();
+
+            var scopeData = new Dictionary<string, object> { { "AgencyId", _agencyId } };
+
+            if (!string.IsNullOrEmpty(agentId))
             {
-                
-                if (provider is AgienceEventLoggerProvider agienceEventLoggerProvider)
-                {
-                    loggers.Add(agienceEventLoggerProvider.CreateLogger<T>(agencyId, agentId));
-                }
-                else
-                {
-                    // TODO: Create a scope to store the agencyId and agentId
-                    loggers.Add(provider.CreateLogger(typeof(T).FullName ?? typeof(T).Name));
-                }
+                scopeData["AgentId"] = agentId;
             }
 
-            return new CompositeLogger<T>(loggers);
+            return (TLogger)Activator.CreateInstance(typeof(AgienceScopedCompositeLogger<TLogger>), loggers, scopeData)!;
+        }
+
+        private bool IsAgencyLogger(string categoryName)
+        {
+            var agencyFullName = typeof(Agency).FullName ?? typeof(Agency).Name;
+            return agencyFullName == categoryName;
         }
 
         public void AddProvider(ILoggerProvider provider)
@@ -84,8 +62,6 @@ namespace Agience.SDK.Logging
                 provider.Dispose();
             }
             _providers.Clear();
-
-            _innerFactory?.Dispose();
         }
     }
 }

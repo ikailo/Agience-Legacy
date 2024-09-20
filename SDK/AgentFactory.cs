@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using NuGet.Protocol.Plugins;
 
 namespace Agience.SDK
 {
@@ -77,7 +78,24 @@ namespace Agience.SDK
             // Create a new ServiceCollection for the Kernel
             var kernelServiceCollection = new ServiceCollection();
 
-            kernelServiceCollection.AddSingleton(_mainServiceProvider.GetRequiredService<ILoggerFactory>());
+            kernelServiceCollection.AddSingleton<ILoggerFactory>(sp =>
+            {
+                var agienceEventLoggerFactory = new AgienceEventLoggerFactory(modelAgent.AgencyId, modelAgent.Id);
+
+                var agienceEventLoggerProvider = _mainServiceProvider.GetRequiredService<AgienceEventLoggerProvider>();
+
+                agienceEventLoggerFactory.AddProvider(agienceEventLoggerProvider);
+
+                foreach (var provider in _mainServiceProvider.GetServices<ILoggerProvider>())
+                {
+                    if (provider != agienceEventLoggerProvider)
+                    {
+                        agienceEventLoggerFactory.AddProvider(provider);
+                    }
+                }
+
+                return agienceEventLoggerFactory;
+            });
 
             // Add or override services specific to this Kernel
 
@@ -157,28 +175,20 @@ namespace Agience.SDK
 
         private Agent CreateScopedAgent(Models.Entities.Agent modelAgent, IServiceProvider serviceProvider, KernelPluginCollection plugins)
         {
-            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-
-            ILogger<Agency>? agencyLogger = null;
-            ILogger<Agent>? agentLogger = null;
-
-            if (loggerFactory is AgienceEventLoggerFactory agienceEventLoggerFactory)
-            {
-                agencyLogger = agienceEventLoggerFactory.CreateLogger<Agency>(modelAgent.AgencyId, null);
-                agentLogger = agienceEventLoggerFactory.CreateLogger<Agent>(modelAgent.AgencyId, modelAgent.Id);
-            }
-            else
-            {
-                agencyLogger = loggerFactory.CreateLogger<Agency>(); // TODO: Add Scope?
-                agentLogger = loggerFactory.CreateLogger<Agent>(); // TODO: Add Scope?
-            }
-
             var kernel = new Kernel(serviceProvider, plugins);
+
+            var agencyLogger = kernel.LoggerFactory.CreateLogger<Agency>();
+
+            var agentLogger = kernel.LoggerFactory.CreateLogger<Agent>();
+            
             var agency = GetAgency(modelAgent.Agency, agencyLogger);
+
             var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, modelAgent.Persona, kernel, agentLogger);
 
             agency.AddLocalAgent(agent);
+
             _agents.Add(agent);
+
             return agent;
         }
 

@@ -4,5 +4,4 @@
     {
         public void OnLogEntryReceived(object? sender, AgienceEventLogArgs args);
     }
-
 }

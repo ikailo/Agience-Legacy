@@ -1,5 +1,4 @@
-﻿using Agience.SDK.Logging;
-using Agience.SDK.Models.Entities;
+﻿using Agience.SDK.Models.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -8,52 +7,45 @@ namespace Agience.SDK.Extensions
     public static class ServiceCollectionExtensions
     {
         public static void AddAgienceHost(
-    this IServiceCollection services,
-    string authorityUri,
-    string hostId,
-    string hostSecret,
-    string? customNtpHost = null,
-    string? authorityUriInternal = null,
-    string? brokerUriInternal = null,
-    string? hostOpenAiApiKey = null)
+            this IServiceCollection services,
+            string authorityUri,
+            string hostId,
+            string hostSecret,
+            string? customNtpHost = null,
+            string? authorityUriInternal = null,
+            string? brokerUriInternal = null,
+            string? hostOpenAiApiKey = null)
         {
-            services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), null, sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
-
-            services.AddSingleton<Authority>(sp =>
-            {
-                var logger = sp.GetRequiredService<ILogger<Authority>>();
-                var broker = sp.GetRequiredService<Broker>();
-
-                return new Authority(authorityUri, broker, null, logger, authorityUriInternal, brokerUriInternal);
-            });
-
-            services.AddSingleton<Broker>(sp =>
+            services.AddSingleton(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<Broker>>();
                 return new Broker(logger, customNtpHost);
             });
 
-            services.AddSingleton<AgentFactory>(sp =>
+            services.AddSingleton(sp =>
             {
-                var serviceProvider = sp.GetRequiredService<IServiceProvider>();
+                var broker = sp.GetRequiredService<Broker>();
+                var logger = sp.GetRequiredService<ILogger<Authority>>();
+                return new Authority(authorityUri, broker, null, logger, authorityUriInternal, brokerUriInternal);
+            });
+
+            services.AddSingleton(sp =>
+            {
                 var authority = sp.GetRequiredService<Authority>();
                 var broker = sp.GetRequiredService<Broker>();
                 var logger = sp.GetRequiredService<ILogger<AgentFactory>>();
-                return new AgentFactory(serviceProvider, authority, broker, logger, hostOpenAiApiKey);
+                return new AgentFactory(sp, authority, broker, logger, hostOpenAiApiKey);
             });
 
-            services.AddSingleton<Host>(sp =>
+            services.AddSingleton(sp =>
             {
-                var serviceProvider = sp.GetRequiredService<IServiceProvider>();
-                var authority = serviceProvider.GetRequiredService<Authority>();
-                var broker = serviceProvider.GetRequiredService<Broker>();
-                var agentFactory = serviceProvider.GetRequiredService<AgentFactory>();
-                var logger = serviceProvider.GetRequiredService<ILogger<Host>>();
+                var authority = sp.GetRequiredService<Authority>();
+                var broker = sp.GetRequiredService<Broker>();
+                var agentFactory = sp.GetRequiredService<AgentFactory>();
+                var logger = sp.GetRequiredService<ILogger<Host>>();
                 return new Host(hostId, hostSecret, authority, broker, agentFactory, logger);
             });
         }
-
-
 
         public static void AddAgienceAuthority(
             this IServiceCollection services,
@@ -62,8 +54,19 @@ namespace Agience.SDK.Extensions
             string? authorityUriInternal = null,
             string? brokerUriInternal = null)
         {
-            services.AddSingleton(sp => new Broker(sp.GetRequiredService<ILogger<Broker>>(), customNtpHost));
-            services.AddSingleton(sp => new Authority(authorityUri, sp.GetRequiredService<Broker>(), sp.GetRequiredService<IAuthorityDataAdapter>(), sp.GetRequiredService<ILogger<Authority>>(), authorityUriInternal, brokerUriInternal));
+            services.AddSingleton(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<Broker>>();
+                return new Broker(logger, customNtpHost);
+            });
+
+            services.AddSingleton(sp =>
+            {
+                var broker = sp.GetRequiredService<Broker>();
+                var dataAdapter = sp.GetRequiredService<IAuthorityDataAdapter>();
+                var logger = sp.GetRequiredService<ILogger<Authority>>();
+                return new Authority(authorityUri, broker, dataAdapter, logger, authorityUriInternal, brokerUriInternal);
+            });
         }
     }
 }
