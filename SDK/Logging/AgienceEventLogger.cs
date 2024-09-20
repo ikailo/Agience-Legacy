@@ -1,7 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace Agience.SDK.Logging
 {

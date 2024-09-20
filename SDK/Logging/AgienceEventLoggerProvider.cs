@@ -31,22 +31,26 @@ namespace Agience.SDK.Logging
 
         private ILogger CreateLoggerInternal(Type loggerType, string agencyId, string? agentId)
         {
-            ILogger logger = loggerType != typeof(object)
-                ? (ILogger)(Activator.CreateInstance(typeof(AgienceEventLogger<>).MakeGenericType(loggerType), agencyId, agentId)
+            var logger = loggerType != typeof(object)
+                ? (Activator.CreateInstance(typeof(AgienceEventLogger<>).MakeGenericType(loggerType), agencyId, agentId)
                     ?? throw new InvalidOperationException("Failed to create logger instance."))
                 : new AgienceEventLogger(agencyId, agentId);
 
-            foreach (var handler in _serviceProvider.GetServices<IAgienceEventLogHandler>())
+            if (logger is AgienceEventLoggerBase agienceEventLogger)
             {
-                if (logger is AgienceEventLogger agienceEventLogger)
-                {
-                    agienceEventLogger.LogEntryReceived += (sender, e) => handler.OnLogEntryReceived(sender, e);
-                }
+                
+                    var handlers = _serviceProvider.GetServices<IAgienceEventLogHandler>();
+
+                    foreach (var handler in handlers)
+                    {
+                        agienceEventLogger.LogEntryReceived += (sender, e) => handler?.OnLogEntryReceived(sender, e);
+                    }
+                
             }
 
-            _createdLoggers.Add(logger);
+            _createdLoggers.Add((ILogger)logger);
 
-            return logger;
+            return (ILogger)logger;
         }
 
         public void Dispose()
