@@ -34,6 +34,7 @@ namespace Agience.SDK
         private PromptExecutionSettings? _promptExecutionSettings;
         private string _persona;
 
+
         internal Agent(
             string id,
             string name,
@@ -54,9 +55,7 @@ namespace Agience.SDK
             _agency = agency;
             _persona = persona;
             _kernel = kernel;
-            //_logger = logger;
-            _logger = new AgienceLogger<Agent>(logger, Id);
-
+            _logger = logger;
             _mapper = AutoMapperConfig.GetMapper();
             //_chatHistory = new();
 
@@ -67,6 +66,8 @@ namespace Agience.SDK
 
             _representativeClaimTimer.AutoReset = false;
             _representativeClaimTimer.Elapsed += (s, e) => SendRepresentativeClaim();
+
+            
         }
 
         internal async Task Connect()

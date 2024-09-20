@@ -1,4 +1,5 @@
-﻿using Microsoft.SemanticKernel;
+﻿using Agience.SDK.Logging;
+using Microsoft.SemanticKernel;
 
 namespace Agience.Plugins.Primary.Interaction
 {   
@@ -12,8 +13,8 @@ namespace Agience.Plugins.Primary.Interaction
         public event Func<string, Task> AgentDisconnected;
 
         // Log Events
-        public event Func<string, string, Task> AgentLogEntryReceived;
-        public event Func<string, string, Task> AgencyLogEntryReceived;
+        //public event Func<AgienceLogEventArgs, Task>? AgentLogEntryReceived;
+        //public event Func<AgienceLogEventArgs, Task>? AgencyLogEntryReceived;
 
         // Chat Events
         public event Func<string, IEnumerable<ChatMessageContent>, Task> AgencyChatHistoryUpdated;

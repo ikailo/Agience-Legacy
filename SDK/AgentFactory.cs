@@ -1,4 +1,5 @@
-﻿using Agience.SDK.Logging;
+﻿using Agience.SDK.Extensions;
+using Agience.SDK.Logging;
 using Agience.SDK.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -25,9 +26,10 @@ namespace Agience.SDK
             Authority authority,
             Broker broker,
             ILogger<AgentFactory> logger,
-            string? hostOpenAiApiKey = null)
+            string? hostOpenAiApiKey = null
+            )
         {
-            _mainServiceProvider = mainServiceProvider;
+            _mainServiceProvider = mainServiceProvider.CreateScope().ServiceProvider;
             _authority = authority;
             _broker = broker;
             _logger = logger;
@@ -70,41 +72,21 @@ namespace Agience.SDK
 
         internal Agent CreateAgent(Models.Entities.Agent modelAgent)
         {
-            _logger.LogInformation("Creating agent {AgentId}", modelAgent.Id);
-
-            var persona = modelAgent.Persona ?? string.Empty;
             var agentPlugins = new KernelPluginCollection();
 
             // Create a new ServiceCollection for the Kernel
             var kernelServiceCollection = new ServiceCollection();
 
-            // Add shared services from the main service provider
-            var loggerProvider = _mainServiceProvider.GetRequiredService<ILoggerProvider>();
-            kernelServiceCollection.AddSingleton(loggerProvider);
-
-            // Add logging
-            kernelServiceCollection.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.AddProvider(loggerProvider);
-            });
-
-            /*
-            foreach (var serviceDescriptor in _mainServiceProvider)
-            {
-                kernelServiceCollection.Add(serviceDescriptor);
-            }
-            */
+            kernelServiceCollection.AddSingleton(_mainServiceProvider.GetRequiredService<ILoggerFactory>());
 
             // Add or override services specific to this Kernel
-            // For example, add credential services
+
             var credentialService = new AgienceCredentialService(modelAgent.Id, _authority, _broker);
             if (!string.IsNullOrWhiteSpace(_hostOpenAiApiKey))
             {
                 credentialService.AddCredential("HostOpenAiApiKey", _hostOpenAiApiKey);
             }
             kernelServiceCollection.AddSingleton(credentialService);
-
 
             using var tempServiceProvider = kernelServiceCollection.BuildServiceProvider();
 
@@ -167,32 +149,36 @@ namespace Agience.SDK
                 var chatCompletionFunction = chatCompletionPlugins.GetFunction(pluginName, functionName);
 
                 kernelServiceCollection.AddScoped<IChatCompletionService>(sp => new AgienceChatCompletionService(chatCompletionFunction));
-
-
             }
 
-            // Build the kernel's service provider
-            var kernelServiceProvider = kernelServiceCollection.BuildServiceProvider();
+            return CreateScopedAgent(modelAgent, kernelServiceCollection.BuildServiceProvider(), agentPlugins);
 
-            // Create the Kernel
-            var kernel = new Kernel(kernelServiceProvider, agentPlugins);
+        }
 
-            // Get the base logger
-            var loggerFactory = kernelServiceProvider.GetRequiredService<ILoggerFactory>();
-            var baseLogger = loggerFactory.CreateLogger<Agent>();
+        private Agent CreateScopedAgent(Models.Entities.Agent modelAgent, IServiceProvider serviceProvider, KernelPluginCollection plugins)
+        {
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-            // Create the scoped logger with AgentId
-            var agentLogger = new AgienceLogger<Agent>(baseLogger, modelAgent.Id);
+            ILogger<Agency>? agencyLogger = null;
+            ILogger<Agent>? agentLogger = null;
 
-            // Get the agency
-            var agency = GetAgency(modelAgent.Agency, loggerFactory.CreateLogger<Agency>());
+            if (loggerFactory is AgienceEventLoggerFactory agienceEventLoggerFactory)
+            {
+                agencyLogger = agienceEventLoggerFactory.CreateLogger<Agency>(modelAgent.AgencyId, null);
+                agentLogger = agienceEventLoggerFactory.CreateLogger<Agent>(modelAgent.AgencyId, modelAgent.Id);
+            }
+            else
+            {
+                agencyLogger = loggerFactory.CreateLogger<Agency>(); // TODO: Add Scope?
+                agentLogger = loggerFactory.CreateLogger<Agent>(); // TODO: Add Scope?
+            }
 
-            // Create the agent
-            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, persona, kernel, agentLogger);
+            var kernel = new Kernel(serviceProvider, plugins);
+            var agency = GetAgency(modelAgent.Agency, agencyLogger);
+            var agent = new Agent(modelAgent.Id, modelAgent.Name, _authority, _broker, agency, modelAgent.Persona, kernel, agentLogger);
 
             agency.AddLocalAgent(agent);
             _agents.Add(agent);
-
             return agent;
         }
 
