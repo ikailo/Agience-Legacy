@@ -1,29 +1,49 @@
-﻿using Agience.SDK.Logging;
+﻿using Agience.SDK;
+using Agience.SDK.Logging;
 using Microsoft.SemanticKernel;
 
 namespace Agience.Plugins.Primary.Interaction
-{   
+{
     public interface IInteractionService
     {
-        // Status Events
-        public event Func<string, Task>? AgencyConnected;
-        public event Func<string, Task>? AgentConnected;
+        // Connected Status Events
+        event Func<string, Task>? AgencyConnected;
+        event Func<string, Task>? AgentConnected;
 
-        public event Func<string, Task>? AgencyDisconnected;
-        public event Func<string, Task>? AgentDisconnected;
+        // Disconnected Status Events
+        event Func<string, Task>? AgencyDisconnected;
+        event Func<string, Task>? AgentDisconnected;
 
         // Log Events
-        public event Func<AgienceEventLogArgs, Task>? AgencyLogEntryReceived;
-        public event Func<AgienceEventLogArgs, Task>? AgentLogEntryReceived;
+        event Func<AgienceEventLogArgs, Task>? AgencyLogEntryReceived;
+        event Func<AgienceEventLogArgs, Task>? AgentLogEntryReceived;
 
-        // Chat Events
-        public event Func<string, IEnumerable<ChatMessageContent>, Task>? AgencyChatHistoryUpdated;
+        // Incoming Chat Message Events
+        event Func<string, ChatMessageContent, Task>? AgencyChatMessageReceived;
+        event Func<string, ChatMessageContent, Task>? AgentChatMessageReceived;
 
+        // Chat History Methods
         Task<IEnumerable<ChatMessageContent>> GetAgencyChatHistoryAsync(string agencyId);
-        public Task<bool> InformAgencyAsync(string agencyId, string message);
-        public Task<string> PromptAgentAsync(string agentId, string message);
-        public Task<bool> IsAgencyConnected(string agencyId);
-        public Task<bool> IsAgentConnected(string agentId);
+        Task<IEnumerable<ChatMessageContent>> GetAgentChatHistoryAsync(string agentId);
 
+        // Outgoing Chat Message Methods
+        Task<ChatMessageContent?> SendAgencyChatMessageAsync(string agencyId, string message);
+        Task<ChatMessageContent?> SendAgentChatMessageAsync(string agentId, string message);
+
+        // Log Retrieval Methods
+        Task<IEnumerable<string>> GetAgencyLogsAsync(string agencyId);
+        Task<IEnumerable<string>> GetAgentLogsAsync(string agentId);
+
+        // All Entities Retrieval Methods
+        Task<IEnumerable<Agency>> GetConnectedAgenciesAsync();
+        Task<IEnumerable<Agent>> GetConnectedAgentsAsync();
+
+        // Single Entity Retrieval Methods
+        Task<Agency?> GetConnectedAgencyAsync(string agencyId);
+        Task<Agent?> GetConnectedAgentAsync(string agentId);
+
+        // Connection Status Methods
+        Task<bool> IsAgencyConnected(string agencyId);
+        Task<bool> IsAgentConnected(string agentId);
     }
 }

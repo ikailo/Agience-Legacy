@@ -20,7 +20,7 @@ namespace Agience.SDK
         public Kernel Kernel => _kernel;
         public string Timestamp => _broker.Timestamp;
 
-        //private readonly ChatHistory _chatHistory;
+        private readonly ChatHistory _chatHistory = new();
         private readonly ConcurrentDictionary<string, Runner> _informationCallbacks = new();
         private readonly Timer _representativeClaimTimer = new Timer(JOIN_WAIT);
         private readonly Authority _authority;
@@ -57,7 +57,6 @@ namespace Agience.SDK
             _kernel = kernel;
             _logger = logger;
             _mapper = AutoMapperConfig.GetMapper();
-            //_chatHistory = new();
 
             _promptExecutionSettings = new OpenAIPromptExecutionSettings
             {
@@ -96,7 +95,7 @@ namespace Agience.SDK
 
             if (IsConnected)
             {
-                SendRepresentativeAbandon();
+                SendRepresentativeResign();
                 SendLeave();
                 await _broker.Unsubscribe(_authority.AgentTopic("+", Id!));
                 IsConnected = false;
@@ -156,11 +155,11 @@ namespace Agience.SDK
             });
         }
 
-        private void SendRepresentativeAbandon()
+        private void SendRepresentativeResign()
         {
-            if (_agency.RepresentativeId != Id) { return; } // Only the current representative can abandon
+            if (_agency.RepresentativeId != Id) { return; } // Only the current representative can resign
 
-            _logger.LogDebug("SendRepresentativeAbandon");
+            _logger.LogDebug("SendRepresentativeResign");
             
             _broker.Publish(new BrokerMessage()
             {
@@ -168,24 +167,27 @@ namespace Agience.SDK
                 Topic = _authority.AgencyTopic(Id!, _agency.Id!),
                 Data = new Data
                 {
-                    { "type", "representative_abandon" },
+                    { "type", "representative_resign" },
                     { "timestamp", _broker.Timestamp},
                     { "agent_id", Id },
                 }
             });
         }
 
-        public async Task<string> PromptAsync(string message, CancellationToken cancellationToken = default)
+        public async Task<string> PromptAsync(string userMessage, CancellationToken cancellationToken = default)
         {
-            var chatHistory = new ChatHistory();
+            _chatHistory.AddUserMessage(userMessage);
 
-            chatHistory.AddUserMessage(message);
+            var chatMessageContent = await _kernel.GetRequiredService<IChatCompletionService>()
+                .GetChatMessageContentAsync(_chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
 
-            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+            if (chatMessageContent?.Items.Last().ToString() is string assistantMessage) {
+                _chatHistory.AddAssistantMessage(assistantMessage);
+            }
 
-            var chatMessageContent = await chatCompletionService.GetChatMessageContentAsync(chatHistory, _promptExecutionSettings, _kernel, cancellationToken);
+            
 
-            return chatMessageContent.Items.Last().ToString() ?? string.Empty;
+            return chatMessageContent?.Items.Last().ToString() ?? string.Empty;
         }
 
         public void Dispose()
