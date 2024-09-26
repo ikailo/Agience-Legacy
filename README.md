@@ -1,4 +1,4 @@
-# Agience Framework
+# Agience - Intelligent Agents for Everyone
 
 Agience is an **open-source** intelligent **agent framework** and **platform** that intuitively and seamlessly **connects devices**, **systems**, and **data** to achieve new levels of **automation** and **efficiency**.
 
