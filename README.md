@@ -1,21 +1,40 @@
-# Agience
+# Agience Framework
 
-Agience is a platform and ecosystem designed to make intelligent agents accessible and rewarding for everyone.
+Agience is an **open-source** intelligent **agent framework** and **platform** that intuitively and seamlessly **connects devices**, **systems**, and **data** to achieve new levels of **automation** and **efficiency**.
 
-This repository contains the open-source code for the Agience platform. Note that it requires a connection to an Authority to function. We are currently working on a preview instance with detailed documentation and tutorials.
+This open-source project enables developers to create and deploy intelligent agents that can automate tasks, process complex information, and facilitate communication between systems at scale.
 
-## Plugins
+## Key Features
 
-Plugins contain functions used by agents to transform and connect information. These plugins extend the capabilities of agents, allowing them to interact with various data sources and services.
+- **Modular and Scalable**: Agience is built to scale, supporting everything from small IoT networks to large-scale industrial deployments.
+- **Open-Source**: Released under the MPL-2.0 license, offering flexibility and customization to businesses and developers.
+- **Agent-Based Architecture**: Deploy autonomous agents equipped with specialized functions for handling data, automating processes, and communicating across networks.
+- **Real-Time Decision-Making**: Agents process real-time data to make intelligent decisions, reducing operational delays and improving overall efficiency.
+- **Seamless Integration**: Compatible with a wide range of systems and protocols, making it easy to integrate with existing technologies.
 
-## Hosts
+## Architecture Overview
 
-Hosts provide the infrastructure for running intelligent agents. They ensure that agents have the necessary resources and environment to operate efficiently.
+Agience consists of several core components that together form a cohesive, highly interoperable network of intelligent agents:
 
-## SDK
+### Host
+The Host application is deployed onto devices or computer systems to enable agent interaction with local services and resources.
 
-The SDK is the core of the platform and provides all the necessary code to create functions and plugins for intelligent agents on the Agience platform.
+### Agents and Agencies
+Agents are autonomous units that perform specific tasks, gather data, and communicate with other agents. Groups of connected agents form an **Agency**, which allows for task coordination and shared access to common data sources or services.
 
-## Upcoming
+### Functions and Plugins
+Functions are predefined tasks or behaviors that an agent can perform, such as controlling external systems, analyzing data, or managing communications. Plugins bundle related functions, extending agent capabilities.
 
-We are actively working on a public release that will include comprehensive documentation and tutorials to help you get started with Agience.  Stay tuned for updates!
+### Authority and Identity Management
+The **Authority** component manages user identities, authentication, and configurations across the network. It ensures secure governance and resource management for large-scale deployments.
+
+### Agience Protocol
+The Agience Protocol standardizes communication between agents, hosts, and the authority, ensuring consistency, resource management, and time synchronization across the network.
+
+## Getting Started
+
+### Prerequisites
+
+### Installation
+
+### Running in Docker
