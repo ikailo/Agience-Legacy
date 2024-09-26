@@ -14,8 +14,6 @@ This open-source project enables developers to create and deploy intelligent age
 
 ## Architecture Overview
 
-Agience consists of several core components that together form a cohesive, highly interoperable network of intelligent agents:
-
 ### Host
 The Host application is deployed onto devices or computer systems to enable agent interaction with local services and resources.
 
