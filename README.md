@@ -23,7 +23,7 @@ The **Host** application is deployed on devices or systems, enabling agents to i
 **Agents** are autonomous units that perform specific tasks, gather data, and communicate with other agents. Connected agents form an **agency**, allowing for coordinated tasks and shared access to data and services.
 
 ### Functions and Plugins
-**Functions** are predefined tasks or behaviors agents perform, such as controlling external systems, analyzing data, or facilitating communications. **Plugins** extend agent capabilities by bundling related functions.
+**Functions** are predefined tasks or behaviors that agents perform, such as controlling external systems, analyzing data, or facilitating communications. **Plugins** extend agent capabilities by bundling related functions.
 
 ### Authority
 The **authority** manages governance, resources, identity, and metadata for hosts and agents. It also facilitates and enforces sharing and ownership within its own domain and with other authorities.
