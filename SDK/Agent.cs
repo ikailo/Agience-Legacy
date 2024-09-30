@@ -14,9 +14,10 @@ namespace Agience.SDK
     public class Agent : Models.Entities.Agent, IDisposable
     {
         private const int JOIN_WAIT = 5000;
+        public bool IsConnected { get; private set; }
 
         public event Func<AgienceChatMessageArgs, Task>? ChatMessageReceived;
-        public bool IsConnected { get; private set; }
+        public ChatHistory ChatHistory => _chatHistory;        
         public new Agency Agency => _agency;
         public Kernel Kernel => _kernel;
         public string Timestamp => _broker.Timestamp;

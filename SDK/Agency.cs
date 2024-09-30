@@ -20,6 +20,8 @@ namespace Agience.SDK
         internal string? RepresentativeId { get; private set; }
         public string Timestamp => _broker.Timestamp;
 
+        public ChatHistory ChatHistory => _chatHistory;
+
         private readonly Authority _authority;
         private readonly Broker _broker;
         private readonly ILogger<Agency> _logger;
@@ -29,8 +31,7 @@ namespace Agience.SDK
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly List<string> _localAgentIds = new();        
 
-        private readonly ChatHistory _history = new(); // TODO: History should be persistent.
-        //private readonly History _history; // TODO: Use History instead of ChatHistory
+        private readonly ChatHistory _chatHistory = new();        
 
         internal Agency(Authority authority, Broker broker, ILogger<Agency> logger)
         {
@@ -192,13 +193,13 @@ namespace Agience.SDK
         public async Task InformAsync(string message)
         {
             var chatMessage = new ChatMessageContent(AuthorRole.User, message);
-            _history.Add(chatMessage);
+            _chatHistory.Add(chatMessage);
             ChatMessageReceived?.Invoke(new AgienceChatMessageArgs { AgencyId = Id, Message = chatMessage });
         }
 
         public async Task<IEnumerable<ChatMessageContent>> GetHistory()
         {
-            return _history;
+            return _chatHistory;
         }
     }
 }

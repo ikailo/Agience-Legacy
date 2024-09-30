@@ -12,7 +12,7 @@ This open-source project enables anyone to create and deploy intelligent agents 
  
 - **Seamless Integration**: Agience is adaptable to any addressable protocol, ensuring reliable connectivity across systems.
  
-- **Open-Source**: Agience is released under the LGPLv3 license, allowing anyone to use, modify, and distribute the software. You can build anything using Agience, but any modifications to the framework or platform must be shared with the community for the benefit of humanity.
+- **Open-Source**: Agience is released under the AGPL license, allowing anyone to use, modify, and distribute the software. You can build anything using Agience, but any modifications and improvements must be shared with the community for the benefit of humanity.
 
 ## Framework Architecture
 
