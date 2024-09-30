@@ -88,16 +88,19 @@ namespace Agience.Hosts._Console
 
         private async Task ProcessInput(string input)
         {
+            /*
             if (!string.IsNullOrEmpty(_currentAgentId) && _agents.TryGetValue(_currentAgentId, out var agent))
             {
                 var promptTask = agent.PromptAsync(input);
                 _pendingAgentPrompts[_currentAgentId] = new TaskCompletionSource<string>();
+
                 _ = HandleAgentResponse(agent.Id, promptTask);
             }
             else if (!string.IsNullOrEmpty(_currentAgencyId) && _agencies.TryGetValue(_currentAgencyId, out var agency))
             {
                 await agency.InformAsync(input);
-            }
+            }*/
+            throw new NotImplementedException();
         }
 
         private async Task OnAgentConnected(Agent agent)

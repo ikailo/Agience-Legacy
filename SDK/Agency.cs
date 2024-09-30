@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Agience.SDK.Mappings;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using Agience.SDK.Models.Messages;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
@@ -15,7 +14,7 @@ namespace Agience.SDK
         // https://github.com/daveshap/ACE_Framework/blob/main/publications/Conceptual%20Framework%20for%20Autonomous%20Cognitive%20Entities%20(ACE).pdf
         // https://github.com/daveshap/ACE_Framework/blob/main/ACE_PRIME/HelloAF/src/ace/resources/core/hello_layers/prompts/templates/ace_context.md
 
-        public event Func<IEnumerable<ChatMessageContent>, Task>? HistoryUpdated;
+        public event Func<AgienceChatMessageArgs, Task>? ChatMessageReceived;
 
         public bool IsConnected { get; private set; }
         internal string? RepresentativeId { get; private set; }
@@ -194,7 +193,7 @@ namespace Agience.SDK
         {
             var chatMessage = new ChatMessageContent(AuthorRole.User, message);
             _history.Add(chatMessage);
-            HistoryUpdated?.Invoke([chatMessage]);
+            ChatMessageReceived?.Invoke(new AgienceChatMessageArgs { AgencyId = Id, Message = chatMessage });
         }
 
         public async Task<IEnumerable<ChatMessageContent>> GetHistory()

@@ -5,6 +5,7 @@ namespace Agience.Plugins.Primary.Interaction
 {
     public class InteractionPlugin
     {
+        /*
         private readonly IInteractionService _interactionService;
         private readonly IConsoleService _console;
 
@@ -13,7 +14,7 @@ namespace Agience.Plugins.Primary.Interaction
             _interactionService = interactionService;
             _console = console;
 
-            _interactionService.AgencyChatHistoryUpdated += HandleAgencyChatHistoryUpdated; ;
+            _interactionService.AgencyChatMessageReceived += OnAgencyChatMessageReceived;
         }
 
         [KernelFunction, Description("Prompt an agent and get a response.")]
@@ -42,9 +43,9 @@ namespace Agience.Plugins.Primary.Interaction
             return await _interactionService.GetAgencyChatHistoryAsync(agencyId);
         }
 
-        private async Task HandleAgencyChatHistoryUpdated(string agencyId, IEnumerable<ChatMessageContent> message)
+        private async Task OnAgencyChatMessageReceived(string agencyId, IEnumerable<ChatMessageContent> message)
         {
             throw new NotImplementedException();
-        }
+        }*/
     }
 }

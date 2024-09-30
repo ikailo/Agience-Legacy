@@ -1,5 +1,6 @@
 ﻿using Agience.SDK;
 using Agience.SDK.Logging;
+using Agience.SDK.Models.Messages;
 using Microsoft.SemanticKernel;
 
 namespace Agience.Plugins.Primary.Interaction
@@ -19,16 +20,16 @@ namespace Agience.Plugins.Primary.Interaction
         event Func<AgienceEventLogArgs, Task>? AgentLogEntryReceived;
 
         // Incoming Chat Message Events
-        event Func<string, ChatMessageContent, Task>? AgencyChatMessageReceived;
-        event Func<string, ChatMessageContent, Task>? AgentChatMessageReceived;
+        event Func<AgienceChatMessageArgs, Task>? AgencyChatMessageReceived;
+        event Func<AgienceChatMessageArgs, Task>? AgentChatMessageReceived;
 
         // Chat History Methods
         Task<IEnumerable<ChatMessageContent>> GetAgencyChatHistoryAsync(string agencyId);
         Task<IEnumerable<ChatMessageContent>> GetAgentChatHistoryAsync(string agentId);
 
         // Outgoing Chat Message Methods
-        Task<ChatMessageContent?> SendAgencyChatMessageAsync(string agencyId, string message);
-        Task<ChatMessageContent?> SendAgentChatMessageAsync(string agentId, string message);
+        Task SendAgencyChatMessageAsync(string agencyId, string message);
+        Task SendAgentChatMessageAsync(string agentId, string message);
 
         // Log Retrieval Methods
         Task<IEnumerable<string>> GetAgencyLogsAsync(string agencyId);
