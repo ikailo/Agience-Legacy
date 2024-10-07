@@ -32,8 +32,26 @@ The **authority** manages governance, resources, identity, and metadata for host
 
 ## Getting Started
 
+Sign-up: https://web.preview.agience.ai
+
 ### Prerequisites
+
+Visual Studio 2022
 
 ### Installation
 
+**Instructions:** /Build/Docs/agience-preview-connect.pdf
+
+git clone https://github.com/ikailo/Agience.git
+
+- In Agience.Hosts.Console User-Secrets, add HostId, HostSecret, AuthorityUri, and OpenAiApiKey.
+	- In the web preview user interface. Create a host and then generate a key.
+	- AuthorityUri: https://authority.preview.agience.ai
+	- Get a key from OpenAI.
+
+- In web preview, setup an agency and agent, and assign it to the same host.
+- You can add plugins and functions according to the instructions in the pdf doc.
+
 ### Running in Docker
+
+More Coming Soon
