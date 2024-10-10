@@ -46,5 +46,8 @@ namespace Agience.Plugins.Primary.Interaction
         // Connection Status Methods
         Task<bool> IsAgencyConnected(string agencyId);
         Task<bool> IsAgentConnected(string agentId);
+
+        bool? IsExistedAgentHandler();
+        bool? IsExistedAgencyHandler();
     }
 }
